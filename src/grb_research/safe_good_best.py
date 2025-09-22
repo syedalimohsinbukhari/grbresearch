@@ -101,7 +101,7 @@ def read_param_values_errors(path: str, n_parameters=None):
     try:
         vals = [ff[2].data[f"PARAM{i}"][0][0] for i in range(n_parameters)]
         errs = [ff[2].data[f"PARAM{i}"][0][1] for i in range(n_parameters)]
-        return np.array(vals, float), np.array(errs, float)
+        return np.array(object=vals, dtype=float), np.array(object=errs, dtype=float)
     finally:
         ff.close()
 
@@ -132,7 +132,7 @@ def compare_models(a_model, a_cstat, b_model, b_cstat, single_only=False):
 
 
 def compare_single_models(a_model, a_cstat, b_model, b_cstat):
-    return compare_models(a_model, a_cstat, b_model, b_cstat, single_only=True)
+    return compare_models(a_model=a_model, a_cstat=a_cstat, b_model=b_model, b_cstat=b_cstat, single_only=True)
 
 
 # ----------------- Error Criteria -----------------
@@ -153,11 +153,15 @@ def model_passes_error_criteria(path, par_constraint=0.4, loose_criteria=True):
     model = get_model_name_from_path(path)
     try:
         schema = build_composite_schema(model)
-        vals, errs = read_param_values_errors(path, len(schema))
+        vals, errs = read_param_values_errors(path=path, n_parameters=len(schema))
     except Exception:
         return False
     for (pname, _, _), v, e in zip(schema, vals, errs):
-        limit, _ = _param_error_limit(model, pname, v, par_constraint, loose_criteria)
+        limit, _ = _param_error_limit(model=model,
+                                      pname=pname,
+                                      v=v,
+                                      par_constraint=par_constraint,
+                                      loose=loose_criteria)
         if abs(v) == 0 and abs(e) != 0: return False
         if abs(v) != 0 and abs(e) >= limit: return False
     return True
@@ -168,7 +172,7 @@ def model_passes_error_criteria(path, par_constraint=0.4, loose_criteria=True):
 def filter_models_by_error(cstats, folder_path, candidates, **kwargs):
     return {m: cstats[m] for m in candidates if
             m in cstats and os.path.exists(os.path.join(folder_path, f"{m}.fit")) and model_passes_error_criteria(
-                os.path.join(folder_path, f"{m}.fit"), **kwargs)}
+                path=os.path.join(folder_path, f"{m}.fit"), **kwargs)}
 
 
 def pick_best_in_group(cstats, candidates, group_name):
@@ -178,17 +182,17 @@ def pick_best_in_group(cstats, candidates, group_name):
     present.sort(key=complexity_key)
     best, best_c = present[0], cstats[present[0]]
     for m in present[1:]:
-        best = compare_models(best, best_c, m, cstats[m])
+        best = compare_models(a_model=best, a_cstat=best_c, b_model=m, b_cstat=cstats[m])
         best_c = cstats[best]
     return best, best_c
 
 
 def pick_best_model(cstats, candidates, group_name, folder_path=None, **kwargs):
     if folder_path:
-        cstats = filter_models_by_error(cstats, folder_path, candidates, **kwargs)
+        cstats = filter_models_by_error(cstats=cstats, folder_path=folder_path, candidates=candidates, **kwargs)
         if not cstats:
             raise ValueError(f"No {group_name} models passed error criteria")
-    return pick_best_in_group(cstats, candidates, group_name)
+    return pick_best_in_group(cstats=cstats, candidates=candidates, group_name=group_name)
 
 
 def pick_best_single_model(cstats: Dict[str, float]):
@@ -198,7 +202,7 @@ def pick_best_single_model(cstats: Dict[str, float]):
     available = sorted(singles.keys(), key=lambda kp: (SINGLE_MODEL_ORDER[kp], SINGLE_MODEL_FREE_PARAMS[kp]))
     best, best_c = available[0], singles[available[0]]
     for m in available[1:]:
-        best = compare_single_models(best, best_c, m, singles[m])
+        best = compare_single_models(a_model=best, a_cstat=best_c, b_model=m, b_cstat=singles[m])
         best_c = singles[best]
     return best, best_c
 
@@ -213,7 +217,10 @@ def list_safe_models(folder_path, **kwargs):
 
 def compute_good_models(cstats, folder_path, **kwargs):
     good = {}
-    base = filter_models_by_error(cstats, folder_path, ["PL", "CPL", "BAND", "SBPL"], **kwargs)
+    base = filter_models_by_error(cstats=cstats,
+                                  folder_path=folder_path,
+                                  candidates=["PL", "CPL", "BAND", "SBPL"],
+                                  **kwargs)
     if base:
         good["BASE"] = pick_best_single_model(base)
     for group, candidates in {
@@ -222,7 +229,10 @@ def compute_good_models(cstats, folder_path, **kwargs):
         "+PL+BB": ["CPL_PL_BB", "BAND_PL_BB", "SBPL_PL_BB"]
     }.items():
         try:
-            good[group.strip("+")] = pick_best_model(cstats, candidates, group, folder_path, **kwargs)
+            good[group.strip("+")] = pick_best_model(cstats=cstats,
+                                                     candidates=candidates,
+                                                     group_name=group,
+                                                     folder_path=folder_path, **kwargs)
         except Exception:
             pass
     return good
@@ -235,7 +245,7 @@ def list_par_err(cwd_, fit_type, string='SAFE'):
             continue
         try:
             schema = build_composite_schema(m)
-            vals, errs = read_param_values_errors(fit_path, len(schema))
+            vals, errs = read_param_values_errors(path=fit_path, n_parameters=len(schema))
             print(f"[{string}] {m} parameter details:")
             for (pname, _, _), v, e in zip(schema, vals, errs):
                 print(f"   {pname:15s} = {v:.6g}, {e:.6g}, {(e / abs(v)) * 100:.3g} %")
