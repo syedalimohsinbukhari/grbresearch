@@ -3,6 +3,7 @@
 import os
 
 import numpy as np
+import pandas as pd
 from uncertainties import correlated_values
 
 model_params = {"pl": 3,
@@ -54,3 +55,52 @@ def get_value(fit_file, n_parameters, full_cov, return_errors: bool = False, un_
     else:
         return correlated_values(nom_values=values, covariance_mat=full_cov)
 
+
+def make_json_safe(obj):
+    if isinstance(obj, dict):
+        return {k: make_json_safe(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [make_json_safe(v) for v in obj]
+    elif isinstance(obj, tuple):
+        return tuple(make_json_safe(v) for v in obj)
+    elif hasattr(obj, "tolist"):  # catches numpy arrays/scalars
+        return obj.tolist()
+    else:
+        return obj
+
+
+def deep_merge(d, u):
+    """Recursively merge dict u into dict d (no overwrite of nested dicts)."""
+    for k_, v_ in u.items():
+        if isinstance(v_, dict):
+            # ensure destination has a dict to merge into
+            node = d.setdefault(k_, {})
+            if isinstance(node, dict):
+                deep_merge(node, v_)
+            else:
+                d[k_] = v_
+        else:
+            d[k_] = v_
+    return d
+
+
+def flatten_results(res_total):
+    rows = []
+    for grb, epochs in res_total.items():
+        for ep, models in epochs.items():
+            for model, params in models.items():
+                status = params.get("_status", "NA")
+                for pname, val in params.items():
+                    if pname == "_status":
+                        continue
+                    v, e = val  # because JSON list [value, error]
+                    rows.append({
+                        "GRB": grb,
+                        "epoch": ep,
+                        "model": model,
+                        "status": status,
+                        "param": pname,
+                        "value": v,
+                        "error": e,
+                    })
+    return pd.DataFrame(rows)

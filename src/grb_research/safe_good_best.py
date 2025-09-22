@@ -6,6 +6,27 @@ from typing import Iterable, Dict, List
 import numpy as np
 from astropy.io import fits
 
+pl_par = ['amp_pl', 'e_piv_pl', 'index_pl']
+cpl_par = ['amp_cpl', 'e_peak_cpl', 'index_cpl', 'e_piv_cpl']
+band_par = ['amp_band', 'e_peak_band', 'index1_band', 'index2_band']
+sbpl_par = ['amp_sbpl', 'e_piv_sbpl', 'index1_sbpl', 'e_break_sbpl', 'delta_sbpl', 'index2_sbpl']
+bb_par = ['amp_bb', 'kt_bb']
+
+PARAMETERS = {'pl': pl_par,
+              'pl_bb': pl_par + bb_par,
+              'band': band_par,
+              'band_pl': pl_par + band_par,
+              'band_bb': band_par + bb_par,
+              'band_pl_bb': pl_par + band_par + bb_par,
+              'cpl': cpl_par,
+              'cpl_pl': pl_par + cpl_par,
+              'cpl_bb': cpl_par + bb_par,
+              'cpl_pl_bb': pl_par + cpl_par + bb_par,
+              'sbpl': sbpl_par,
+              'sbpl_bb': sbpl_par + bb_par,
+              'sbpl_pl': pl_par + sbpl_par,
+              'sbpl_pl_bb': pl_par + sbpl_par + bb_par}
+
 BASE_PARAM_SCHEMAS = {
     "PL": [("amplitude", False, False), ("e_pivot", True, False), ("index", False, False)],
     "CPL": [("amplitude", False, False), ("peak_energy", False, False), ("index", False, False),
@@ -238,7 +259,13 @@ def compute_good_models(cstats, folder_path, **kwargs):
     return good
 
 
-def list_par_err(cwd_, fit_type, string='SAFE'):
+def list_par_err(cwd_, fit_type, string="SAFE", result_dict=None):
+    if result_dict is None:
+        result_dict = {}
+
+    grb = cwd_.split("/")[-2]
+    ep = cwd_.split("/")[-1].split("__")[1].replace("m", "-")
+
     for m in fit_type:
         fit_path = os.path.join(cwd_, f"{m}.fit")
         if not os.path.exists(fit_path):
@@ -246,8 +273,22 @@ def list_par_err(cwd_, fit_type, string='SAFE'):
         try:
             schema = build_composite_schema(m)
             vals, errs = read_param_values_errors(path=fit_path, n_parameters=len(schema))
+
+            # store SAFE/UNSAFE status
+            model_dict = result_dict.setdefault(grb, {}).setdefault(ep, {}).setdefault(m, {})
+            model_dict["_status"] = string
+
+            # store parameters
+            for m2, v, e in zip(PARAMETERS[m.lower()], vals, errs):
+                model_dict[m2] = np.array([v, e])
+
+            # print log
             print(f"[{string}] {m} parameter details:")
             for (pname, _, _), v, e in zip(schema, vals, errs):
-                print(f"   {pname:15s} = {v:.6g}, {e:.6g}, {(e / abs(v)) * 100:.3g} %")
+                pct = (abs(e) / abs(v) * 100) if v != 0 else float("inf")
+                print(f"   {pname:15s} = {v:.6g}, {e:.6g}, {pct:.3g} %")
+
         except Exception as e:
             print(f"[{string}] {m}: failed to read params ({e})")
+
+    return result_dict

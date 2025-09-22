@@ -1,10 +1,12 @@
 """Created on Sep 20 12:49:29 2025"""
 
+import json
 import os
 import sys
 from datetime import datetime
 
 from src.grb_research import get_directories_in_current_folder, safe_good_best
+from src.grb_research.core import flatten_results, make_json_safe, deep_merge
 
 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 log_filename = f"cstat_run_{timestamp}.log"
@@ -14,11 +16,12 @@ with open(log_filename, "w", buffering=1) as log_file:
     sys.stdout = log_file
     sys.stderr = log_file
     try:
+        res_safe, res_unsafe, res_total = {}, {}, {}
         cwd_ = os.getcwd()
         outer_dirs = get_directories_in_current_folder()
-        for out_ in outer_dirs:
+        for out_ in [outer_dirs[2]]:
             inner_dirs = get_directories_in_current_folder(f'{cwd_}/{out_}')
-            for in_ in inner_dirs:
+            for in_ in [inner_dirs[0]]:
                 print(f"\n[RUN] Started at {timestamp} on directory {cwd_}/{out_}/{in_}\n")
                 cwd = f'{cwd_}/{out_}/{in_}'
                 candidates = [m + ".fit" for m in sorted(safe_good_best.ALLOWED_MODELS)]
@@ -55,11 +58,17 @@ with open(log_filename, "w", buffering=1) as log_file:
                 safe.sort()
                 unsafe.sort()
                 print(f"SAFE models: {sorted(safe)}")
-                safe_good_best.list_par_err(cwd_=cwd, fit_type=safe, string='SAFE')
+                safe_good_best.list_par_err(cwd_=cwd, fit_type=safe, string='SAFE', result_dict=res_safe)
                 print(f"GOOD models: {good}")
                 print(f"UNSAFE models: {sorted(unsafe)}")
-                safe_good_best.list_par_err(cwd_=cwd, fit_type=unsafe, string='UNSAFE')
+                safe_good_best.list_par_err(cwd_=cwd, fit_type=unsafe, string='UNSAFE', result_dict=res_unsafe)
                 print(f"[RUN] Finished at {datetime.now().strftime('%Y%m%d_%H%M%S')}")
+                res_total = deep_merge(res_total, res_safe)
+                res_total = deep_merge(res_total, res_unsafe)
+                pp = flatten_results(res_total)
+                with open("results.json", "w") as f:
+                    json.dump(make_json_safe(res_total), f, indent=4)
+
     finally:
         sys.stdout = orig_stdout
         sys.stderr = orig_stderr
