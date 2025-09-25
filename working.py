@@ -19,9 +19,9 @@ with open(log_filename, "w", buffering=1) as log_file:
         res_safe, res_unsafe, res_total = {}, {}, {}
         cwd_ = os.getcwd()
         outer_dirs = get_directories_in_current_folder()
-        for out_ in [outer_dirs[2]]:
+        for out_ in outer_dirs:
             inner_dirs = get_directories_in_current_folder(f'{cwd_}/{out_}')
-            for in_ in [inner_dirs[0]]:
+            for in_ in inner_dirs:
                 print(f"\n[RUN] Started at {timestamp} on directory {cwd_}/{out_}/{in_}\n")
                 cwd = f'{cwd_}/{out_}/{in_}'
                 candidates = [m + ".fit" for m in sorted(safe_good_best.ALLOWED_MODELS)]
