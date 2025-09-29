@@ -12,15 +12,16 @@ with open("results.json", "r") as f:
 
 data = flatten_results(res_total=data, include_covariance=True)
 
-grb_name = 'GRB080916009'
-m_name = 'BAND_PL'
-status = 'UNSAFE'
-epoch = '1.280_64.256'
+grb_name = 'GRB110721200'
+epoch = '-0.384_9.088'
+m_name = 'BAND'
+status = 'SAFE'
 
 p1 = data.query(f"GRB == '{grb_name}' and model == '{m_name}' and status == '{status}'")
 p1.reset_index(drop=True, inplace=True)
 
 p2 = p1.query(f"epoch == '{epoch}'")
+
 labs = PARAMETERS[m_name.lower()]
 
 vals = p2.iloc[:len(labs)]['value'].to_numpy()
