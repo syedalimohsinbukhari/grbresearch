@@ -10,7 +10,7 @@ from numpy.typing import NDArray
 from uncertainties import correlated_values
 from uncertainties.unumpy import nominal_values, std_devs
 
-from .core import model_params
+from .core import model_n_pars
 
 ## TODO:
 # for each episode, collect the parameters +/- errors
@@ -108,7 +108,7 @@ for fit_ in files_:
     with fits.open(f'{cwd_}/{dir_[0]}/{fit_}') as f:
         print(fit_.split('.fit')[0].lower())
         v = get_value(fit_file=f,
-                      n_parameters=model_params[model_],
+                      n_parameters=model_n_pars[model_],
                       full_cov=f[2].data['COVARMAT'][0])
         if model_ == 'pl_bb':
             save_model(values=v, model_name=model_)

@@ -6,26 +6,7 @@ from typing import Iterable, Dict, List
 import numpy as np
 from astropy.io import fits
 
-pl_par = ['amp_pl', 'e_piv_pl', 'index_pl']
-cpl_par = ['amp_cpl', 'e_peak_cpl', 'index_cpl', 'e_piv_cpl']
-band_par = ['amp_band', 'e_peak_band', 'index1_band', 'index2_band']
-sbpl_par = ['amp_sbpl', 'e_piv_sbpl', 'index1_sbpl', 'e_break_sbpl', 'delta_sbpl', 'index2_sbpl']
-bb_par = ['amp_bb', 'kt_bb']
-
-PARAMETERS = {'pl': pl_par,
-              'pl_bb': pl_par + bb_par,
-              'band': band_par,
-              'band_pl': pl_par + band_par,
-              'band_bb': band_par + bb_par,
-              'band_pl_bb': pl_par + band_par + bb_par,
-              'cpl': cpl_par,
-              'cpl_pl': pl_par + cpl_par,
-              'cpl_bb': cpl_par + bb_par,
-              'cpl_pl_bb': pl_par + cpl_par + bb_par,
-              'sbpl': sbpl_par,
-              'sbpl_bb': sbpl_par + bb_par,
-              'sbpl_pl': pl_par + sbpl_par,
-              'sbpl_pl_bb': pl_par + sbpl_par + bb_par}
+from src.grb_research.core import covariance_to_correlation, PARAMETERS
 
 BASE_PARAM_SCHEMAS = {
     "PL": [("amplitude", False, False), ("e_pivot", True, False), ("index", False, False)],
@@ -159,12 +140,12 @@ def compare_single_models(a_model, a_cstat, b_model, b_cstat):
 # ----------------- Error Criteria -----------------
 
 def _param_error_limit(model, pname, v, par_constraint, loose):
-    pname = pname.lower()
+    parameter_name = pname.lower()
     base = model.split("_")[0]
-    if pname == "index2" and base in ("BAND", "SBPL"):
+    if parameter_name == "index2" and base in ("BAND", "SBPL"):
         factor = 1.0 if loose else 0.7
         return factor * abs(v), f"loose_index2({factor})"
-    if pname == "index_pl" and "PL" in model.split("_")[1:]:
+    if parameter_name == "index_pl" and "PL" in model.split("_")[1:]:
         factor = 1.0 if loose else 0.7
         return factor * abs(v), f"loose_pl_index({factor})"
     return par_constraint * abs(v), f"default({par_constraint})"
@@ -177,9 +158,9 @@ def model_passes_error_criteria(path, par_constraint=0.4, loose_criteria=True):
         vals, errs = read_param_values_errors(path=path, n_parameters=len(schema))
     except Exception:
         return False
-    for (pname, _, _), v, e in zip(schema, vals, errs):
+    for (p_name, _, _), v, e in zip(schema, vals, errs):
         limit, _ = _param_error_limit(model=model,
-                                      pname=pname,
+                                      pname=p_name,
                                       v=v,
                                       par_constraint=par_constraint,
                                       loose=loose_criteria)
@@ -190,34 +171,34 @@ def model_passes_error_criteria(path, par_constraint=0.4, loose_criteria=True):
 
 # ----------------- Filtering & Picking -----------------
 
-def filter_models_by_error(cstats, folder_path, candidates, **kwargs):
-    return {m: cstats[m] for m in candidates if
-            m in cstats and os.path.exists(os.path.join(folder_path, f"{m}.fit")) and model_passes_error_criteria(
+def filter_models_by_error(c_stats, folder_path, candidates, **kwargs):
+    return {m: c_stats[m] for m in candidates if
+            m in c_stats and os.path.exists(os.path.join(folder_path, f"{m}.fit")) and model_passes_error_criteria(
                 path=os.path.join(folder_path, f"{m}.fit"), **kwargs)}
 
 
-def pick_best_in_group(cstats, candidates, group_name):
-    present = [m for m in candidates if m in cstats]
+def pick_best_in_group(c_stats, candidates, group_name):
+    present = [m for m in candidates if m in c_stats]
     if not present:
         raise ValueError(f"No {group_name} models found")
     present.sort(key=complexity_key)
-    best, best_c = present[0], cstats[present[0]]
+    best, best_c = present[0], c_stats[present[0]]
     for m in present[1:]:
-        best = compare_models(a_model=best, a_cstat=best_c, b_model=m, b_cstat=cstats[m])
-        best_c = cstats[best]
+        best = compare_models(a_model=best, a_cstat=best_c, b_model=m, b_cstat=c_stats[m])
+        best_c = c_stats[best]
     return best, best_c
 
 
-def pick_best_model(cstats, candidates, group_name, folder_path=None, **kwargs):
+def pick_best_model(c_stats, candidates, group_name, folder_path=None, **kwargs):
     if folder_path:
-        cstats = filter_models_by_error(cstats=cstats, folder_path=folder_path, candidates=candidates, **kwargs)
-        if not cstats:
+        c_stats = filter_models_by_error(c_stats=c_stats, folder_path=folder_path, candidates=candidates, **kwargs)
+        if not c_stats:
             raise ValueError(f"No {group_name} models passed error criteria")
-    return pick_best_in_group(cstats=cstats, candidates=candidates, group_name=group_name)
+    return pick_best_in_group(c_stats=c_stats, candidates=candidates, group_name=group_name)
 
 
-def pick_best_single_model(cstats: Dict[str, float]):
-    singles = {k.upper(): v for k, v in cstats.items() if k.upper() in SINGLE_MODEL_FREE_PARAMS}
+def pick_best_single_model(c_stats: Dict[str, float]):
+    singles = {k.upper(): v for k, v in c_stats.items() if k.upper() in SINGLE_MODEL_FREE_PARAMS}
     if not singles:
         raise ValueError("No single models in cstats")
     available = sorted(singles.keys(), key=lambda kp: (SINGLE_MODEL_ORDER[kp], SINGLE_MODEL_FREE_PARAMS[kp]))
@@ -236,11 +217,9 @@ def list_safe_models(folder_path, **kwargs):
                 os.path.join(folder_path, f"{m}.fit"), **kwargs)}
 
 
-def compute_good_models(cstats, folder_path, **kwargs):
+def compute_good_models(c_stats, folder_path, **kwargs):
     good = {}
-    base = filter_models_by_error(cstats=cstats,
-                                  folder_path=folder_path,
-                                  candidates=["PL", "CPL", "BAND", "SBPL"],
+    base = filter_models_by_error(c_stats=c_stats, folder_path=folder_path, candidates=["PL", "CPL", "BAND", "SBPL"],
                                   **kwargs)
     if base:
         good["BASE"] = pick_best_single_model(base)
@@ -250,13 +229,24 @@ def compute_good_models(cstats, folder_path, **kwargs):
         "+PL+BB": ["CPL_PL_BB", "BAND_PL_BB", "SBPL_PL_BB"]
     }.items():
         try:
-            good[group.strip("+")] = pick_best_model(cstats=cstats,
-                                                     candidates=candidates,
-                                                     group_name=group,
+            good[group.strip("+")] = pick_best_model(c_stats=c_stats, candidates=candidates, group_name=group,
                                                      folder_path=folder_path, **kwargs)
         except Exception:
             pass
     return good
+
+
+def get_extra_values(path):
+    ff = fits.open(path)
+    try:
+        ff2 = ff[2].data
+        ph_flx, ph_fln = ff2['PHTFLUX'][0], ff2['PHTFLNC'][0]
+        en_flx, en_fln = ff2['NRGFLUX'][0], ff2['NRGFLNC'][0]
+        cov_ = ff2['COVARMAT'][0]
+    finally:
+        ff.close()
+
+    return ph_flx, ph_fln, en_flx, en_fln, cov_
 
 
 def list_par_err(cwd_, fit_type, string="SAFE", result_dict=None):
@@ -273,6 +263,15 @@ def list_par_err(cwd_, fit_type, string="SAFE", result_dict=None):
         try:
             schema = build_composite_schema(m)
             vals, errs = read_param_values_errors(path=fit_path, n_parameters=len(schema))
+            ((ph_flx_v, ph_flx_e),
+             (ph_fluence_v, ph_fluence_e),
+             (en_flx_v, en_flx_e),
+             (en_fluence_v, en_fluence_e),
+             cov_matrix) = get_extra_values(path=fit_path)
+
+            p_name2 = ['photon_flux', 'photon_fluence', 'energy_flux', 'energy_fluence']
+            vals2 = [ph_flx_v, ph_fluence_v, en_flx_v, en_fluence_v]
+            errs2 = [ph_flx_e, ph_fluence_e, en_flx_e, en_fluence_e]
 
             # store SAFE/UNSAFE status
             model_dict = result_dict.setdefault(grb, {}).setdefault(ep, {}).setdefault(m, {})
@@ -282,11 +281,20 @@ def list_par_err(cwd_, fit_type, string="SAFE", result_dict=None):
             for m2, v, e in zip(PARAMETERS[m.lower()], vals, errs):
                 model_dict[m2] = np.array([v, e])
 
+            for m2, v, e in zip(p_name2, vals2, errs2):
+                model_dict[m2] = np.array([v, e])
+
+            model_dict['covariance_matrix'] = cov_matrix.tolist()
+            model_dict['correlation_matrix'] = covariance_to_correlation(cov_matrix).tolist()
+
             # print log
             print(f"[{string}] {m} parameter details:")
-            for (pname, _, _), v, e in zip(schema, vals, errs):
+            for (par_name, _, _), v, e in zip(schema, vals, errs):
                 pct = (abs(e) / abs(v) * 100) if v != 0 else float("inf")
-                print(f"   {pname:15s} = {v:.6g}, {e:.6g}, {pct:.3g} %")
+                print(f"   {par_name:15s} = {v:.6g}, {e:.6g}, {pct:.3g} %")
+            for par_name, v, e in zip(p_name2, vals2, errs2):
+                pct = (abs(e) / abs(v) * 100) if v != 0 else float("inf")
+                print(f"   {par_name:15s} = {v:.6g}, {e:.6g}, {pct:.3g} %")
 
         except Exception as e:
             print(f"[{string}] {m}: failed to read params ({e})")

@@ -31,7 +31,7 @@ with open(log_filename, "w", buffering=1) as log_file:
                     print(f"{k}: {v[0]:.4f}/{v[1]}")
                 mapping = {k: v[0] for k, v in mapping.items()}
                 try:
-                    base_filtered = safe_good_best.filter_models_by_error(cstats=mapping, folder_path=cwd,
+                    base_filtered = safe_good_best.filter_models_by_error(c_stats=mapping, folder_path=cwd,
                                                                           candidates=["PL", "CPL", "BAND", "SBPL"])
                     if base_filtered:
                         best, best_c = safe_good_best.pick_best_single_model(base_filtered)
@@ -46,16 +46,17 @@ with open(log_filename, "w", buffering=1) as log_file:
                     "+PL+BB": ["CPL_PL_BB", "BAND_PL_BB", "SBPL_PL_BB"]
                 }.items():
                     try:
-                        best, best_c = safe_good_best.pick_best_model(cstats=mapping, candidates=group,
-                                                                      group_name=label,
-                                                                      folder_path=cwd)
+                        best, best_c = safe_good_best.pick_best_model(c_stats=mapping, candidates=group,
+                                                                      group_name=label, folder_path=cwd)
                         print(f"Best {label} model: {best} (cstat={best_c})")
                     except Exception as e:
                         print(f"Best {label} model unavailable ({e})")
                 safe = list(safe_good_best.list_safe_models(cwd))
-                good = safe_good_best.compute_good_models(cstats=mapping, folder_path=cwd)
+                good = safe_good_best.compute_good_models(c_stats=mapping, folder_path=cwd)
                 unsafe = [m for m in mapping if m not in safe]
+                good_names = [i[0] for i in list(good.values())]
                 safe.sort()
+                good_names.sort()
                 unsafe.sort()
                 print(f"SAFE models: {sorted(safe)}")
                 safe_good_best.list_par_err(cwd_=cwd, fit_type=safe, string='SAFE', result_dict=res_safe)
@@ -63,11 +64,11 @@ with open(log_filename, "w", buffering=1) as log_file:
                 print(f"UNSAFE models: {sorted(unsafe)}")
                 safe_good_best.list_par_err(cwd_=cwd, fit_type=unsafe, string='UNSAFE', result_dict=res_unsafe)
                 print(f"[RUN] Finished at {datetime.now().strftime('%Y%m%d_%H%M%S')}")
-                res_total = deep_merge(res_total, res_safe)
-                res_total = deep_merge(res_total, res_unsafe)
+                res_total = deep_merge(d=res_total, u=res_safe)
+                res_total = deep_merge(d=res_total, u=res_unsafe)
                 pp = flatten_results(res_total)
                 with open("results.json", "w") as f:
-                    json.dump(make_json_safe(res_total), f, indent=4)
+                    json.dump(obj=make_json_safe(res_total), fp=f, indent=4)
 
     finally:
         sys.stdout = orig_stdout
