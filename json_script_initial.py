@@ -1,38 +1,38 @@
 """Created on Sep 22 21:50:36 2025"""
 
-import json
-
 import numpy as np
 from matplotlib import pyplot as plt
 
-from src.grb_research.core import flatten_results, plot_covariance_corner, filter_covariance, PARAMETERS
+import src.grb_research.core as grb_core
 
-with open("results.json", "r") as f:
-    data = json.load(f)
+# setting seed for reproducibility
+np.random.seed(42)
 
-data = flatten_results(res_total=data, include_covariance=True)
-
-grb_name = 'GRB110721200'
-epoch = '-0.384_9.088'
+data = grb_core.flattened_json()
+grb_name = 'GRB080916009'
 m_name = 'BAND'
-status = 'SAFE'
 
-p1 = data.query(f"GRB == '{grb_name}' and model == '{m_name}' and status == '{status}'")
-p1.reset_index(drop=True, inplace=True)
+p1 = grb_core.query_data(data, grb_name, m_name)
 
-p2 = p1.query(f"epoch == '{epoch}'")
+epochs = p1['epoch'].unique()
 
-labs = PARAMETERS[m_name.lower()]
+for ep in epochs:
+    p1.query(f"epoch == '{ep}'")
+    labs = grb_core.PARAMETERS[m_name.lower()]
 
-vals = p2.iloc[:len(labs)]['value'].to_numpy()
-cov_matrix = np.array(p2['value'][len(labs) + 4])
-cov_filtered, names_filtered, mask = filter_covariance(cov_matrix=cov_matrix, param_names=labs)
+    vals = p1.iloc[:len(labs)]['value'].to_numpy()
+    cov_matrix = np.array(p1['value'][len(labs) + 4])
 
-plot_covariance_corner(means=vals[mask], cov_matrix=cov_filtered, param_names=names_filtered)
+    (cov_filtered,
+     names_filtered, mask) = grb_core.filter_covariance(cov_matrix=cov_matrix,
+                                                        param_names=labs)
 
-[plt.savefig(f'./{m_name}.{i}', dpi=600) for i in ['eps', 'pdf']]
+    grb_core.plot_covariance_corner(means=vals[mask],
+                                    cov_matrix=cov_filtered,
+                                    param_names=names_filtered)
 
-plt.close()
+    [plt.savefig(f'./{m_name}_{ep}.{i}', dpi=600) for i in ['png', 'pdf']]
+    plt.close()
 
 # q_e_peak = data.query("model in ['BAND', 'BAND_BB'] and param == 'index2_band' and status == 'SAFE'")
 # q_e_peak.reset_index(drop=True, inplace=True)

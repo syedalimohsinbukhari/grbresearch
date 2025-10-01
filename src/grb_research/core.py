@@ -1,12 +1,17 @@
 """Created on Sep 20 12:48:54 2025"""
 
+import json
 import os
 
 import numpy as np
 import pandas as pd
+import seaborn
 from matplotlib import pyplot as plt
 from matplotlib.patches import Ellipse
 from uncertainties import correlated_values
+
+OK_THRESHOLD = 0.4
+NOK_THRESHOLD = 1.0
 
 model_n_pars = {"pl": 3,
                 "bb": 2,
@@ -240,7 +245,7 @@ def plot_covariance_corner(means, cov_matrix, param_names):
 
             ax.tick_params(axis='both', labelrotation=45)
 
-    top, right = 0.963 if n_params > 4 else 0.943, 0.95
+    top, right = 0.96 if n_params > 4 else 0.94, 0.97
 
     fig.subplots_adjust(top=top,
                         bottom=top * 0.1,
@@ -249,3 +254,80 @@ def plot_covariance_corner(means, cov_matrix, param_names):
                         hspace=0.03,
                         wspace=0.03)
     return fig, axes
+
+
+def flattened_json(file_path="results.json"):
+    with open(f"{file_path}", "r") as f:
+        data = json.load(f)
+    return flatten_results(res_total=data, include_covariance=True)
+
+
+def query_data(data, grb_name: str, m_name: str, status: str = "both", epoch: str = None):
+    """
+    Query the dataset for GRB, model, and optional filters.
+
+    Parameters
+    ----------
+    data : pd.DataFrame
+        The dataset to query.
+    grb_name : str
+        Required GRB identifier.
+    m_name : str
+        Required model name.
+    status : str, optional
+        Status filter: 'SAFE', 'UNSAFE', or 'both' (default).
+    epoch : str, optional
+        Epoch filter (default is None).
+
+    Returns
+    -------
+    pd.DataFrame
+        Filtered DataFrame.
+    """
+    query_str = f"GRB == '{grb_name}' and model == '{m_name}'"
+
+    if status.upper() in ("SAFE", "UNSAFE"):
+        query_str += f" and status == '{status.upper()}'"
+    elif status.lower() != "both":
+        raise ValueError("status must be 'SAFE', 'UNSAFE', or 'both'")
+
+    if epoch is not None:
+        query_str += f" and epoch == '{epoch}'"
+
+    result = data.query(query_str).reset_index(drop=True)
+    return result
+
+
+m_style = seaborn.color_palette("deep6")
+
+
+def two_scatter(start_list, end_list, val1, val2, err1, err2, ti_fmt='s', ti_color='r', tr_fmt='o',
+                plot_axis=None):
+    for index, (v1, v2, e1, e2) in enumerate(zip(val1, val2, err1, err2)):
+        err_crit1 = e1 / abs(v1)
+        err_crit2 = e2 / abs(v2)
+        fmt_, color_ = tr_fmt, m_style[index % len(m_style)]
+
+        if index == 0:
+            fmt_, color_ = ti_fmt, ti_color
+
+        err_bad = np.logical_or(err_crit1 > NOK_THRESHOLD, err_crit2 > NOK_THRESHOLD)
+        err_warn = np.logical_or(err_crit1 > OK_THRESHOLD, err_crit2 > OK_THRESHOLD)
+        alpha_mask = np.logical_or(start_list[index] < start_list[0], end_list[index] > end_list[0])
+
+        if index == 0:
+            alpha_ = 1.0
+        else:
+            alpha_ = 0.5 if alpha_mask else 1.0
+
+        if err_bad:
+            l_lim, u_lim = 1, 1
+        elif err_warn:
+            l_lim, u_lim = 0, 1
+        else:
+            l_lim, u_lim = 0, 0
+
+        plot_axis.errorbar(x=v1, y=v2,
+                           xerr=e1, yerr=e2,
+                           color=color_, fmt=fmt_, capsize=3, lolims=l_lim, uplims=u_lim, alpha=alpha_,
+                           label=f"{start_list[index]}_{end_list[index]}")
