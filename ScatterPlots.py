@@ -28,7 +28,7 @@ GRB_ID = "GRB080916009"              # target GRB
 OUTDIR = "outputs"                   # output directory for CSV/PNG
 
 # Which models to run. Choose any subset of {"BAND","CPL","SBPL"} or leave as-is for all.
-MODELS_TO_RUN = ["CPL", "SBPL"]
+MODELS_TO_RUN = ["BAND"]
 
 # Colors
 TI_COLOR = "C3"                      # red for time-integrated (longest)
@@ -41,12 +41,12 @@ DURATION_FMT = "{:.2f}s"             # legend duration formatting
 MARKERS_IN = ["o", "^", "v", "s", "D", "*", "<", ">", "X", "P", "h", "d"]
 MARKERS_OUT = ["o", "^", "v", "s", "D", "*", "<", ">", "X", "P", "h", "d"]
 
-# Map matplotlib marker -> Unicode-like symbol for legend text
-MARKER_SYMBOL = {
-    "o": "●",  "^": "▲",  "v": "▼",  "s": "■",
-    "D": "◆",  "d": "◆",  "*": "★",  "<": "◄",
-    ">": "►",  "X": "✕",  "P": "⬟",  "h": "⬢",
-}
+# # Map matplotlib marker -> Unicode-like symbol for legend text
+# MARKER_SYMBOL = {
+#     "o": "●",  "^": "▲",  "v": "▼",  "s": "■",
+#     "D": "◆",  "d": "◆",  "*": "★",  "<": "◄",
+#     ">": "►",  "X": "✕",  "P": "⬟",  "h": "⬢",
+# }
 # -------------------------------------------------------------- #
 
 
@@ -173,11 +173,12 @@ def plot_one_model(df: pd.DataFrame, grb_id: str, model: str, out_png: str) -> N
     # --- TR inside: per-episode markers & legend entries ---
     for i, (_, r) in enumerate(df_tr_in.iterrows()):
         mkr = MARKERS_IN[i % len(MARKERS_IN)]
-        sym = MARKER_SYMBOL.get(mkr, mkr)
+        # sym = MARKER_SYMBOL.get(mkr, mkr)
         x = float(r["t_mid_s"]); y = float(r["Y_value"])
         xerr = _xerr_from_bounds(np.array([r["t_start_s"]]), np.array([r["t_end_s"]]))
         yerr = np.array([r["Y_err"]], dtype=float)
-        label_txt = f"{sym} {DURATION_FMT.format(float(r['duration_s']))}"
+        # label_txt = f"{sym} {DURATION_FMT.format(float(r['duration_s']))}"
+        label_txt = f"{DURATION_FMT.format(float(r['duration_s']))}"
         ax.errorbar([x], [y], xerr=xerr, yerr=yerr,
                     fmt=mkr, capsize=3, color=TR_IN_COLOR, markersize=7,
                     linestyle="None", label=label_txt)
@@ -185,11 +186,12 @@ def plot_one_model(df: pd.DataFrame, grb_id: str, model: str, out_png: str) -> N
     # --- TR outside: per-episode markers & legend entries (grey) ---
     for i, (_, r) in enumerate(df_tr_out.iterrows()):
         mkr = MARKERS_OUT[i % len(MARKERS_OUT)]
-        sym = MARKER_SYMBOL.get(mkr, mkr)
+        # sym = MARKER_SYMBOL.get(mkr, mkr)
         x = float(r["t_mid_s"]); y = float(r["Y_value"])
         xerr = _xerr_from_bounds(np.array([r["t_start_s"]]), np.array([r["t_end_s"]]))
         yerr = np.array([r["Y_err"]], dtype=float)
-        label_txt = f"{sym} {DURATION_FMT.format(float(r['duration_s']))} (outside TI)"
+        # label_txt = f"{sym} {DURATION_FMT.format(float(r['duration_s']))} (outside TI)"
+        label_txt = f"{DURATION_FMT.format(float(r['duration_s']))} (outside TI)"
         ax.errorbar([x], [y], xerr=xerr, yerr=yerr,
                     fmt=mkr, capsize=3, color=TR_OUT_COLOR, markersize=7,
                     linestyle="None", label=label_txt)
@@ -198,10 +200,10 @@ def plot_one_model(df: pd.DataFrame, grb_id: str, model: str, out_png: str) -> N
     xti = df_ti["t_mid_s"].values; yti = df_ti["Y_value"].values
     xerr_ti = _xerr_from_bounds(df_ti["t_start_s"].values, df_ti["t_end_s"].values)
     yerr_ti = df_ti["Y_err"].values
-    ti_label = f"{MARKER_SYMBOL.get('s', '■')} Time-integrated: {DURATION_FMT.format(ti_dur)}"
+    # ti_label = f"{MARKER_SYMBOL.get('s', '■')} Time-integrated: {DURATION_FMT.format(ti_dur)}"
     ax.errorbar(xti, yti, xerr=xerr_ti, yerr=yerr_ti,
                 fmt="s", capsize=3, color=TI_COLOR, markersize=8,
-                linestyle="None", label=ti_label)
+                linestyle="None", label=f"Time-integrated: {DURATION_FMT.format(ti_dur)}")
 
     # Axes & aesthetics
     ax.set_xlabel("Mid-time of episode (s since T0)")
