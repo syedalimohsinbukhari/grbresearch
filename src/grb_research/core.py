@@ -60,7 +60,10 @@ def get_directories_in_current_folder(cur_dir=None):
     directories = []
     for entry in all_entries:
         full_path = os.path.join(current_directory, entry)
-        if os.path.isdir(full_path) and np.logical_or(entry.startswith('GRB'), entry.startswith('Ep')):
+        if np.logical_and(os.path.isdir(full_path),
+                          np.logical_or(entry.startswith('GRB'),
+                                        entry.startswith('Ep'))
+                          ):
             directories.append(entry)
     directories.sort()
     return directories
@@ -302,17 +305,22 @@ m_style = seaborn.color_palette("deep6")
 
 
 def two_scatter(start_list, end_list, val1, val2, err1, err2, ti_fmt='s', ti_color='r', tr_fmt='o',
-                plot_axis=None):
+                x_time=False, plot_axis=None, remove_extra=False):
     for index, (v1, v2, e1, e2) in enumerate(zip(val1, val2, err1, err2)):
-        err_crit1 = e1 / abs(v1)
         err_crit2 = e2 / abs(v2)
         fmt_, color_ = tr_fmt, m_style[index % len(m_style)]
 
         if index == 0:
             fmt_, color_ = ti_fmt, ti_color
 
-        err_bad = np.logical_or(err_crit1 > NOK_THRESHOLD, err_crit2 > NOK_THRESHOLD)
-        err_warn = np.logical_or(err_crit1 > OK_THRESHOLD, err_crit2 > OK_THRESHOLD)
+        if not x_time:
+            err_crit1 = e1 / abs(v1)
+            err_bad = np.logical_or(err_crit1 > NOK_THRESHOLD, err_crit2 > NOK_THRESHOLD)
+            err_warn = np.logical_or(err_crit1 > OK_THRESHOLD, err_crit2 > OK_THRESHOLD)
+        else:
+            err_bad = err_crit2 > NOK_THRESHOLD
+            err_warn = err_crit2 > OK_THRESHOLD
+
         alpha_mask = np.logical_or(start_list[index] < start_list[0], end_list[index] > end_list[0])
 
         if index == 0:
@@ -327,7 +335,48 @@ def two_scatter(start_list, end_list, val1, val2, err1, err2, ti_fmt='s', ti_col
         else:
             l_lim, u_lim = 0, 0
 
+        if remove_extra:
+            if alpha_mask:
+                continue
+
         plot_axis.errorbar(x=v1, y=v2,
                            xerr=e1, yerr=e2,
                            color=color_, fmt=fmt_, capsize=3, lolims=l_lim, uplims=u_lim, alpha=alpha_,
                            label=f"{start_list[index]}_{end_list[index]}")
+
+
+def epoch_to_time(epochs, differences=False):
+    start, end = [], []
+    for time_ in epochs:
+        ts_, te_ = map(float, time_.split('_'))
+        start.append(ts_)
+        end.append(te_)
+    start, end = np.array(start), np.array(end)
+    if differences:
+        return {'start': start,
+                'end': end,
+                'difference': 0.5 * np.diff(a=[start, end], axis=0)[0],
+                'midpoint': 0.5 * (start + end)}
+    else:
+        return start, end
+
+
+def grb_characteristics(grb_df, model_name, epoch_difference=False):
+    unique_epochs = grb_df['epoch'].unique()
+    model_n_par = model_n_pars[model_name.lower()]
+    model_labels = PARAMETERS[model_name.lower()]
+    epoch = epoch_to_time(epochs=unique_epochs, differences=epoch_difference)
+
+    return unique_epochs, model_n_par, model_labels, epoch
+
+
+def sbpl_e_break_to_e_peak(break_energy, lambda1, lambda2, delta=0.3):
+    num = lambda1 + lambda2 + 4
+    den = lambda1 - lambda2
+
+    ratio = num / den
+
+    if abs(ratio) > 1:
+        raise ValueError(f"Invalid parameters: |(λ₁ + λ₂ + 4)/(λ₁ - λ₂)| = {abs(ratio):.4f} ≥ 1")
+
+    return break_energy * np.power(10, delta * np.arctanh(ratio))
