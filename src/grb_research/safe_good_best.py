@@ -6,7 +6,8 @@ from typing import Iterable, Dict, List
 import numpy as np
 from astropy.io import fits
 
-from src.grb_research.core import covariance_to_correlation, PARAMETERS
+from .core import covariance_to_correlation
+from . import PARAMETERS
 
 BASE_PARAM_SCHEMAS = {
     "PL": [

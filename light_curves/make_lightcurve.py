@@ -67,14 +67,14 @@ def make_lightcurves(src_name, met_time, start, stop, nai_detector_list, bgo_det
 
     ax[3].hist(sub_time[lt_1gev], bins=hist_bins, ec='k', fc='none', label='LAT: 100 MeV - 1 GeV')
     a3 = ax[3].twinx()
-    a3.scatter(sub_time[lt_1gev_lt9], ene_lat[lt_1gev_lt9], marker='o', fc='w', ec='r')
-    a3.scatter(sub_time[lt_1gev_gt9], ene_lat[lt_1gev_gt9], marker='o', fc='r', ec='r')
+    a3.scatter(sub_time[lt_1gev_lt9], ene_lat[lt_1gev_lt9], marker='.', fc='w', ec='r')
+    a3.scatter(sub_time[lt_1gev_gt9], ene_lat[lt_1gev_gt9], marker='.', fc='r', ec='r')
     ax[3].set_ylim(bottom=0.1)
 
     ax[4].hist(sub_time[gt_1gev], bins=hist_bins, ec='k', fc='none', label='LAT: > 1 GeV')
     a4 = ax[4].twinx()
-    a4.scatter(sub_time[gt_1gev_lt9], ene_lat[gt_1gev_lt9], marker='o', fc='w', ec='r')
-    a4.scatter(sub_time[gt_1gev_gt9], ene_lat[gt_1gev_gt9], marker='o', fc='r', ec='r')
+    a4.scatter(sub_time[gt_1gev_lt9], ene_lat[gt_1gev_lt9], marker='.', fc='w', ec='r')
+    a4.scatter(sub_time[gt_1gev_gt9], ene_lat[gt_1gev_gt9], marker='.', fc='r', ec='r')
 
     [i.grid('both', zorder=-1, ls=':', lw=1) for i in ax]
 

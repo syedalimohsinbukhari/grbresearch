@@ -3,58 +3,19 @@
 import json
 import os
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn
-from matplotlib import pyplot as plt
 from matplotlib.patches import Ellipse
 from uncertainties import correlated_values
 
-OK_THRESHOLD = 0.4
-NOK_THRESHOLD = 1.0
+from . import OK_THRESHOLD, NOK_THRESHOLD, model_n_pars, PARAMETERS
 
-model_n_pars = {"pl": 3,
-                "bb": 2,
-                "cpl": 4,
-                "band": 4,
-                "sbpl": 6,
-                "pl_bb": 5,
-                "cpl_pl": 7,
-                "cpl_bb": 6,
-                "cpl_pl_bb": 9,
-                "band_pl": 7,
-                "band_bb": 6,
-                "band_pl_bb": 9,
-                "sbpl_pl": 9,
-                "sbpl_bb": 8,
-                "sbpl_pl_bb": 11}
-
-pl_par = ['amp_pl', 'e_piv_pl', 'index_pl']
-cpl_par = ['amp_cpl', 'e_peak_cpl', 'index_cpl', 'e_piv_cpl']
-band_par = ['amp_band', 'e_peak_band', 'index1_band', 'index2_band']
-sbpl_par = ['amp_sbpl', 'e_piv_sbpl', 'index1_sbpl', 'e_break_sbpl', 'delta_sbpl', 'index2_sbpl']
-bb_par = ['amp_bb', 'kt_bb']
-
-PARAMETERS = {'pl': pl_par,
-              'pl_bb': pl_par + bb_par,
-              'band': band_par,
-              'band_pl': pl_par + band_par,
-              'band_bb': band_par + bb_par,
-              'band_pl_bb': pl_par + band_par + bb_par,
-              'cpl': cpl_par,
-              'cpl_pl': pl_par + cpl_par,
-              'cpl_bb': cpl_par + bb_par,
-              'cpl_pl_bb': pl_par + cpl_par + bb_par,
-              'sbpl': sbpl_par,
-              'sbpl_bb': sbpl_par + bb_par,
-              'sbpl_pl': pl_par + sbpl_par,
-              'sbpl_pl_bb': pl_par + sbpl_par + bb_par}
+m_style = seaborn.color_palette("deep6")
 
 
 def get_directories_in_current_folder(cur_dir=None):
-    """
-    Returns a list of directory names in the current working directory.
-    """
     current_directory = os.getcwd() if cur_dir is None else cur_dir
     all_entries = os.listdir(current_directory)
     directories = []
@@ -101,13 +62,12 @@ def make_json_safe(obj):
 
 
 def deep_merge(d, u):
-    """Recursively merge dict u into dict d (no overwrite of nested dicts)."""
     for k_, v_ in u.items():
         if isinstance(v_, dict):
             # ensure destination has a dict to merge into
             node = d.setdefault(k_, {})
             if isinstance(node, dict):
-                deep_merge(node, v_)
+                deep_merge(d=node, u=v_)
             else:
                 d[k_] = v_
         else:
@@ -181,8 +141,7 @@ def plot_covariance_corner(means, cov_matrix, param_names):
     n_stds = range(1, 4)
     max_std = max(n_stds) + 1
 
-    fig, axes = plt.subplots(nrows=n_params, ncols=n_params, figsize=(3 * n_params, 2.5 * n_params),
-                             constrained_layout=False)
+    fig, axes = plt.subplots(n_params, n_params, figsize=(3 * n_params, 2.5 * n_params), constrained_layout=False)
 
     for i in range(n_params):
         for j in range(n_params):
@@ -190,7 +149,7 @@ def plot_covariance_corner(means, cov_matrix, param_names):
 
             if i == j:
                 # 1D Gaussian histogram centered on mean
-                vals = np.random.normal(means[i], stds[i], 10_000)
+                vals = np.random.normal(loc=means[i], scale=stds[i], size=10_000)
                 ax.hist(vals, bins=24, fc="w", ec='k', histtype='step')
                 ax.set_xlim(means[i] - max_std * stds[i], means[i] + max_std * stds[i])
                 m, s = np.mean(vals), np.std(vals)
@@ -207,14 +166,14 @@ def plot_covariance_corner(means, cov_matrix, param_names):
 
                 theta = np.degrees(np.arctan2(*vectors[:, 0][::-1]))
 
-                samples = np.random.multivariate_normal([means[j], means[i]], cov_2d, size=5_000)
+                samples = np.random.multivariate_normal(mean=[means[j], means[i]], cov=cov_2d, size=5_000)
 
                 ax.scatter(samples[:, 0], samples[:, 1], s=1, color='k', alpha=0.3, zorder=1)
                 for k, n_std in enumerate(n_stds[::-1]):
                     if n_std < max(n_stds):
                         width, height = 2 * n_std * np.sqrt(vals_)
-                        ellipse = Ellipse((float(means[j]), float(means[i])),
-                                          width, height, angle=theta,
+                        ellipse = Ellipse(xy=(float(means[j]), float(means[i])),
+                                          width=width, height=height, angle=theta,
                                           ec='r' if k == 1 else 'g',
                                           fc='w', lw=1.5,
                                           zorder=2 + k,
@@ -250,12 +209,12 @@ def plot_covariance_corner(means, cov_matrix, param_names):
 
     top, right = 0.96 if n_params > 4 else 0.94, 0.97
 
-    fig.subplots_adjust(top=top,
+    fig.subplots_adjust(left=right * 0.1,
                         bottom=top * 0.1,
                         right=right,
-                        left=right * 0.1,
-                        hspace=0.03,
-                        wspace=0.03)
+                        top=top,
+                        wspace=0.03,
+                        hspace=0.03)
     return fig, axes
 
 
@@ -299,9 +258,6 @@ def query_data(data, grb_name: str, m_name: str, status: str = "both", epoch: st
 
     result = data.query(query_str).reset_index(drop=True)
     return result
-
-
-m_style = seaborn.color_palette("deep6")
 
 
 def two_scatter(start_list, end_list, val1, val2, err1, err2, ti_fmt='s', ti_color='r', tr_fmt='o',
