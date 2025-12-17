@@ -1,0 +1,185 @@
+\begin{thebibliography}{27}
+\expandafter\ifx\csname natexlab\endcsname\relax\def\natexlab#1{#1}\fi
+
+\bibitem[{Abdo {et~al.}(2009)Abdo, Ackermann, Arimoto, Asano, Atwood, Axelsson,
+  Baldini, Ballet, Band, Barbiellini, Baring, Bastieri, Battelino, Baughman,
+  Bechtol, Bellardi, Bellazzini, Berenji, Bhat, Bissaldi, Blandford, Bloom,
+  Bogaert, Bogart, Bonamente, Bonnell, Borgland, Bouvier, Bregeon, Brez,
+  Briggs, Brigida, Bruel, Burnett, Burrows, Busetto, Caliandro, Cameron,
+  Caraveo, Casandjian, Ceccanti, Cecchi, Celotti, Charles, Chekhtman, Cheung,
+  Chiang, Ciprini, Claus, Cohen-Tanugi, Cominsky, Connaughton, Conrad,
+  Costamante, Cutini, DeKlotz, Dermer, de~Angelis, de~Palma, Digel, Dingus,
+  do~Couto~e Silva, Drell, Dubois, Dumora, Edmonds, Evans, Fabiani, Farnier,
+  Favuzzi, Finke, Fishman, Focke, Frailis, Fukazawa, Funk, Fusco, Gargano,
+  Gasparrini, Gehrels, Germani, Giebels, Giglietto, Giommi, Giordano, Glanzman,
+  Godfrey, Goldstein, Granot, Greiner, Grenier, Grondin, Grove, Guillemot,
+  Guiriec, Haller, Hanabata, Harding, Hayashida, Hays, Hernando~Morat, Hoover,
+  Hughes, Jóhannesson, Johnson, Johnson, Johnson, Johnson, Kamae, Katagiri,
+  Kataoka, Kavelaars, Kawai, Kelly, Kennea, Kerr, Kippen, Knödlseder,
+  Kocevski, Kocian, Komin, Kouveliotou, Kuehn, Kuss, Lande, Landriu, Larsson,
+  Latronico, Lavalley, Lee, Lee, Lemoine-Goumard, Lichti, Longo, Loparco, Lott,
+  Lovellette, Lubrano, Madejski, Makeev, Marangelli, Mazziotta, McBreen,
+  McEnery, McGlynn, Meegan, Mészáros, Meurer, Michelson, Minuti, Mirizzi,
+  Mitthumsiri, Mizuno, Moiseev, Monte, Monzani, Moretti, Morselli, Moskalenko,
+  Murgia, Nakamori, Nelson, Nolan, Norris, Nuss, Ohno, Ohsugi, Okumura, Omodei,
+  Orlando, Ormes, Ozaki, Paciesas, Paneque, Panetta, Parent, Pelassa, Pepe,
+  Perri, Pesce-Rollins, Petrosian, Pinchera, Piron, Porter, Preece, Rainò,
+  Ramirez-Ruiz, Rando, Rapposelli, Razzano, Razzaque, Rea, Reimer, Reimer,
+  Reposeur, Reyes, Ritz, Rochester, Rodriguez, Roth, Ryde, Sadrozinski,
+  Sanchez, Sander, Saz~Parkinson, Scargle, Schalk, Segal, Sgrò, Shimokawabe,
+  Siskind, Smith, Smith, Spandre, Spinelli, Stamatikos, Starck, Stecker,
+  Steinle, Stephens, Strickman, Suson, Tagliaferri, Tajima, Takahashi,
+  Takahashi, Tanaka, Tenze, Thayer, Thayer, Thompson, Tibaldo, Torres, Tosti,
+  Tramacere, Turri, Tuvi, Usher, van~der Horst, Vigiani, Vilchez, Vitale, von
+  Kienlin, Waite, Williams, Wilson-Hodge, Winer, Wood, Wu, Yamazaki, Ylinen, \&
+  Ziegler}]{Abdo2009FermiObservations080916C}
+Abdo, A.~A., Ackermann, M., Arimoto, M., {et~al.} 2009, Science, 323, 1688
+
+\bibitem[{{Ajello} {et~al.}(2019){Ajello}, {Arimoto}, {Axelsson}, {Baldini},
+  {Barbiellini}, {Bastieri}, {Bellazzini}, {Bhat}, {Bissaldi}, {Blandford},
+  {Bonino}, {Bonnell}, {Bottacini}, {Bregeon}, {Bruel}, {Buehler}, {Cameron},
+  {Caputo}, {Caraveo}, {Cavazzuti}, {Chen}, {Cheung}, {Chiaro}, {Ciprini},
+  {Costantin}, {Crnogorcevic}, {Cutini}, {Dainotti}, {D'Ammando}, {de la Torre
+  Luque}, {de Palma}, {Desai}, {Desiante}, {Di Lalla}, {Di Venere}, {Fana
+  Dirirsa}, {Fegan}, {Franckowiak}, {Fukazawa}, {Funk}, {Fusco}, {Gargano},
+  {Gasparrini}, {Giglietto}, {Giordano}, {Giroletti}, {Green}, {Grenier},
+  {Grove}, {Guiriec}, {Hays}, {Hewitt}, {Horan}, {J{\'o}hannesson}, {Kocevski},
+  {Kuss}, {Latronico}, {Li}, {Longo}, {Loparco}, {Lovellette}, {Lubrano},
+  {Maldera}, {Manfreda}, {Mart{\'\i}-Devesa}, {Mazziotta}, {Mereu}, {Meyer},
+  {Michelson}, {Mirabal}, {Mitthumsiri}, {Mizuno}, {Monzani}, {Moretti},
+  {Morselli}, {Moskalenko}, {Negro}, {Nuss}, {Ohno}, {Omodei}, {Orienti},
+  {Orlando}, {Palatiello}, {Paliya}, {Paneque}, {Persic}, {Pesce-Rollins},
+  {Petrosian}, {Piron}, {Poolakkil}, {Poon}, {Porter}, {Principe}, {Racusin},
+  {Rain{\`o}}, {Rando}, {Razzano}, {Razzaque}, {Reimer}, {Reimer}, {Reposeur},
+  {Ryde}, {Serini}, {Sgr{\`o}}, {Siskind}, {Sonbas}, {Spandre}, {Spinelli},
+  {Suson}, {Tajima}, {Takahashi}, {Tak}, {Thayer}, {Torres}, {Troja},
+  {Valverde}, {Veres}, {Vianello}, {von Kienlin}, {Wood}, {Yassine}, {Zhu}, \&
+  {Zimmer}}]{Ajello2019+10yearLATcatalog}
+{Ajello}, M., {Arimoto}, M., {Axelsson}, M., {et~al.} 2019, \apj, 878, 52
+
+\bibitem[{{Berger}(2011)}]{Berger2011GCN12193GeminiSpectroscopyGRB110721A}
+{Berger}, E. 2011, GRB Coordinates Network, 12193, 1
+
+\bibitem[{{Bersier}(2011)}]{Bersier2011GCN12216}
+{Bersier}, D. 2011, GRB Coordinates Network, 12216, 1
+
+\bibitem[{{Bregeon} {et~al.}(2011){Bregeon}, {McEnery}, \&
+  {Ohno}}]{Bregeon2011GCN12218}
+{Bregeon}, J., {McEnery}, J., \& {Ohno}, M. 2011, GRB Coordinates Network,
+  12218, 1
+
+\bibitem[{{Burns}(2015)}]{Burns2015GCN17432}
+{Burns}, E. 2015, GRB Coordinates Network, 17432, 1
+
+\bibitem[{{Clemens} {et~al.}(2008{\natexlab{a}}){Clemens}, {Rossi}, {Greiner},
+  {McBreen}, {Kruehler}, {Yoldas}, {Yoldas}, \&
+  {Szokoly}}]{Clemens2008GCN8272GRONDAfterglowA}
+{Clemens}, C., {Rossi}, A., {Greiner}, J., {et~al.} 2008{\natexlab{a}}, GRB
+  Coordinates Network, 8272, 1
+
+\bibitem[{{Clemens} {et~al.}(2008{\natexlab{b}}){Clemens}, {Rossi}, {Greiner},
+  {McBreen}, {Kruehler}, {Yoldas}, {Yoldas}, \&
+  {Szokoly}}]{Clemens2008GCN8273GRONDAfterglowB}
+{Clemens}, C., {Rossi}, A., {Greiner}, J., {et~al.} 2008{\natexlab{b}}, GRB
+  Coordinates Network, 8273, 1
+
+\bibitem[{{Goldstein} \& {van der Horst}(2008)}]{Goldstein2008GCN8245}
+{Goldstein}, A. \& {van der Horst}, A. 2008, GRB Coordinates Network, 8245, 1
+
+\bibitem[{{Golenetskii} {et~al.}(2015){Golenetskii}, {Aptekar}, {Frederiks},
+  {Pal'Shin}, {Oleynik}, {Ulanov}, {Svinkin}, {Tsvetkova}, {Lysenko}, \&
+  {Cline}}]{Golenetskii2015GCN17440}
+{Golenetskii}, S., {Aptekar}, R., {Frederiks}, D., {et~al.} 2015, GRB
+  Coordinates Network, 17440, 1
+
+\bibitem[{{Greiner} {et~al.}(2009){Greiner}, {Clemens}, {Kr{\"u}hler}, {von
+  Kienlin}, {Rau}, {Sari}, {Fox}, {Kawai}, {Afonso}, {Ajello}, {Berger},
+  {Cenko}, {Cucchiara}, {Filgas}, {Klose}, {K{\"u}pc{\"u} Yolda{\textcommabelow
+  s}}, {Lichti}, {L{\"o}w}, {McBreen}, {Nagayama}, {Rossi}, {Sato}, {Szokoly},
+  {Yolda{\textcommabelow s}}, \& {Zhang}}]{Greiner2009RedshiftAfterglow080916C}
+{Greiner}, J., {Clemens}, C., {Kr{\"u}hler}, T., {et~al.} 2009, \aap, 498, 89
+
+\bibitem[{{Greiner} {et~al.}(2011){Greiner}, {Updike}, {Kruehler}, \&
+  {Sudilovsky}}]{Greiner2011GCN12192CounterpartCandidateGRB110721A}
+{Greiner}, J., {Updike}, A.~C., {Kruehler}, T., \& {Sudilovsky}, V. 2011, GRB
+  Coordinates Network, 12192, 1
+
+\bibitem[{{Gres} {et~al.}(2015){Gres}, {Ivanov}, {Yazev}, {Budnev},
+  {Chuvalaev}, {Poleshchuk}, {Gorbovskoy}, {Lipunov}, {Pruzhinskaya},
+  {Kornilov}, {Kuvshinov}, {Tyurina}, {Shatskiy}, {Balanutsa}, {Zimnukhov},
+  {Kuznetsov}, {Chazov}, {Denisenko}, {Sankovich}, {Tlatov}, {Parhomenko},
+  {Dormidontov}, {Sennik}, {Yurkov}, {Sergienko}, {Varda}, {Sinyakov},
+  {Ivanov}, {Yazev}, {Budnev}, {Gres}, {Chuvalaev}, {Poleshchuk}, {Krushinski},
+  {Zalozhnih}, {Popov}, {Buckley}, {Potter}, {Kniazev}, {Kotze}, {Levato},
+  {Saffe}, {Mallamaci}, {Lopez}, \& {Podest}}]{Gres2015GCN17446}
+{Gres}, O., {Ivanov}, K., {Yazev}, S., {et~al.} 2015, GRB Coordinates Network,
+  17446, 1
+
+\bibitem[{{Gruber}(2011)}]{Gruber2011GCN12221}
+{Gruber}, D. 2011, GRB Coordinates Network, 12221, 1
+
+\bibitem[{{Grupe} {et~al.}(2011){Grupe}, {Swenson}, {Racusin}, \&
+  {Wolf}}]{Grupe2011GCN12212SwiftAfterglowCandidateGRB110721A}
+{Grupe}, D., {Swenson}, C.~A., {Racusin}, J.~L., \& {Wolf}, C. 2011, GRB
+  Coordinates Network, 12212, 1
+
+\bibitem[{{Hoversten} {et~al.}(2008){Hoversten}, {Schady}, \&
+  {Perri}}]{Hoversten2008GCN8262SwiftUVOTAfterglowB}
+{Hoversten}, E.~A., {Schady}, P., \& {Perri}, M. 2008, GRB Coordinates Network,
+  8262, 1
+
+\bibitem[{{Kennea}(2008)}]{Kennea2008GCN8253SwiftXRTDetection}
+{Kennea}, J.~A. 2008, GRB Coordinates Network, 8253, 1
+
+\bibitem[{{Krimm} {et~al.}(2011){Krimm}, {Barthelmy}, {Baumgartner},
+  {Cummings}, {Gehrels}, {Markwardt}, {Oates}, {Palmer}, {Sakamoto},
+  {Stamatikos}, {Tueller}, \& {Ukwatta}}]{Krimm2011GCN12217}
+{Krimm}, H.~A., {Barthelmy}, S.~D., {Baumgartner}, W.~H., {et~al.} 2011, GRB
+  Coordinates Network, 12217, 1
+
+\bibitem[{{Mangano} {et~al.}(2015){Mangano}, {Stroh}, {Gompertz}, {Osborne},
+  {D'Elia}, {de Pasquale}, {Maselli}, {Burrows}, \&
+  {Evans}}]{Mangano2015GCN17453}
+{Mangano}, V., {Stroh}, M.~C., {Gompertz}, B.~P., {et~al.} 2015, GRB
+  Coordinates Network, 17453, 1
+
+\bibitem[{{Nagayama}(2008)}]{Nagayama2008GCN8274IRSFObservation}
+{Nagayama}, T. 2008, GRB Coordinates Network, 8274, 1
+
+\bibitem[{{Oates} {et~al.}(2011){Oates}, {Beardmore}, {Holland}, {Hoversten},
+  {Melandri}, {Mountford}, {Page}, {Palmer}, {Saxton}, \&
+  {Ukwatta}}]{Oates2011GCN12215}
+{Oates}, S.~R., {Beardmore}, A.~P., {Holland}, S.~T., {et~al.} 2011, GRB
+  Coordinates Network, 12215, 1
+
+\bibitem[{{Perri} {et~al.}(2008){Perri}, {Preger}, \&
+  {Stratta}}]{Perri2008GCN8261SwiftXRTAfterglowA}
+{Perri}, M., {Preger}, B., \& {Stratta}, G. 2008, GRB Coordinates Network,
+  8261, 1
+
+\bibitem[{{Tajima} {et~al.}(2008){Tajima}, {Bregeon}, {Chiang}, \&
+  {Thayer}}]{Tajima2008GCN8246}
+{Tajima}, H., {Bregeon}, J., {Chiang}, J., \& {Thayer}, G. 2008, GRB
+  Coordinates Network, 8246, 1
+
+\bibitem[{{Tanvir} {et~al.}(2011){Tanvir}, {Wiersema}, {Levan}, {Cenko}, \&
+  {Geballe}}]{Tanvir2011GCN12225}
+{Tanvir}, N.~R., {Wiersema}, K., {Levan}, A.~J., {Cenko}, S.~B., \& {Geballe},
+  T. 2011, GRB Coordinates Network, 12225, 1
+
+\bibitem[{{Tierney} \& {von
+  Kienlin}(2011)}]{Tierney2011GCN12187FermiGBMDetectionGRB110721A}
+{Tierney}, D. \& {von Kienlin}, A. 2011, GRB Coordinates Network, 12187, 1
+
+\bibitem[{{Vasileiou} {et~al.}(2011){Vasileiou}, {Piron}, {Tierney}, {von
+  Kienlin}, {Guiriec}, \&
+  {Racusin}}]{Vasileiou2011GCN12188FermiLATDetectionGRB110721A}
+{Vasileiou}, V., {Piron}, F., {Tierney}, D., {et~al.} 2011, GRB Coordinates
+  Network, 12188, 1
+
+\bibitem[{{Zhu} {et~al.}(2015){Zhu}, {Bissaldi}, {Racusin}, {Sonbas},
+  {Kocevski}, \& {Yassine}}]{Zhu2015GCN17438}
+{Zhu}, S., {Bissaldi}, E., {Racusin}, J., {et~al.} 2015, GRB Coordinates
+  Network, 17438, 1
+
+\end{thebibliography}

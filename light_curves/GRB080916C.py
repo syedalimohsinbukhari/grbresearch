@@ -31,7 +31,7 @@ f, ax = make_lightcurves(src_name=f'GRB{source_name}',
                          bgo_detector_list=dat_BGO,
                          lat_gtrspgen=f'{cwd}/{path_}/{fit}')
 
-times = [1.280, 4.864, 15.040, 55.296, 60.992, 64.256]
+times = [1.280, 4.864, 15.040, 55.296, 59.52, 64.256]
 colors = ['r', 'g', 'gold', 'b', 'maroon', 'cyan']
 
 for ax_i in ax:

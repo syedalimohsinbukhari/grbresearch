@@ -7,7 +7,8 @@ GRB_COLORS = {'pl': 'blue',
               'cpl': 'orange',
               'band': 'green',
               'sbpl': 'red',
-              'bb': 'purple'}
+              'bb': 'purple',
+              'sbpl+bb': 'maroon'}
 
 short_to_long = {'150210A': 'GRB150210935',
                  '110731A': 'GRB110731465',

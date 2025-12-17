@@ -1,12 +1,12 @@
 """Created on Aug 30 15:14:03 2025"""
 
-from typing import Tuple, Optional
+from typing import Optional, Tuple
 
 import numpy as np
 from matplotlib import pyplot as plt
 from uncertainties import correlated_values, unumpy
 
-from . import model_n_pars, GRB_COLORS
+from . import GRB_COLORS, model_n_pars
 
 
 def get_variance(jacobian_stack, cov):
@@ -111,7 +111,7 @@ def pl_model_bb(x, model_values, model_string: str):
     return pl_, model_, bb_, pl_ + model_ + bb_
 
 
-def plot_model(x, model_values, labels, styles,
+def plot_model(x, model_values, model_strings, styles, plot_labels=None,
                x_lims=None, x_label=None, y_lims=None, y_label=None, axis=None, use_ergs=False):
     kev_to_ergs = 1.60217662e-9 if use_ergs else 1.0
     if axis is None:
@@ -122,10 +122,12 @@ def plot_model(x, model_values, labels, styles,
     # -- convert keV to ergs if requested
     max_y = 1
     model_values = _swap(model_values)
-    labels = _swap(labels)
+    model_strings = _swap(model_strings)
     styles = _swap(styles)
 
-    for index, (mv, label, style) in enumerate(zip(model_values, labels, styles)):
+    plot_labels = model_strings if plot_labels is None else plot_labels
+
+    for index, (mv, label, style) in enumerate(zip(model_values, plot_labels, styles)):
         y_nom = unumpy.nominal_values(mv)
         y_err = unumpy.std_devs(mv)
 
@@ -137,7 +139,7 @@ def plot_model(x, model_values, labels, styles,
         max_y = max_y * kev_to_ergs if use_ergs else max_y
 
         # color = 'k' if index == 0 else GRB_COLORS[label.lower()]
-        color = GRB_COLORS[label.lower()]
+        color = GRB_COLORS[model_strings[index].lower()]
         ax.loglog(x, y_plot, style, color=color, label=label)
         ax.fill_between(x=x, y1=y_lower, y2=y_upper, color=color, alpha=0.2)
 
@@ -157,34 +159,34 @@ def _swap(list_of_values):
     return list_of_values
 
 
-def plot_single_model(x, model_values, model_string: str, x_lims: Optional[Tuple] = None, x_label: Optional[str] = None,
-                      y_label: Optional[str] = None, use_ergs: bool = False, axis=None):
-    plot_model(x=x, model_values=[model_values], labels=[model_string.replace("_", "+").upper()], styles=["-"],
-               x_lims=x_lims, x_label=x_label, y_label=y_label, use_ergs=use_ergs, axis=axis)
+def plot_single_model(x, model_values, model_string: str, plot_labels: str = None, x_lims: Optional[Tuple] = None,
+                      x_label: Optional[str] = None, y_label: Optional[str] = None, use_ergs: bool = False, axis=None):
+    plot_model(x=x, model_values=[model_values], model_strings=[model_string.replace("_", "+").upper()], styles=["-"],
+               plot_labels=plot_labels, x_lims=x_lims, x_label=x_label, y_label=y_label, axis=axis, use_ergs=use_ergs)
 
 
-def plot_double_model(x, model_values, model_string, x_lims=None, x_label=None, y_label=None, axis=None,
-                      use_ergs=False):
+def plot_double_model(x, model_values, model_string, plot_labels=None, x_lims=None, x_label=None, y_label=None,
+                      axis=None, use_ergs=False):
     m1, m2 = model_string.split("_")
     if m2 == 'pl':
         m1, m2 = m2, m1
 
-    labels = [m1.upper(), m2.upper(), model_string.replace("_", "+").upper()]
+    m_string = [m1.upper(), m2.upper(), model_string.replace("_", "+").upper()]
     styles = ["--", "--", "-"]
 
-    plot_model(x=x, model_values=model_values, labels=labels, styles=styles, x_lims=x_lims, x_label=x_label,
-               y_label=y_label, use_ergs=use_ergs, axis=axis)
+    plot_model(x=x, model_values=model_values, model_strings=m_string, styles=styles, plot_labels=plot_labels,
+               x_lims=x_lims, x_label=x_label, y_label=y_label, axis=axis, use_ergs=use_ergs)
 
 
-def plot_triple_model(x, model_values, model_string, x_lims=None, x_label=None, y_label=None,
+def plot_triple_model(x, model_values, model_string, plot_labels=None, x_lims=None, x_label=None, y_label=None,
                       use_ergs: bool = False):
     m1, m2, m3 = model_string.split("_")
 
-    labels = [m2.upper(), m1.upper(), m3.upper(), model_string.replace("_", "+").upper()]
+    m_string = [m2.upper(), m1.upper(), m3.upper(), model_string.replace("_", "+").upper()]
     styles = ["--", "--", "--", "-"]
 
-    plot_model(x=x, model_values=model_values, labels=labels, styles=styles, x_lims=x_lims, x_label=x_label,
-               y_label=y_label, use_ergs=use_ergs)
+    plot_model(x=x, model_values=model_values, model_strings=m_string, styles=styles, plot_labels=plot_labels,
+               x_lims=x_lims, x_label=x_label, y_label=y_label, use_ergs=use_ergs)
 
 
 # def preamble(energy, ep_folder_path, model_string, err_check=False, par_constraint=0.4, arg_dict=None):

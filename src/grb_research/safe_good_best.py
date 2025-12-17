@@ -6,8 +6,8 @@ from typing import Iterable, Dict, List
 import numpy as np
 from astropy.io import fits
 
-from .core import covariance_to_correlation
 from . import PARAMETERS
+from .core import covariance_to_correlation
 
 BASE_PARAM_SCHEMAS = {
     "PL": [
@@ -112,9 +112,7 @@ def get_model_name_from_path(path: str) -> str:
 def read_cstat_from_fit(path: str):
     ff = fits.open(path)
     try:
-        return float(ff[2].data["REDCHSQ"][0][1] * ff[2].data["CHSQDOF"][0]), ff[
-            2
-        ].data["CHSQDOF"][0]
+        return float(ff[2].data["REDCHSQ"][0][1] * ff[2].data["CHSQDOF"][0]), ff[2].data["CHSQDOF"][0]
     finally:
         ff.close()
 
@@ -231,8 +229,8 @@ def filter_models_by_error(c_stats, folder_path, candidates, **kwargs):
         m: c_stats[m]
         for m in candidates
         if m in c_stats
-        and os.path.exists(os.path.join(folder_path, f"{m}.fit"))
-        and model_passes_error_criteria(
+           and os.path.exists(os.path.join(folder_path, f"{m}.fit"))
+           and model_passes_error_criteria(
             path=os.path.join(folder_path, f"{m}.fit"), **kwargs
         )
     }
@@ -293,7 +291,7 @@ def list_safe_models(folder_path, **kwargs):
         m
         for m in ALLOWED_MODELS
         if os.path.exists(os.path.join(folder_path, f"{m}.fit"))
-        and model_passes_error_criteria(os.path.join(folder_path, f"{m}.fit"), **kwargs)
+           and model_passes_error_criteria(os.path.join(folder_path, f"{m}.fit"), **kwargs)
     }
 
 
@@ -351,9 +349,7 @@ def list_par_err(cwd_, fit_type, string="SAFE", result_dict=None):
             continue
         try:
             schema = build_composite_schema(m)
-            vals, errs = read_param_values_errors(
-                path=fit_path, n_parameters=len(schema)
-            )
+            vals, errs = read_param_values_errors(path=fit_path, n_parameters=len(schema))
             (
                 (ph_flx_v, ph_flx_e),
                 (ph_fluence_v, ph_fluence_e),
@@ -362,14 +358,14 @@ def list_par_err(cwd_, fit_type, string="SAFE", result_dict=None):
                 cov_matrix,
             ) = get_extra_values(path=fit_path)
 
-            p_name2 = ["photon_flux", "photon_fluence", "energy_flux", "energy_fluence"]
-            vals2 = [ph_flx_v, ph_fluence_v, en_flx_v, en_fluence_v]
-            errs2 = [ph_flx_e, ph_fluence_e, en_flx_e, en_fluence_e]
+            c_stat, dof = read_cstat_from_fit(path=fit_path)
+
+            p_name2 = ["c-stat/dof", "photon_flux", "photon_fluence", "energy_flux", "energy_fluence"]
+            vals2 = [c_stat, ph_flx_v, ph_fluence_v, en_flx_v, en_fluence_v]
+            errs2 = [dof, ph_flx_e, ph_fluence_e, en_flx_e, en_fluence_e]
 
             # store SAFE/UNSAFE status
-            model_dict = (
-                result_dict.setdefault(grb, {}).setdefault(ep, {}).setdefault(m, {})
-            )
+            model_dict = result_dict.setdefault(grb, {}).setdefault(ep, {}).setdefault(m, {})
             model_dict["_status"] = string
 
             # store parameters
@@ -380,18 +376,18 @@ def list_par_err(cwd_, fit_type, string="SAFE", result_dict=None):
                 model_dict[m2] = np.array([v, e])
 
             model_dict["covariance_matrix"] = cov_matrix.tolist()
-            model_dict["correlation_matrix"] = covariance_to_correlation(
-                cov_matrix
-            ).tolist()
+            model_dict["correlation_matrix"] = covariance_to_correlation(cov_matrix).tolist()
 
             # print log
             print(f"[{string}] {m} parameter details:")
             for (par_name, _, _), v, e in zip(schema, vals, errs):
                 pct = (abs(e) / abs(v) * 100) if v != 0 else float("inf")
-                print(f"   {par_name:15s} = {v:.6g}, {e:.6g}, {pct:.3g} %")
+                print(f"   {par_name:15s} = {v:.20f}({e:.20f}) , {pct:.3g} %")
             for par_name, v, e in zip(p_name2, vals2, errs2):
-                pct = (abs(e) / abs(v) * 100) if v != 0 else float("inf")
-                print(f"   {par_name:15s} = {v:.6g}, {e:.6g}, {pct:.3g} %")
+                acc = '4' if par_name == 'c-stat/dof' else '20'
+                sep1 = '/' if par_name == 'c-stat/dof' else '('
+                sep2 = '' if par_name == 'c-stat/dof' else ')'
+                print(f"   {par_name:15s} = {v:.{acc}f}{sep1}{e:.{acc}f}{sep2}")
 
         except Exception as e:
             print(f"[{string}] {m}: failed to read params ({e})")
