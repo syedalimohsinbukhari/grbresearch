@@ -8,14 +8,14 @@ import numpy as np
 import pandas as pd
 import seaborn
 from matplotlib.patches import Ellipse
-from uncertainties import correlated_values
 
-from . import OK_THRESHOLD, NOK_THRESHOLD, model_n_pars, PARAMETERS
+from . import model_n_pars, MODEL_PARAMETERS, NOK_THRESHOLD, OK_THRESHOLD
 
 m_style = seaborn.color_palette("deep6")
 
 
 def get_directories_in_current_folder(cur_dir=None):
+    """Get sorted list of relevant directories in the current folder."""
     current_directory = os.getcwd() if cur_dir is None else cur_dir
     all_entries = os.listdir(current_directory)
     directories = []
@@ -25,30 +25,14 @@ def get_directories_in_current_folder(cur_dir=None):
                           np.logical_or(entry.startswith('GRB'),
                                         entry.startswith('Ep'))
                           ):
-            directories.append(entry)
+            if 'Research' not in entry:
+                directories.append(entry)
     directories.sort()
     return directories
 
 
-def get_fit_files_in_current_directory(cur_dir):
-    files_ = [f for f in os.listdir(cur_dir) if f.endswith('.fit')]
-    files_.sort()
-    return files_
-
-
-def get_value(fit_file, n_parameters, full_cov, return_errors: bool = False, un_correlated=False):
-    values = [fit_file[2].data[f"PARAM{i}"][0][0] for i in range(n_parameters)]
-    errors = [fit_file[2].data[f"PARAM{i}"][0][1] for i in range(n_parameters)]
-
-    if return_errors:
-        return np.array(object=values, dtype=float), np.array(object=errors, dtype=float)
-    elif un_correlated:
-        return np.array(object=values, dtype=float)
-    else:
-        return correlated_values(nom_values=values, covariance_mat=full_cov)
-
-
 def make_json_safe(obj):
+    """Recursively convert an object to a JSON-serializable format."""
     if isinstance(obj, dict):
         return {k: make_json_safe(v) for k, v in obj.items()}
     elif isinstance(obj, list):
@@ -62,6 +46,7 @@ def make_json_safe(obj):
 
 
 def deep_merge(d, u):
+    """Deep merge dictionary u into dictionary d."""
     for k_, v_ in u.items():
         if isinstance(v_, dict):
             # ensure destination has a dict to merge into
@@ -76,6 +61,7 @@ def deep_merge(d, u):
 
 
 def covariance_to_correlation(cov):
+    """Convert a covariance matrix to a correlation matrix."""
     cov = np.asarray(a=cov, dtype=float)
     d = np.sqrt(np.diag(cov))
     with np.errstate(divide="ignore", invalid="ignore"):
@@ -85,6 +71,7 @@ def covariance_to_correlation(cov):
 
 
 def flatten_results(res_total, include_covariance=True):
+    """Flatten nested results dictionary into a pandas DataFrame."""
     rows = []
     for grb, epochs in res_total.items():
         for ep, models in epochs.items():
@@ -150,10 +137,10 @@ def plot_covariance_corner(means, cov_matrix, param_names):
             if i == j:
                 # 1D Gaussian histogram centered on mean
                 vals = np.random.normal(loc=means[i], scale=stds[i], size=10_000)
-                ax.hist(vals, bins=24, fc="w", ec='k', histtype='step')
+                ax.hist(vals, bins=24, fc="w", ec="k", histtype="step")
                 ax.set_xlim(means[i] - max_std * stds[i], means[i] + max_std * stds[i])
                 m, s = np.mean(vals), np.std(vals)
-                spec = 'g' if abs(s) < 1 else 'f'
+                spec = "g" if abs(s) < 1 else "f"
                 ax.set_title(rf"{param_names[i]}" + "\n" + rf"${m:.3{spec}}\pm{s:.3{spec}}$", fontsize=14)
             elif j < i:
                 # covariance ellipse centered at (mean[j], mean[i])
@@ -168,16 +155,21 @@ def plot_covariance_corner(means, cov_matrix, param_names):
 
                 samples = np.random.multivariate_normal(mean=[means[j], means[i]], cov=cov_2d, size=5_000)
 
-                ax.scatter(samples[:, 0], samples[:, 1], s=1, color='k', alpha=0.3, zorder=1)
+                ax.scatter(samples[:, 0], samples[:, 1], s=1, color="k", alpha=0.3, zorder=1)
                 for k, n_std in enumerate(n_stds[::-1]):
                     if n_std < max(n_stds):
                         width, height = 2 * n_std * np.sqrt(vals_)
-                        ellipse = Ellipse(xy=(float(means[j]), float(means[i])),
-                                          width=width, height=height, angle=theta,
-                                          ec='r' if k == 1 else 'g',
-                                          fc='w', lw=1.5,
-                                          zorder=2 + k,
-                                          ls='--' if k == 1 else '-.')
+                        ellipse = Ellipse(
+                            xy=(float(means[j]), float(means[i])),
+                            width=width,
+                            height=height,
+                            angle=theta,
+                            ec="r" if k == 1 else "g",
+                            fc="w",
+                            lw=1.5,
+                            zorder=2 + k,
+                            ls="--" if k == 1 else "-.",
+                        )
                         ax.add_patch(ellipse)
 
                 ax.set_xlim(means[j] - max_std * stds[j], means[j] + max_std * stds[j])
@@ -205,20 +197,16 @@ def plot_covariance_corner(means, cov_matrix, param_names):
                 else:
                     ax.set_ylabel(param_names[i] if i != 0 else "")
 
-            ax.tick_params(axis='both', labelrotation=45)
+            ax.tick_params(axis="both", labelrotation=45)
 
     top, right = 0.96 if n_params > 4 else 0.94, 0.97
 
-    fig.subplots_adjust(left=right * 0.1,
-                        bottom=top * 0.1,
-                        right=right,
-                        top=top,
-                        wspace=0.03,
-                        hspace=0.03)
+    fig.subplots_adjust(left=right * 0.1, bottom=top * 0.1, right=right, top=top, wspace=0.03, hspace=0.03)
     return fig, axes
 
 
 def flattened_json(file_path="results.json"):
+    """Load and flatten results from a JSON file."""
     with open(f"{file_path}", "r") as f:
         data = json.load(f)
     return flatten_results(res_total=data, include_covariance=True)
@@ -260,8 +248,21 @@ def query_data(data, grb_name: str, m_name: str, status: str = "both", epoch: st
     return result
 
 
-def two_scatter(start_list, end_list, val1, val2, err1, err2, ti_fmt='s', ti_color='r', tr_fmt='o',
-                x_time=False, plot_axis=None, remove_extra=False):
+def two_scatter(
+        start_list,
+        end_list,
+        val1,
+        val2,
+        err1,
+        err2,
+        ti_fmt="s",
+        ti_color="r",
+        tr_fmt="o",
+        x_time=False,
+        plot_axis=None,
+        remove_extra=False,
+):
+    """Create a scatter plot comparing two sets of values with error bars."""
     for index, (v1, v2, e1, e2) in enumerate(zip(val1, val2, err1, err2)):
         err_crit2 = e2 / abs(v2)
         fmt_, color_ = tr_fmt, m_style[index % len(m_style)]
@@ -282,7 +283,7 @@ def two_scatter(start_list, end_list, val1, val2, err1, err2, ti_fmt='s', ti_col
         if index == 0:
             alpha_ = 1.0
         else:
-            alpha_ = 0.5 if alpha_mask else 1.0
+            alpha_ = 0.75 if alpha_mask else 1.0
 
         if err_bad:
             l_lim, u_lim = 1, 1
@@ -295,38 +296,54 @@ def two_scatter(start_list, end_list, val1, val2, err1, err2, ti_fmt='s', ti_col
             if alpha_mask:
                 continue
 
-        plot_axis.errorbar(x=v1, y=v2,
-                           xerr=e1, yerr=e2,
-                           color=color_, fmt=fmt_, capsize=3, lolims=l_lim, uplims=u_lim, alpha=alpha_,
-                           label=f"{start_list[index]}_{end_list[index]}")
+        plot_axis.errorbar(
+            x=v1,
+            y=v2,
+            xerr=e1,
+            yerr=e2,
+            color=color_,
+            fmt=fmt_,
+            capsize=3,
+            lolims=l_lim,
+            uplims=u_lim,
+            alpha=alpha_,
+            label=f"{start_list[index]}_{end_list[index]}",
+        )
 
 
 def epoch_to_time(epochs, differences=False):
-    start, end = [], []
+    """Convert epoch strings to numerical start and end times."""
+    label, start, end = [], [], []
     for time_ in epochs:
-        ts_, te_ = map(float, time_.split('_'))
+        label.append(time_.split(' ')[0])
+        ts_, te_ = map(float, time_.split(' ')[1].split("_"))
         start.append(ts_)
         end.append(te_)
     start, end = np.array(start), np.array(end)
     if differences:
-        return {'start': start,
-                'end': end,
-                'difference': 0.5 * np.diff(a=[start, end], axis=0)[0],
-                'midpoint': 0.5 * (start + end)}
+        return {
+            "episode_label": label,
+            "start": start,
+            "end": end,
+            "difference": 0.5 * np.diff(a=[start, end], axis=0)[0],
+            "midpoint": 0.5 * (start + end),
+        }
     else:
-        return start, end
+        return label, start, end
 
 
 def grb_characteristics(grb_df, model_name, epoch_difference=False):
-    unique_epochs = grb_df['epoch'].unique()
+    """Get characteristics of a GRB for a specific model."""
+    unique_epochs = grb_df["epoch"].unique()
     model_n_par = model_n_pars[model_name.lower()]
-    model_labels = PARAMETERS[model_name.lower()]
+    model_labels = MODEL_PARAMETERS[model_name.lower()]
     epoch = epoch_to_time(epochs=unique_epochs, differences=epoch_difference)
 
     return unique_epochs, model_n_par, model_labels, epoch
 
 
 def sbpl_e_break_to_e_peak(break_energy, lambda1, lambda2, delta=0.3):
+    """Convert SBPL break energy to peak energy."""
     num = lambda1 + lambda2 + 4
     den = lambda1 - lambda2
 

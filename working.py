@@ -15,6 +15,8 @@ orig_stdout, orig_stderr = sys.stdout, sys.stderr
 with open(log_filename, "w", buffering=1) as log_file:
     sys.stdout = log_file
     sys.stderr = log_file
+    ep_ext = "T90"
+    tr_count, tex_count = 0, 0
     try:
         res_safe, res_unsafe, res_total = {}, {}, {}
         cwd_ = os.getcwd()
@@ -22,6 +24,13 @@ with open(log_filename, "w", buffering=1) as log_file:
         for out_ in outer_dirs:
             inner_dirs = grb_core.get_directories_in_current_folder(f'{cwd_}/{out_}')
             for in_ in inner_dirs:
+                cw_test = in_.split("__")[0].split("/")[-1]
+                if '0' in cw_test:
+                    ep_ext = "T90"
+                elif "A" in cw_test or "B" in cw_test:
+                    ep_ext = f"EX{tex_count}"
+                else:
+                    ep_ext = f"TR{tr_count}"
                 print(f"\n[RUN] Started at {timestamp} on directory {cwd_}/{out_}/{in_}\n")
                 cwd = f'{cwd_}/{out_}/{in_}'
                 candidates = [m + ".fit" for m in sorted(sgb.ALLOWED_MODELS)]
@@ -56,19 +65,29 @@ with open(log_filename, "w", buffering=1) as log_file:
                 unsafe = [m for m in mapping if m not in safe]
                 good_names = [i[0] for i in list(good.values())]
                 safe.sort()
-                good_names.sort()
+                # good_names.sort()
                 unsafe.sort()
                 print(f"SAFE models: {sorted(safe)}")
-                sgb.list_par_err(cwd_=cwd, fit_type=safe, string='SAFE', result_dict=res_safe)
+                sgb.list_par_err(cwd_=cwd, fit_type=safe, string=1, is_good=good, result_dict=res_safe, ep_ext=ep_ext)
                 print(f"GOOD models: {good}")
                 print(f"UNSAFE models: {sorted(unsafe)}")
-                sgb.list_par_err(cwd_=cwd, fit_type=unsafe, string='UNSAFE', result_dict=res_unsafe)
+                sgb.list_par_err(cwd_=cwd, fit_type=unsafe, string=0, result_dict=res_unsafe, ep_ext=ep_ext)
                 print(f"[RUN] Finished at {datetime.now().strftime('%Y%m%d_%H%M%S')}")
                 res_total = grb_core.deep_merge(d=res_total, u=res_safe)
                 res_total = grb_core.deep_merge(d=res_total, u=res_unsafe)
                 pp = grb_core.flatten_results(res_total)
                 with open("results.json", "w") as f:
                     json.dump(obj=grb_core.make_json_safe(res_total), fp=f, indent=4)
+                if '0' in cw_test:
+                    pass
+                elif "A" in cw_test or "B" in cw_test:
+                    tex_count += 1
+                else:
+                    tr_count += 1
+
+            tr_count = 0
+            tex_count = 0
+
 
     finally:
         sys.stdout = orig_stdout

@@ -2,13 +2,13 @@
 
 from matplotlib import pyplot as plt
 
-from src.grb_research import model_n_pars, PARAMETERS
+from src.grb_research import model_n_pars, PARAMETERS, short_to_long
 from src.grb_research.core import flattened_json, query_data, two_scatter
 
 data = flattened_json()
 
-grb_name = 'GRB080916009'
-m_name = 'BAND'
+grb_name = short_to_long['080916C']
+m_name = 'band'.upper()
 m_name_pl = m_name + '_PL'
 N_CONST = 4
 
@@ -29,32 +29,33 @@ df_band_pl__E_PEAK = df_band_pl.query(f"param == 'e_peak_{m_name.lower()}'")
 
 merged = df_band_pl__E_PEAK.merge(right=df_band_E_PEAK, on='epoch', suffixes=('_pl', ''))
 
-start_, end_ = [], []
+tl_, start_, end_ = [], [], []
 for time_ in df_band_E_PEAK["epoch"]:
-    ts, te = map(float, time_.split("_"))
-    start_.append(ts)
+    tl_.append(time_.split(' ')[0])
+    ts, te = map(float, time_.split(' ')[1].split("_"))
+    start_.append(f"{time_.split(' ')[0]} {ts}")
     end_.append(te)
 
-fig, ax = plt.subplots(figsize=(8, 6))
+fig, ax = plt.subplots(figsize=(6, 5))
 
 two_scatter(start_list=start_, end_list=end_,
             val1=merged['value'], val2=merged['value_pl'],
             err1=merged['error'], err2=merged['error_pl'], plot_axis=ax)
 
 # Main axis scaling
-# x_min, x_max = ax.get_xlim()
-# y_min, y_max = ax.get_ylim()
-# lim_min, lim_max = min(x_min, y_min), max(x_max, y_max)
-#
-# plt.plot([lim_min, lim_max], [lim_min, lim_max], 'k--', zorder=0, )
-#
-# ax.set_xlim((lim_min, lim_max))
-# ax.set_ylim((lim_min, lim_max))
+x_min, x_max = ax.get_xlim()
+y_min, y_max = ax.get_ylim()
+lim_min, lim_max = min(x_min, y_min), max(x_max, y_max)
+
+ax.plot([lim_min, lim_max], [lim_min, lim_max], 'k--', zorder=0, )
+
+ax.set_xlim((lim_min, lim_max))
+ax.set_ylim((lim_min, lim_max))
 
 ax.set_xlabel(f"{m_name.upper()}\n" + r"E$_\text{peak}$ [keV]")
 ax.set_ylabel(f"{m_name_pl.upper().replace('_', '+')}\n" + r"E$_\text{peak}$ [keV]")
 ax.grid(visible=True, which="both", alpha=0.3, ls="--", zorder=0)
-ax.legend(loc='best', frameon=True, title=f'{grb_name}')
+ax.legend(loc='best', frameon=True)
 
 # axins = inset_axes(ax,
 #                    width="40%", height="40%", loc="lower right",

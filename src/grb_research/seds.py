@@ -14,7 +14,7 @@ def get_variance(jacobian_stack, cov):
 
 
 def powerlaw(energy, amp, e_piv, index1):
-    return amp * (energy / e_piv)**index1
+    return amp * (energy / e_piv) ** index1
 
 
 def smoothly_broken_power_law(energy, amp, e_piv, index1, break_energy, delta, index2):
@@ -27,11 +27,11 @@ def smoothly_broken_power_law(energy, amp, e_piv, index1, break_energy, delta, i
     a_piv = unumpy.log10(e_piv / break_energy) / delta
     beta_piv = m * delta * unumpy.log(0.5 * (unumpy.exp(a_piv) + unumpy.exp(-a_piv)))
 
-    return amp * (energy / e_piv)**b * 10.0**(beta - beta_piv)
+    return amp * (energy / e_piv) ** b * 10.0 ** (beta - beta_piv)
 
 
 def band_function(energy, amp, e_peak, index1, index2):
-    e_piv = 100.
+    e_piv = 100.0
     i1_minus_i2 = index1 - index2
     break_ = e_peak / (index1 + 2.0)
     transition_condition = i1_minus_i2 * break_
@@ -83,7 +83,7 @@ def model_pl(x, model_values, model_string: str):
     model_init = model_string.split("_")[0] if model_string != "pl_bb" else model_string.split("_")[1]
 
     pl_ = powerlaw(x, *model_values[: model_n_pars["pl"]])
-    model_ = model_dict[model_init](x, *model_values[model_n_pars["pl"]:])
+    model_ = model_dict[model_init](x, *model_values[model_n_pars["pl"] :])
 
     return pl_, model_, pl_ + model_
 
@@ -94,7 +94,7 @@ def model_bb(x, model_values, model_string: str):
     model_init = model_string.split("_")[0]
 
     model_ = model_dict[model_init](x, *model_values[: model_n_pars[model_init]])
-    bb_ = black_body(x, *model_values[model_n_pars[model_init]:])
+    bb_ = black_body(x, *model_values[model_n_pars[model_init] :])
 
     return model_, bb_, model_ + bb_
 
@@ -105,14 +105,25 @@ def pl_model_bb(x, model_values, model_string: str):
     model_init = model_string.split("_")[0]
 
     pl_ = powerlaw(x, *model_values[: model_n_pars["pl"]])
-    model_ = model_dict[model_init](x, *model_values[model_n_pars["pl"]: -model_n_pars["bb"]])
-    bb_ = black_body(x, *model_values[-model_n_pars["bb"]:])
+    model_ = model_dict[model_init](x, *model_values[model_n_pars["pl"] : -model_n_pars["bb"]])
+    bb_ = black_body(x, *model_values[-model_n_pars["bb"] :])
 
     return pl_, model_, bb_, pl_ + model_ + bb_
 
 
-def plot_model(x, model_values, model_strings, styles, plot_labels=None,
-               x_lims=None, x_label=None, y_lims=None, y_label=None, axis=None, use_ergs=False):
+def plot_model(
+    x,
+    model_values,
+    model_strings,
+    styles,
+    plot_labels=None,
+    x_lims=None,
+    x_label=None,
+    y_lims=None,
+    y_label=None,
+    axis=None,
+    use_ergs=False,
+):
     kev_to_ergs = 1.60217662e-9 if use_ergs else 1.0
     if axis is None:
         f, ax = plt.subplots(figsize=(8, 6))
@@ -159,34 +170,74 @@ def _swap(list_of_values):
     return list_of_values
 
 
-def plot_single_model(x, model_values, model_string: str, plot_labels: str = None, x_lims: Optional[Tuple] = None,
-                      x_label: Optional[str] = None, y_label: Optional[str] = None, use_ergs: bool = False, axis=None):
-    plot_model(x=x, model_values=[model_values], model_strings=[model_string.replace("_", "+").upper()], styles=["-"],
-               plot_labels=plot_labels, x_lims=x_lims, x_label=x_label, y_label=y_label, axis=axis, use_ergs=use_ergs)
+def plot_single_model(
+    x,
+    model_values,
+    model_string: str,
+    plot_labels: str = None,
+    x_lims: Optional[Tuple] = None,
+    x_label: Optional[str] = None,
+    y_label: Optional[str] = None,
+    use_ergs: bool = False,
+    axis=None,
+):
+    plot_model(
+        x=x,
+        model_values=[model_values],
+        model_strings=[model_string.replace("_", "+").upper()],
+        styles=["-"],
+        plot_labels=plot_labels,
+        x_lims=x_lims,
+        x_label=x_label,
+        y_label=y_label,
+        axis=axis,
+        use_ergs=use_ergs,
+    )
 
 
-def plot_double_model(x, model_values, model_string, plot_labels=None, x_lims=None, x_label=None, y_label=None,
-                      axis=None, use_ergs=False):
+def plot_double_model(
+    x, model_values, model_string, plot_labels=None, x_lims=None, x_label=None, y_label=None, axis=None, use_ergs=False
+):
     m1, m2 = model_string.split("_")
-    if m2 == 'pl':
+    if m2 == "pl":
         m1, m2 = m2, m1
 
     m_string = [m1.upper(), m2.upper(), model_string.replace("_", "+").upper()]
     styles = ["--", "--", "-"]
 
-    plot_model(x=x, model_values=model_values, model_strings=m_string, styles=styles, plot_labels=plot_labels,
-               x_lims=x_lims, x_label=x_label, y_label=y_label, axis=axis, use_ergs=use_ergs)
+    plot_model(
+        x=x,
+        model_values=model_values,
+        model_strings=m_string,
+        styles=styles,
+        plot_labels=plot_labels,
+        x_lims=x_lims,
+        x_label=x_label,
+        y_label=y_label,
+        axis=axis,
+        use_ergs=use_ergs,
+    )
 
 
-def plot_triple_model(x, model_values, model_string, plot_labels=None, x_lims=None, x_label=None, y_label=None,
-                      use_ergs: bool = False):
+def plot_triple_model(
+    x, model_values, model_string, plot_labels=None, x_lims=None, x_label=None, y_label=None, use_ergs: bool = False
+):
     m1, m2, m3 = model_string.split("_")
 
     m_string = [m2.upper(), m1.upper(), m3.upper(), model_string.replace("_", "+").upper()]
     styles = ["--", "--", "--", "-"]
 
-    plot_model(x=x, model_values=model_values, model_strings=m_string, styles=styles, plot_labels=plot_labels,
-               x_lims=x_lims, x_label=x_label, y_label=y_label, use_ergs=use_ergs)
+    plot_model(
+        x=x,
+        model_values=model_values,
+        model_strings=m_string,
+        styles=styles,
+        plot_labels=plot_labels,
+        x_lims=x_lims,
+        x_label=x_label,
+        y_label=y_label,
+        use_ergs=use_ergs,
+    )
 
 
 # def preamble(energy, ep_folder_path, model_string, err_check=False, par_constraint=0.4, arg_dict=None):
@@ -265,8 +316,9 @@ def plot_triple_model(x, model_values, model_string, plot_labels=None, x_lims=No
 # AUXILIARY FUNCTIONS
 ###############################################################################
 
+
 def _pl_one(energy, e_piv, index1):
-    return (energy / e_piv)**index1
+    return (energy / e_piv) ** index1
 
 
 def _cpl_one(energy, e_peak, index1, e_piv):
