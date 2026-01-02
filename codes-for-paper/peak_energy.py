@@ -1,83 +1,45 @@
 """Created on Dec 17 13:22:15 2025"""
 
-from matplotlib import pyplot as plt
+import json
+
+import matplotlib.pyplot as plt
+import numpy as np
 
 from src.grb_research import short_to_long
-from src.grb_research.core import epoch_to_time, flattened_json, query_data
+from src.grb_research.grb_core import GRBCatalog
+from src.grb_research.grb_model import ModelSet
+from src.grb_research.grb_sed import SpectralModels
+from src.grb_research.seds import plot_double_model
 
+# Example data with multiple interval types
+with open("./../results.json", "r") as f:
+    example_data = json.load(f)
 
-class TimeIntervals:
+grb_list = ['080916C', '110721A', '110731A', '150210A']
+grb_list_long = [short_to_long[i] for i in grb_list]
 
-    def __init__(self, epoch_list, order_list):
-        self.epoch_list = epoch_list
-        self.order_list = order_list
+kev_to_erg = 1.60218e-9
 
-    def __repr__(self):
-        parts = []
-        for ep in self.order_list:
-            times = self.get_time_from_episode(ep)
-            if times is None:
-                parts.append(f"{ep}=None")
-            else:
-                # format with concise float representation
-                parts.append(f"{ep}={times[0]:g}_{times[1]:g}")
-        return f"TimeIntervals\n{', '.join(parts)}"
+gc = GRBCatalog.from_iterable(grb_list=grb_list, data=example_data, name_mapping=short_to_long)
+grb080916c = gc.get_grb(grb_list_long[-1])
+grb080916c_best = ModelSet([i.models.best for i in grb080916c.intervals])
 
-    def get_time_from_episode(self, episode_name):
-        if episode_name == 'all':
-            return {
-                ep: tuple(map(float, epoch.split('_')))
-                for ep, epoch in zip(self.order_list, self.epoch_list)
-            }
+x = np.logspace(1, 7, 5_000)
 
-        for ep, epoch in zip(self.order_list, self.epoch_list):
-            if ep == episode_name:
-                return list(map(float, epoch.split('_')))
+m_name = 'cpl_pl'
 
-        return None
+pl_bb = grb080916c.intervals.t90.models.get(m_name)
+print(grb080916c.intervals.t90.models.get(m_name))
 
+model_instance = SpectralModels(x,
+                                pl_bb,
+                                grb080916c.intervals[0],
+                                model_type='counts')
 
-data = flattened_json("./../results.json")
+q = model_instance.get_values(with_errors=True)
 
-# 080916C
-# c_list = ['r', 'blue', 'g', 'g', 'g', 'g', 'blue', 'g']
-# 110713A
-# c_list = ['r', 'blue', 'g', 'g', 'blue', 'g']
-# 110721A
-# c_list = ['r', 'b', 'g', 'g']
-# 150210A
-# c_list = ['r', 'blue', 'g', 'g', 'g', 'g', 'g']
+p2 = np.vstack([np.array(q[0]), np.array(q[1]).reshape(1, -1)])
 
-grb_name = short_to_long['110721A']
-model_name = 'cpl'.upper()
-c_list = ['r', 'b', 'g', 'g']
-
-df_band = query_data(data, grb_name, model_name, 'safe')
-df_band_e_peak = df_band.query(f'param == "e_peak_{model_name.lower()}"')
-df_band_e_peak.reset_index(drop=True, inplace=True)
-
-epoch = df_band['epoch'].unique()
-
-epoch_dict = epoch_to_time(epoch, differences=True)
-start = epoch_dict['start']
-end = epoch_dict['end']
-difference = epoch_dict['difference']
-midpoint = epoch_dict['midpoint']
-
-print(df_band_e_peak)
-
-plt.figure(figsize=(6, 3))
-for m, d, v, e, c in zip(midpoint, difference, df_band_e_peak['value'], df_band_e_peak['error'], c_list):
-    if c == 'r':
-        s, en = map(float, epoch[0].split(' ')[1].split('_'))
-        plt.plot([s, en], [v, v], color='k', ls='--', lw=2)
-        plt.fill_between(x=[s, en], y1=v - e, y2=v + e, color='k', alpha=0.15)
-    else:
-        plt.errorbar(m, xerr=d, y=v, yerr=e, ls='', marker='.', ms=10, capsize=5, color=c)
-plt.grid(True, ls='--', alpha=0.3)
-plt.xlabel('Time since trigger [s]')
-plt.ylabel(r'E$_{\rm peak}$ [keV]')
-plt.tight_layout()
+plot_double_model(x, p2.tolist(), m_name)
+plt.ylim(bottom=1, top=1e3)
 plt.show()
-# [plt.savefig(f'./{grb_name}_{model_name}_E_peak_over_time.{i}', dpi=600) for i in ['png', 'pdf']]
-# plt.close()

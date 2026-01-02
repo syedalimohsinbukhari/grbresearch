@@ -1,0 +1,102 @@
+"""Created on Dec 26 00:30:38 2025"""
+
+from dataclasses import dataclass
+
+import numpy as np
+
+
+@dataclass(frozen=True)
+class Parameter:
+    """Scalar parameter with uncertainty."""
+
+    name: str
+    value: float
+    error: float
+
+    def __post_init__(self):
+        if self.error < 0:
+            raise ValueError("Parameter error must be non-negative")
+
+    def __repr__(self):
+        return f"Parameter[\n\tname={self.name}, value={self.value:.4g}, error={self.error:.4g}, rel_error={self.relative_error:.2%}\n]"
+
+    @property
+    def relative_error(self):
+        """Returns the relative error (error / |value|)."""
+        return self.error / abs(self.value) if self.value != 0 else np.inf
+
+    @property
+    def is_unconstrained(self):
+        """Returns True if relative error >= 0.4."""
+        return self.relative_error >= 0.4
+
+    @property
+    def is_moderately_constrained(self):
+        """Returns True if 0.1 <= relative error < 0.4."""
+        return self.relative_error < 0.4
+
+    @property
+    def is_well_constrained(self):
+        """Returns True if relative error < 0.1."""
+        return self.relative_error < 0.1
+
+    def is_safe(self, threshold=0.4):
+        """Returns True if relative error < threshold."""
+        return self.relative_error < threshold
+
+
+@dataclass
+class CovarianceMatrix:
+    """Class for handling covariance matrices."""
+
+    input_matrix: np.ndarray
+
+    def __post_init__(self):
+        self.matrix = np.asarray(self.input_matrix, dtype=float)
+
+        if self.matrix.ndim != 2:
+            raise ValueError("Covariance matrix must be 2-dimensional")
+
+        if self.matrix.shape[0] != self.matrix.shape[1]:
+            raise ValueError("Covariance matrix must be square")
+
+    @property
+    def variances(self):
+        """Returns the variances (diagonal elements)."""
+        return np.diag(self.matrix)
+
+    @property
+    def errors(self):
+        """Returns standard errors (sqrt of diagonal)."""
+        return np.sqrt(np.diag(self.matrix))
+
+    def is_symmetric(self, tol=1e-10):
+        """Checks if the matrix is symmetric."""
+        return np.allclose(self.matrix, self.matrix.T, atol=tol)
+
+    def is_positive_definite(self):
+        """Checks if the matrix is positive definite."""
+        from numpy.linalg import cholesky, LinAlgError
+
+        try:
+            cholesky(self.matrix)
+            return True
+        except LinAlgError:
+            return False
+
+    def corr(self, i, j):
+        """Returns correlation coefficient between parameters i and j."""
+        denominator = self.errors[i] * self.errors[j]
+        if denominator == 0:
+            raise ZeroDivisionError("Zero variance encountered")
+        return self.matrix[i, j] / denominator
+
+    def inverse(self):
+        """Returns the inverse covariance (precision matrix)."""
+        from numpy.linalg import inv
+
+        return inv(self.matrix)
+
+    def __repr__(self):
+        n = self.matrix.shape[0]
+        return f"CovarianceMatrix({n}x{n})"

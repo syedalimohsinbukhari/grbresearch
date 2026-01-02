@@ -213,8 +213,8 @@ def filter_models_by_error(c_stats, folder_path, candidates, **kwargs):
         m: c_stats[m]
         for m in candidates
         if m in c_stats
-           and os.path.exists(os.path.join(folder_path, f"{m}.fit"))
-           and model_passes_error_criteria(path=os.path.join(folder_path, f"{m}.fit"), **kwargs)
+        and os.path.exists(os.path.join(folder_path, f"{m}.fit"))
+        and model_passes_error_criteria(path=os.path.join(folder_path, f"{m}.fit"), **kwargs)
     }
 
 
@@ -258,7 +258,7 @@ def list_safe_models(folder_path, **kwargs):
         m
         for m in ALLOWED_MODELS
         if os.path.exists(os.path.join(folder_path, f"{m}.fit"))
-           and model_passes_error_criteria(os.path.join(folder_path, f"{m}.fit"), **kwargs)
+        and model_passes_error_criteria(os.path.join(folder_path, f"{m}.fit"), **kwargs)
     }
 
 
@@ -295,7 +295,8 @@ def get_extra_values(path):
 
     return ph_flx, ph_fln, en_flx, en_fln, cov_
 
-def list_par_err(cwd_, fit_type, string=1, is_good=None, result_dict=None, ep_ext='T90') -> Dict:
+
+def list_par_err(cwd_, fit_type, string=1, is_good=None, result_dict=None, ep_ext="T90") -> Dict:
     """List parameter errors for given models in the specified directory.
 
     Parameters
@@ -329,7 +330,7 @@ def list_par_err(cwd_, fit_type, string=1, is_good=None, result_dict=None, ep_ex
     grb = cwd_.split("/")[-2]
     ep = cwd_.split("/")[-1].split("__")[1].replace("m", "-")
 
-    s_ = 'SAFE' if string == 1 else 'UNSAFE'
+    s_ = "SAFE" if string == 1 else "UNSAFE"
 
     for m in fit_type:
         fit_path = os.path.join(cwd_, f"{m}.fit")
@@ -362,7 +363,7 @@ def list_par_err(cwd_, fit_type, string=1, is_good=None, result_dict=None, ep_ex
             for m2, v, e in zip(MODEL_PARAMETERS[m.lower()], vals, errs):
                 model_dict[m2] = [v, e]
 
-            model_dict['c-stat/dof'] = [c_stat, dof]
+            model_dict["c-stat/dof"] = [c_stat, dof]
             model_dict["covariance_matrix"] = cov_matrix
 
             # print log
@@ -371,9 +372,9 @@ def list_par_err(cwd_, fit_type, string=1, is_good=None, result_dict=None, ep_ex
                 pct = (abs(e) / abs(v) * 100) if v != 0 else float("inf")
                 print(f"   {par_name:15s} = {v:.20f}({e:.20f}) , {pct:.3g} %")
             for par_name, v, e in zip(p_name2, vals2, errs2):
-                acc = '4' if par_name == 'c-stat/dof' else '20'
-                sep1 = '/' if par_name == 'c-stat/dof' else '('
-                sep2 = '' if par_name == 'c-stat/dof' else ')'
+                acc = "4" if par_name == "c-stat/dof" else "20"
+                sep1 = "/" if par_name == "c-stat/dof" else "("
+                sep2 = "" if par_name == "c-stat/dof" else ")"
                 print(f"   {par_name:15s} = {v:.{acc}f}{sep1}{e:.{acc}f}{sep2}")
 
         except Exception as e:

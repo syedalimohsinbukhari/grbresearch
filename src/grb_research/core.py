@@ -21,11 +21,8 @@ def get_directories_in_current_folder(cur_dir=None):
     directories = []
     for entry in all_entries:
         full_path = os.path.join(current_directory, entry)
-        if np.logical_and(os.path.isdir(full_path),
-                          np.logical_or(entry.startswith('GRB'),
-                                        entry.startswith('Ep'))
-                          ):
-            if 'Research' not in entry:
+        if np.logical_and(os.path.isdir(full_path), np.logical_or(entry.startswith("GRB"), entry.startswith("Ep"))):
+            if "Research" not in entry:
                 directories.append(entry)
     directories.sort()
     return directories
@@ -86,15 +83,17 @@ def flatten_results(res_total, include_covariance=True):
                         v, e = val
                     else:
                         v, e = val, None
-                    rows.append({
-                        "GRB": grb,
-                        "epoch": ep,
-                        "model": model,
-                        "status": status,
-                        "param": p_name,
-                        "value": v,
-                        "error": e,
-                    })
+                    rows.append(
+                        {
+                            "GRB": grb,
+                            "epoch": ep,
+                            "model": model,
+                            "status": status,
+                            "param": p_name,
+                            "value": v,
+                            "error": e,
+                        }
+                    )
     return pd.DataFrame(rows)
 
 
@@ -249,18 +248,18 @@ def query_data(data, grb_name: str, m_name: str, status: str = "both", epoch: st
 
 
 def two_scatter(
-        start_list,
-        end_list,
-        val1,
-        val2,
-        err1,
-        err2,
-        ti_fmt="s",
-        ti_color="r",
-        tr_fmt="o",
-        x_time=False,
-        plot_axis=None,
-        remove_extra=False,
+    start_list,
+    end_list,
+    val1,
+    val2,
+    err1,
+    err2,
+    ti_fmt="s",
+    ti_color="r",
+    tr_fmt="o",
+    x_time=False,
+    plot_axis=None,
+    remove_extra=False,
 ):
     """Create a scatter plot comparing two sets of values with error bars."""
     for index, (v1, v2, e1, e2) in enumerate(zip(val1, val2, err1, err2)):
@@ -315,8 +314,8 @@ def epoch_to_time(epochs, differences=False):
     """Convert epoch strings to numerical start and end times."""
     label, start, end = [], [], []
     for time_ in epochs:
-        label.append(time_.split(' ')[0])
-        ts_, te_ = map(float, time_.split(' ')[1].split("_"))
+        label.append(time_.split(" ")[0])
+        ts_, te_ = map(float, time_.split(" ")[1].split("_"))
         start.append(ts_)
         end.append(te_)
     start, end = np.array(start), np.array(end)

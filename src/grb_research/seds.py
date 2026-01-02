@@ -4,17 +4,13 @@ from typing import Optional, Tuple
 
 import numpy as np
 from matplotlib import pyplot as plt
-from uncertainties import correlated_values, unumpy
+from uncertainties import unumpy
 
 from . import GRB_COLORS, model_n_pars
 
 
-def get_variance(jacobian_stack, cov):
-    return np.einsum("ij,jk,ik->i", jacobian_stack, cov, jacobian_stack, optimize=True)
-
-
 def powerlaw(energy, amp, e_piv, index1):
-    return amp * (energy / e_piv) ** index1
+    return amp * (energy / e_piv)**index1
 
 
 def smoothly_broken_power_law(energy, amp, e_piv, index1, break_energy, delta, index2):
@@ -27,7 +23,7 @@ def smoothly_broken_power_law(energy, amp, e_piv, index1, break_energy, delta, i
     a_piv = unumpy.log10(e_piv / break_energy) / delta
     beta_piv = m * delta * unumpy.log(0.5 * (unumpy.exp(a_piv) + unumpy.exp(-a_piv)))
 
-    return amp * (energy / e_piv) ** b * 10.0 ** (beta - beta_piv)
+    return amp * (energy / e_piv)**b * 10.0**(beta - beta_piv)
 
 
 def band_function(energy, amp, e_peak, index1, index2):
@@ -54,36 +50,13 @@ def black_body(energy, amp, temperature):
     return amp * energy**2 / (unumpy.exp(kt_clip) - 1)
 
 
-def get_value(fit_file, n_parameters, full_cov, return_errors: bool = False):
-    """
-    Extract parameter values (and optionally errors) from the FITS file.
-
-    - Value is stored at [0][0]
-    - Error is stored at [0][1]
-
-    If return_errors is False (default), returns a list of uncertainties.ufloat via
-    correlated_values using full covariance. This preserves error correlations in
-    downstream computations.
-
-    If return_errors is True, returns a tuple (values, errors) where both are numpy arrays
-    taken directly from the FITS (per-parameter 1-sigma errors), with 0.0 for frozen parameters.
-    """
-    values = [fit_file[2].data[f"PARAM{i}"][0][0] for i in range(n_parameters)]
-    errors = [fit_file[2].data[f"PARAM{i}"][0][1] for i in range(n_parameters)]
-
-    if return_errors:
-        return np.array(object=values, dtype=float), np.array(object=errors, dtype=float)
-
-    return correlated_values(nom_values=values, covariance_mat=full_cov)
-
-
 def model_pl(x, model_values, model_string: str):
     model_string = model_string.lower()
     model_dict = {"cpl": cutoff_powerlaw, "band": band_function, "sbpl": smoothly_broken_power_law, "bb": black_body}
     model_init = model_string.split("_")[0] if model_string != "pl_bb" else model_string.split("_")[1]
 
     pl_ = powerlaw(x, *model_values[: model_n_pars["pl"]])
-    model_ = model_dict[model_init](x, *model_values[model_n_pars["pl"] :])
+    model_ = model_dict[model_init](x, *model_values[model_n_pars["pl"]:])
 
     return pl_, model_, pl_ + model_
 
@@ -94,7 +67,7 @@ def model_bb(x, model_values, model_string: str):
     model_init = model_string.split("_")[0]
 
     model_ = model_dict[model_init](x, *model_values[: model_n_pars[model_init]])
-    bb_ = black_body(x, *model_values[model_n_pars[model_init] :])
+    bb_ = black_body(x, *model_values[model_n_pars[model_init]:])
 
     return model_, bb_, model_ + bb_
 
@@ -105,24 +78,24 @@ def pl_model_bb(x, model_values, model_string: str):
     model_init = model_string.split("_")[0]
 
     pl_ = powerlaw(x, *model_values[: model_n_pars["pl"]])
-    model_ = model_dict[model_init](x, *model_values[model_n_pars["pl"] : -model_n_pars["bb"]])
-    bb_ = black_body(x, *model_values[-model_n_pars["bb"] :])
+    model_ = model_dict[model_init](x, *model_values[model_n_pars["pl"]: -model_n_pars["bb"]])
+    bb_ = black_body(x, *model_values[-model_n_pars["bb"]:])
 
     return pl_, model_, bb_, pl_ + model_ + bb_
 
 
 def plot_model(
-    x,
-    model_values,
-    model_strings,
-    styles,
-    plot_labels=None,
-    x_lims=None,
-    x_label=None,
-    y_lims=None,
-    y_label=None,
-    axis=None,
-    use_ergs=False,
+        x,
+        model_values,
+        model_strings,
+        styles,
+        plot_labels=None,
+        x_lims=None,
+        x_label=None,
+        y_lims=None,
+        y_label=None,
+        axis=None,
+        use_ergs=False,
 ):
     kev_to_ergs = 1.60217662e-9 if use_ergs else 1.0
     if axis is None:
@@ -150,7 +123,10 @@ def plot_model(
         max_y = max_y * kev_to_ergs if use_ergs else max_y
 
         # color = 'k' if index == 0 else GRB_COLORS[label.lower()]
-        color = GRB_COLORS[model_strings[index].lower()]
+        try:
+            color = GRB_COLORS[model_strings[index].lower()]
+        except KeyError:
+            color = 'k'
         ax.loglog(x, y_plot, style, color=color, label=label)
         ax.fill_between(x=x, y1=y_lower, y2=y_upper, color=color, alpha=0.2)
 
@@ -171,15 +147,15 @@ def _swap(list_of_values):
 
 
 def plot_single_model(
-    x,
-    model_values,
-    model_string: str,
-    plot_labels: str = None,
-    x_lims: Optional[Tuple] = None,
-    x_label: Optional[str] = None,
-    y_label: Optional[str] = None,
-    use_ergs: bool = False,
-    axis=None,
+        x,
+        model_values,
+        model_string: str,
+        plot_labels: str = None,
+        x_lims: Optional[Tuple] = None,
+        x_label: Optional[str] = None,
+        y_label: Optional[str] = None,
+        use_ergs: bool = False,
+        axis=None,
 ):
     plot_model(
         x=x,
@@ -196,7 +172,7 @@ def plot_single_model(
 
 
 def plot_double_model(
-    x, model_values, model_string, plot_labels=None, x_lims=None, x_label=None, y_label=None, axis=None, use_ergs=False
+        x, model_values, model_string, plot_labels=None, x_lims=None, x_label=None, y_label=None, axis=None, use_ergs=False
 ):
     m1, m2 = model_string.split("_")
     if m2 == "pl":
@@ -220,7 +196,7 @@ def plot_double_model(
 
 
 def plot_triple_model(
-    x, model_values, model_string, plot_labels=None, x_lims=None, x_label=None, y_label=None, use_ergs: bool = False
+        x, model_values, model_string, plot_labels=None, x_lims=None, x_label=None, y_label=None, use_ergs: bool = False
 ):
     m1, m2, m3 = model_string.split("_")
 
@@ -318,7 +294,7 @@ def plot_triple_model(
 
 
 def _pl_one(energy, e_piv, index1):
-    return (energy / e_piv) ** index1
+    return (energy / e_piv)**index1
 
 
 def _cpl_one(energy, e_peak, index1, e_piv):

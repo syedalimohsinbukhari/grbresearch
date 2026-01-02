@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from . import model_n_pars, PARAMETERS
+from . import model_n_pars
 
 
 ###############################################################################
@@ -11,7 +11,7 @@ from . import model_n_pars, PARAMETERS
 
 
 def powerlaw(energy, amp, e_piv, index1):
-    return amp * (energy / e_piv) ** index1
+    return amp * (energy / e_piv)**index1
 
 
 def smoothly_broken_power_law(energy, amp, e_piv, index1, break_energy, delta, index2):
@@ -24,7 +24,7 @@ def smoothly_broken_power_law(energy, amp, e_piv, index1, break_energy, delta, i
     a_piv = np.log10(e_piv / break_energy) / delta
     beta_piv = m * delta * np.log(0.5 * (np.exp(a_piv) + np.exp(-a_piv)))
 
-    return amp * (energy / e_piv) ** b * 10.0 ** (beta - beta_piv)
+    return amp * (energy / e_piv)**b * 10.0**(beta - beta_piv)
 
 
 def band_function(energy, amp, e_peak, index1, index2):
@@ -47,7 +47,7 @@ def cutoff_powerlaw(energy, amp, e_peak, index1, e_piv):
 
 
 def black_body(energy, amp, temperature):
-    return amp * energy**2 * np.expm1(-energy / temperature)
+    return amp * energy**2 / np.expm1(energy / temperature)
 
 
 ##############################################################################
@@ -135,14 +135,14 @@ def _band_grads(energy, amp, e_peak, index1, index2):
     return grad1, grad2, i1_minus_i2 * break_
 
 
-def cutoff_powerlaw_errors(energy, amp, e_peak, index1, e_piv, cov, correlated=True):
+def cpl_errors(energy, amp, e_peak, index1, e_piv, cov, correlated=True):
     n_params: int = model_n_pars["cpl"]
-    grads = _cutoff_powerlaw_grads(energy=energy, amp=amp, e_peak=e_peak, index1=index1, e_piv=e_piv)
+    grads = _cpl_grads(energy=energy, amp=amp, e_peak=e_peak, index1=index1, e_piv=e_piv)
 
     return give_errors(cov=cov, grads=grads, n_params=n_params, correlated=correlated)
 
 
-def _cutoff_powerlaw_grads(energy, amp, e_peak, index1, e_piv):
+def _cpl_grads(energy, amp, e_peak, index1, e_piv):
     f = cutoff_powerlaw(energy=energy, amp=amp, e_peak=e_peak, index1=index1, e_piv=e_piv)
     df_d1 = f / amp
     df_d2 = f * (energy * (2 + index1) / e_peak**2)
@@ -151,12 +151,19 @@ def _cutoff_powerlaw_grads(energy, amp, e_peak, index1, e_piv):
     return np.array([df_d1, df_d2, df_d3, df_d4])
 
 
-def black_body_errors(energy, amp, temperature, cov, correlated=True):
-    n_params = PARAMETERS["bb"]
+def _bb_grads(energy, amp, temperature):
     f = black_body(energy=energy, amp=amp, temperature=temperature)
     df_d1 = f / amp
-    df_d2 = f / np.expm1(-temperature)
-    grads = np.array([df_d1, df_d2])
+
+    df_d21 = f / temperature**2
+    df_d2 = df_d21 * (energy + f / (amp * energy))
+
+    return np.array([df_d1, df_d2])
+
+
+def blackbody_errors(energy, amp, temperature, cov, correlated=True):
+    n_params = model_n_pars["bb"]
+    grads = _bb_grads(energy=energy, amp=amp, temperature=temperature)
 
     return give_errors(cov=cov, grads=grads, n_params=n_params, correlated=correlated)
 
@@ -167,14 +174,14 @@ def black_body_errors(energy, amp, temperature, cov, correlated=True):
 
 
 def broken_powerlaw(energy, amp, e_piv, index1, break_energy, index2):
-    f1 = (energy / e_piv) ** index1
-    f2 = (break_energy / e_piv) ** index1 * (energy / break_energy) ** index2
+    f1 = (energy / e_piv)**index1
+    f2 = (break_energy / e_piv)**index1 * (energy / break_energy)**index2
     return amp * np.where(energy <= break_energy, f1, f2)
 
 
 def broken_powerlaw_two_breaks(energy, amp, e_piv, index1, break_energy1, index12, break_energy2, index2):
-    f1 = (energy / e_piv) ** index1
-    f2 = (break_energy1 / e_piv) ** index1 * (energy / break_energy1) ** index2
+    f1 = (energy / e_piv)**index1
+    f2 = (break_energy1 / e_piv)**index1 * (energy / break_energy1)**index2
 
     f31 = _pl_one(energy=break_energy1, e_piv=e_piv, index1=index1)
     f32 = _pl_one(energy=break_energy1, e_piv=break_energy2, index1=index12)
@@ -193,7 +200,7 @@ def cutoff_powerlaw_old(energy, amp, temperature, index1, e_piv):
 
 
 def _pl_one(energy, e_piv, index1):
-    return (energy / e_piv) ** index1
+    return (energy / e_piv)**index1
 
 
 def _cpl_one(energy, e_peak, index1, e_piv):
