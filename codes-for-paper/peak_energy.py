@@ -81,7 +81,7 @@ ep_value_110721a, ep_error_110721a = extract_peak_energy(grb110721a_best)
 ep_value_110731a, ep_error_110731a = extract_peak_energy(grb110731a_best)
 ep_value_150210a, ep_error_150210a = extract_peak_energy(grb150210a_best)
 
-f, ax = plt.subplots(4, 1, figsize=(6, 12))
+_, ax = plt.subplots(2, 1, figsize=(5.5, 6))
 plot_per_episode(
     values=ep_value_080916c,
     errors=ep_error_080916c,
@@ -102,26 +102,6 @@ plot_per_episode(
     midpoints=midpoint_110721,
     axes=ax[1],
 )
-plot_per_episode(
-    values=ep_value_110731a,
-    errors=ep_error_110731a,
-    m_name=grb_list[2],
-    start=start_110731,
-    end=end_110731,
-    difference=diff_110731,
-    midpoints=midpoint_110731,
-    axes=ax[2],
-)
-plot_per_episode(
-    values=ep_value_150210a,
-    errors=ep_error_150210a,
-    m_name=grb_list[3],
-    start=start_150210,
-    end=end_150210,
-    difference=diff_150210,
-    midpoints=midpoint_150210,
-    axes=ax[3],
-)
 
 [i.grid(True, which="both", alpha=0.5, ls="--") for i in ax]
 ax[-1].set_xlabel("Time [s]", fontsize=fs)
@@ -132,5 +112,40 @@ plt.yticks(fontsize=fs)
 # plt.title("Peak Energy of GRB 150210A")
 plt.tight_layout()
 # plt.show()
-[plt.savefig(f"./peak_energy__best.{i}", dpi=600) for i in ["png", "pdf"]]
+[plt.savefig(f"./peak_energy__best__080916c_110721a.{i}", dpi=600) for i in ["png", "pdf"]]
+plt.close()
+
+_, ax = plt.subplots(2, 1, figsize=(5.5, 6))
+plot_per_episode(
+    values=ep_value_110731a,
+    errors=ep_error_110731a,
+    m_name=grb_list[2],
+    start=start_110731,
+    end=end_110731,
+    difference=diff_110731,
+    midpoints=midpoint_110731,
+    axes=ax[0],
+)
+plot_per_episode(
+    values=ep_value_150210a,
+    errors=ep_error_150210a,
+    m_name=grb_list[3],
+    start=start_150210,
+    end=end_150210,
+    difference=diff_150210,
+    midpoints=midpoint_150210,
+    axes=ax[1],
+)
+
+
+[i.grid(True, which="both", alpha=0.5, ls="--") for i in ax]
+ax[-1].set_xlabel("Time [s]", fontsize=fs)
+[i.set_ylabel("Energy [keV]", fontsize=fs) for i in ax]
+plt.xticks(fontsize=fs)
+plt.yticks(fontsize=fs)
+[i.legend(loc="center right", frameon=False, fontsize=fs) for i in ax]
+# plt.title("Peak Energy of GRB 150210A")
+plt.tight_layout()
+# plt.show()
+[plt.savefig(f"./peak_energy__best__110731a_150210a.{i}", dpi=600) for i in ["png", "pdf"]]
 plt.close()
