@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from typing import Dict, Iterable, Optional
 
-from .grb_model import Model, ModelSet
+from .grb_model import GoodnessOfFit, Model, ModelSet
 from .grb_time import EpisodeTypes, TimeInterval, TimeIntervalSet
 
 
@@ -43,8 +43,7 @@ class GRB:
             gm = []
             temp_data = data[interval_.to_string()]
             for m_name in temp_data.keys():
-                temp_model = temp_data[m_name]
-                gm.append(Model.from_dictionary(m_name, temp_model))
+                gm.append(Model.from_dictionary(m_name, temp_data[m_name], interval_))
             interval_.models = ModelSet(gm)
 
         return grb
@@ -72,6 +71,15 @@ class GRB:
             interval = TimeInterval.from_string(interval_str)
             time_intervals.append(interval)
         return TimeIntervalSet(time_intervals)
+
+    def get_best(self):
+        """Get the best model for each interval."""
+        m_total = []
+        for i in self.intervals:
+            for m in i.models:
+                if m.status is GoodnessOfFit.BEST:
+                    m_total.append(m)
+        return ModelSet(m_total)
 
     def get_model(self, model_name, interval=None, tr_index=None):
         all_models = []

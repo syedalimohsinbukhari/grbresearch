@@ -10,8 +10,6 @@
 ### best models across all time slots
 ![img.png](codes-for-paper/grb110721a__best_models.png)
 
-### butterfly plots
-
 ## GRB110731A
 
 ### best models across all time slots
@@ -21,3 +19,7 @@
 
 ### best models across all time slots
 ![img.png](codes-for-paper/grb150210a__best_models.png)
+
+# Date: Jan 2, 2026
+
+1. peak energy evolution plots for all the best models in the GRBs. 

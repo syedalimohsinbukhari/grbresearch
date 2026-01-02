@@ -7,6 +7,7 @@ from typing import Dict, List, Optional, Tuple, Union
 import numpy as np
 
 from .grb_atomic import CovarianceMatrix, Parameter
+from .grb_time import TimeInterval
 
 
 class GoodnessOfFit(Enum):
@@ -31,6 +32,7 @@ class Model:
 
     name: str
     parameters: List[Parameter]
+    _interval: Optional[TimeInterval] = None
 
     status: Optional[GoodnessOfFit] = None
     cstat: Optional[float] = None
@@ -71,7 +73,7 @@ class Model:
         return self.covariance_matrix.matrix
 
     @classmethod
-    def from_dictionary(cls, name: str, data: Dict) -> "Model":
+    def from_dictionary(cls, name: str, data: Dict, interval: TimeInterval) -> "Model":
         """Create a SingleModel from its dictionary representation."""
         status = GoodnessOfFit(data["_status"])
         cstat = data["c-stat/dof"][0]
@@ -82,7 +84,7 @@ class Model:
             data.pop(aux_)
 
         return cls(
-            name, [Parameter(k, v, e) for k, (v, e) in data.items()], status, cstat, dof, CovarianceMatrix(cov_matrix)
+            name, [Parameter(k, v, e) for k, (v, e) in data.items()], interval, status, cstat, dof, CovarianceMatrix(cov_matrix)
         )
 
     def __str__(self) -> str:

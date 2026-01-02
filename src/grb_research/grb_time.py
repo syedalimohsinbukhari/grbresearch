@@ -4,11 +4,11 @@ import re
 from collections import defaultdict
 from dataclasses import dataclass
 from enum import Enum
-from typing import List, Optional, Tuple, Union
+from typing import ForwardRef, List, Optional, Tuple, Union
 
 import numpy as np
 
-from src.grb_research.grb_model import ModelSet
+ModelSet = ForwardRef("ModelSet")
 
 
 class EpisodeTypes(Enum):
@@ -202,7 +202,7 @@ class TimeIntervalSet:
         return None
 
     def extract_interval_arrays(
-        self, *, return_include: tuple[str, ...] = (), exclude_ex: bool = False
+            self, *, return_include: tuple[str, ...] = (), exclude_ex: bool = False
     ) -> Tuple[np.ndarray, ...]:
         """
         Extract start and end times as numpy arrays.

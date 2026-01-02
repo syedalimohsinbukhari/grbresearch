@@ -8,7 +8,6 @@ import numpy as np
 @dataclass(frozen=True)
 class Parameter:
     """Scalar parameter with uncertainty."""
-
     name: str
     value: float
     error: float

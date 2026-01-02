@@ -124,12 +124,19 @@ from src.grb_research.grb_class import GRBCatalog
 # # [plt.savefig(f'./{grb_name}_parameter_index_evolution.{i}', dpi=600) for i in ['png', 'pdf']]
 # # plt.close()
 def plot_per_episode(values, errors, start, end, difference, midpoints, axes):
-    axes.plot([start[0], end[0]], [values[0], values[0]], c='k', ls='--', lw=2)
-    axes.fill_between(x=[start[0], end[0]], y1=values[0] - errors[0], y2=values[0] + errors[0], color='k', alpha=0.15)
+    axes.plot([start[0], end[0]], [values[0], values[0]], c="k", ls="--", lw=2)
+    axes.fill_between(x=[start[0], end[0]], y1=values[0] - errors[0], y2=values[0] + errors[0], color="k", alpha=0.15)
     for i, value in enumerate(midpoints[1:]):
-        axes.errorbar(value, values[i + 1], xerr=difference[i + 1], yerr=errors[i + 1],
-                      color='b' if np.logical_or(start[i + 1] < start[0],
-                                                 end[i + 1] > end[0] + 0.064) else 'g', marker='.', ms=10, capsize=5)
+        axes.errorbar(
+            value,
+            values[i + 1],
+            xerr=difference[i + 1],
+            yerr=errors[i + 1],
+            color="b" if np.logical_or(start[i + 1] < start[0], end[i + 1] > end[0] + 0.064) else "g",
+            marker=".",
+            ms=10,
+            capsize=5,
+        )
 
 
 with open("./../../results.json", "r") as f:
@@ -137,7 +144,7 @@ with open("./../../results.json", "r") as f:
 
 f, ax = plt.subplots(1, 4, figsize=(15, 4), sharey=True)
 
-grb_list = ['080916C', '110721A', '110731A', '150210A']
+grb_list = ["080916C", "110721A", "110731A", "150210A"]
 gc = GRBCatalog.from_iterable(grb_list, data=example_data)
 
 grb080916c = gc[short_to_long[grb_list[0]]]
@@ -147,25 +154,25 @@ grb150210a = gc[short_to_long[grb_list[3]]]
 
 st, ed, diff, mp = grb080916c.extract_interval_arrays(return_all=True, exclude_ex=True)
 
-print(grb080916c.intervals.get_model('band'))
+print(grb080916c.intervals.get_model("band"))
 
-v, e = grb080916c.get_model('cpl').get_parameter('index_cpl', exclude_ex=True)
+v, e = grb080916c.get_model("cpl").get_parameter("index_cpl", exclude_ex=True)
 
 plot_per_episode(v, e, st, ed, diff, mp, ax[0])
-ax[0].set_title('CPL')
+ax[0].set_title("CPL")
 
-v, e = grb110731a.get_model('band').get_parameter('index1_band', exclude_ex=True)
+v, e = grb110731a.get_model("band").get_parameter("index1_band", exclude_ex=True)
 plot_per_episode(v, e, st, ed, diff, mp, ax[1])
-ax[1].set_title('BAND')
-v, e = grb150210a.get_model('sbpl').get_parameter('index1_sbpl', exclude_ex=True)
+ax[1].set_title("BAND")
+v, e = grb150210a.get_model("sbpl").get_parameter("index1_sbpl", exclude_ex=True)
 
 plot_per_episode(v, e, st, ed, diff, mp, ax[2])
-ax[2].set_title('SBPL')
+ax[2].set_title("SBPL")
 
-v, e = grb080916c.get_model('pl').get_parameter('index_pl')
+v, e = grb080916c.get_model("pl").get_parameter("index_pl")
 ax2 = ax[3].twinx()
 plot_per_episode(v, e, st, ed, diff, mp, ax2)
-ax2.set_title('PL')
+ax2.set_title("PL")
 
 
 plt.tight_layout()

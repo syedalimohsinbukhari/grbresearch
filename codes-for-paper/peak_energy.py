@@ -1,45 +1,136 @@
 """Created on Dec 17 13:22:15 2025"""
 
 import json
+from typing import Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
+from uncertainties import ufloat
 
+from src import sbpl_e_peak_indices
 from src.grb_research import short_to_long
+from src.grb_research.core import break_e_to_e_peak, plot_per_episode
 from src.grb_research.grb_core import GRBCatalog
 from src.grb_research.grb_model import ModelSet
-from src.grb_research.grb_sed import SpectralModels
-from src.grb_research.seds import plot_double_model
 
-# Example data with multiple interval types
+fs = 12
+
 with open("./../results.json", "r") as f:
     example_data = json.load(f)
 
-grb_list = ['080916C', '110721A', '110731A', '150210A']
+grb_list = ["080916C", "110721A", "110731A", "150210A"]
 grb_list_long = [short_to_long[i] for i in grb_list]
 
 kev_to_erg = 1.60218e-9
 
 gc = GRBCatalog.from_iterable(grb_list=grb_list, data=example_data, name_mapping=short_to_long)
-grb080916c = gc.get_grb(grb_list_long[-1])
-grb080916c_best = ModelSet([i.models.best for i in grb080916c.intervals])
 
-x = np.logspace(1, 7, 5_000)
+grb080916c = gc.get_grb(grb_list_long[0])
+grb110721a = gc.get_grb(grb_list_long[1])
+grb110731a = gc.get_grb(grb_list_long[2])
+grb150210a = gc.get_grb(grb_list_long[3])
 
-m_name = 'cpl_pl'
+grb080916c_best = grb080916c.get_best()
+grb110721a_best = grb110721a.get_best()
+grb110731a_best = grb110731a.get_best()
+grb150210a_best = grb150210a.get_best()
 
-pl_bb = grb080916c.intervals.t90.models.get(m_name)
-print(grb080916c.intervals.t90.models.get(m_name))
+print(grb150210a_best)
 
-model_instance = SpectralModels(x,
-                                pl_bb,
-                                grb080916c.intervals[0],
-                                model_type='counts')
+start_080916, end_080916, diff_080916, midpoint_080916 = grb080916c.intervals.extract_interval_arrays(
+    return_include=("diff", "midpoint")
+)
+start_110721, end_110721, diff_110721, midpoint_110721 = grb110721a.intervals.extract_interval_arrays(
+    return_include=("diff", "midpoint")
+)
+start_110731, end_110731, diff_110731, midpoint_110731 = grb110731a.intervals.extract_interval_arrays(
+    return_include=("diff", "midpoint")
+)
+start_150210, end_150210, diff_150210, midpoint_150210 = grb150210a.intervals.extract_interval_arrays(
+    return_include=("diff", "midpoint")
+)
 
-q = model_instance.get_values(with_errors=True)
 
-p2 = np.vstack([np.array(q[0]), np.array(q[1]).reshape(1, -1)])
+def extract_peak_energy(best_model: ModelSet) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Extracts the peak energy values and their associated errors from a given set of models.
 
-plot_double_model(x, p2.tolist(), m_name)
-plt.ylim(bottom=1, top=1e3)
-plt.show()
+    :param best_model: Set of models from which peak energy values are extracted
+    :type best_model: ModelSet
+    :return: A tuple containing two numpy arrays - the extracted peak energy values and their respective errors
+    :rtype: Tuple[np.ndarray, np.ndarray]
+    """
+    value, error = [], []
+    for model in best_model:
+        for p in model.parameters:
+            if "e_break" in p.name:
+                sbpl_idx = sbpl_e_peak_indices[model.name.lower()]
+                pars = [ufloat(i.value, i.error) for i in model.parameters[sbpl_idx[0] : sbpl_idx[1]]]
+                e_peak = break_e_to_e_peak(pars[2], pars[5], pars[3])
+                value.append(e_peak.n)
+                error.append(e_peak.s)
+            if "e_peak" in p.name:
+                value.append(p.value)
+                error.append(p.error)
+
+    return np.array(value), np.array(error)
+
+
+ep_value_080916c, ep_error_080916c = extract_peak_energy(grb080916c_best)
+ep_value_110721a, ep_error_110721a = extract_peak_energy(grb110721a_best)
+ep_value_110731a, ep_error_110731a = extract_peak_energy(grb110731a_best)
+ep_value_150210a, ep_error_150210a = extract_peak_energy(grb150210a_best)
+
+f, ax = plt.subplots(4, 1, figsize=(6, 12))
+plot_per_episode(
+    values=ep_value_080916c,
+    errors=ep_error_080916c,
+    m_name=grb_list[0],
+    start=start_080916,
+    end=end_080916,
+    difference=diff_080916,
+    midpoints=midpoint_080916,
+    axes=ax[0],
+)
+plot_per_episode(
+    values=ep_value_110721a,
+    errors=ep_error_110721a,
+    m_name=grb_list[1],
+    start=start_110721,
+    end=end_110721,
+    difference=diff_110721,
+    midpoints=midpoint_110721,
+    axes=ax[1],
+)
+plot_per_episode(
+    values=ep_value_110731a,
+    errors=ep_error_110731a,
+    m_name=grb_list[2],
+    start=start_110731,
+    end=end_110731,
+    difference=diff_110731,
+    midpoints=midpoint_110731,
+    axes=ax[2],
+)
+plot_per_episode(
+    values=ep_value_150210a,
+    errors=ep_error_150210a,
+    m_name=grb_list[3],
+    start=start_150210,
+    end=end_150210,
+    difference=diff_150210,
+    midpoints=midpoint_150210,
+    axes=ax[3],
+)
+
+[i.grid(True, which="both", alpha=0.5, ls="--") for i in ax]
+ax[-1].set_xlabel("Time [s]", fontsize=fs)
+[i.set_ylabel("Energy [keV]", fontsize=fs) for i in ax]
+plt.xticks(fontsize=fs)
+plt.yticks(fontsize=fs)
+[i.legend(loc="center right", frameon=False, fontsize=fs) for i in ax]
+# plt.title("Peak Energy of GRB 150210A")
+plt.tight_layout()
+# plt.show()
+[plt.savefig(f"./peak_energy__best.{i}", dpi=600) for i in ["png", "pdf"]]
+plt.close()

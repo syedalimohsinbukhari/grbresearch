@@ -4,9 +4,19 @@ OK_THRESHOLD = 0.4
 NOK_THRESHOLD = 1.0
 
 GRB_COLORS = {"pl": "blue",
+              "pl_bb": "blue",
               "cpl": "orange",
+              "cpl_pl": "orange",
+              "cpl_bb": "orange",
+              "cpl_pl_bb": "orange",
               "band": "green",
+              "band_pl": "green",
+              "band_bb": "green",
+              "band_pl_bb": "green",
               "sbpl": "red",
+              "sbpl_pl": "red",
+              "sbpl_bb": "red",
+              "sbpl_pl_bb": "red",
               "bb": "purple"}
 
 short_to_long = {
