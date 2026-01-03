@@ -10,11 +10,11 @@ from . import MODEL_PARAMETERS
 from .flags import analyze_model_hierarchy
 
 BASE_PARAM_SCHEMAS = {
-    "PL": [("amplitude", False, False), ("e_pivot", True, False), ("index", False, False)],
+    "PL": [("amplitude", False, False), ("e_pivot", True, False), ("index1", False, False)],
     "CPL": [
         ("amplitude", False, False),
         ("peak_energy", False, False),
-        ("index", False, False),
+        ("index1", False, False),
         ("e_pivot", True, False),
     ],
     "BAND": [
@@ -34,7 +34,7 @@ BASE_PARAM_SCHEMAS = {
 }
 
 COMPONENT_PARAM_SCHEMAS = {
-    "PL": [("amplitude_pl", False, False), ("e_pivot_pl", True, False), ("index_pl", False, False)],
+    "PL": [("amplitude_pl", False, False), ("e_pivot_pl", True, False), ("index2_pl", False, False)],
     "BB": [("amplitude_bb", False, False), ("kt_temperature", False, False)],
 }
 
@@ -181,7 +181,7 @@ def _param_error_limit(model, pname, v, par_constraint, loose):
     if parameter_name == "index2" and base in ("BAND", "SBPL"):
         factor = 1.0 if loose else 0.7
         return factor * abs(v), f"loose_index2({factor})"
-    if parameter_name == "index_pl" and "PL" in model.split("_")[1:]:
+    if parameter_name == "index2_pl" and "PL" in model.split("_")[1:]:
         factor = 1.0 if loose else 0.7
         return factor * abs(v), f"loose_pl_index({factor})"
     return par_constraint * abs(v), f"default({par_constraint})"
