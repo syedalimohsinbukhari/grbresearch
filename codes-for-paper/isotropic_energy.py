@@ -28,7 +28,7 @@ gc = GRBCatalog.from_iterable(grb_list=grb_list, data=example_data, name_mapping
 grb110721a = gc.get_grb(grb_list_long[0])
 
 grb110721a_best = grb110721a.get_all_best_models()
-model_to_evaluate = grb110721a_best[4]
+model_to_evaluate = grb110721a_best[0]
 
 print(model_to_evaluate)
 
@@ -139,18 +139,23 @@ def credible_interval_partition(samples: np.ndarray) -> Tuple[np.ndarray, np.nda
 
 sp = SpectralModels(model_to_evaluate, "nfn").get_values()
 
-x = np.logspace(1, 7, 10_000)
+n_energy = 10_000
+n_iterations = 1_000
 
-q = mcmc_sampler_parallel(model_to_evaluate, n_iters=500)
+x = np.logspace(1, 7, n_energy)
+
+q = mcmc_sampler_parallel(model_to_evaluate, n_iters=n_iterations)
 q = np.array(q)
 
 print(q.shape)
 q_arr = q[~np.any(q < 0, axis=1)]
 print(q_arr.shape)
 
+st = time.perf_counter()
 y_med, y_lo, y_hi = credible_interval_partition(q_arr)
+print(f"Time taken in partitioning = {time.perf_counter() - st:.2f} seconds")
 
-plt.loglog(x, sp[-1] if len(sp) > 1 else sp, 'k--', label=model_to_evaluate.name)
+plt.loglog(x, sp[-1] if isinstance(sp, tuple) else sp, 'k--', label=model_to_evaluate.name)
 plt.plot(x, y_med * x**2, 'r--', label='Median')
 plt.fill_between(x, y_hi * x**2, y_lo * x**2, alpha=0.15, color='r')
 plt.xlabel('Energy [keV]')
