@@ -154,6 +154,9 @@ class ModelSet:
             return self._models[key]
         return self._by_name[key]
 
+    def __setitem__(self, key, value):
+        self._models[key] = value
+
     def __iter__(self):
         return iter(self._models)
 

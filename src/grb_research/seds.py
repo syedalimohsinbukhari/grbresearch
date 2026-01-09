@@ -11,20 +11,23 @@ from .grb_enums import GRBModelsCombinations as gmC
 
 
 def powerlaw(energy, amp, e_piv, index1):
-    return amp * (energy / e_piv) ** index1
+    return amp * (energy / e_piv)**index1
 
 
 def smoothly_broken_power_law(energy, amp, e_piv, index1, break_energy, delta, index2):
     m = (index2 - index1) / 2
     b = (index1 + index2) / 2
 
-    a = unp.log10(energy / break_energy) / delta
-    beta = m * delta * unp.log(0.5 * (unp.exp(a) + unp.exp(-a)))
+    if break_energy < 0:
+        return np.full(shape=energy.shape, fill_value=np.nan)
 
-    a_piv = unp.log10(e_piv / break_energy) / delta
-    beta_piv = m * delta * unp.log(0.5 * (unp.exp(a_piv) + unp.exp(-a_piv)))
+    a = np.log10(energy / break_energy) / delta
+    beta = m * delta * np.log(0.5 * (np.exp(a) + np.exp(-a)))
 
-    return amp * (energy / e_piv) ** b * 10.0 ** (beta - beta_piv)
+    a_piv = np.log10(e_piv / break_energy) / delta
+    beta_piv = m * delta * np.log(0.5 * (np.exp(a_piv) + np.exp(-a_piv)))
+
+    return amp * (energy / e_piv)**b * 10.0**(beta - beta_piv)
 
 
 def band_function(energy, amp, e_peak, index1, index2):
@@ -36,33 +39,33 @@ def band_function(energy, amp, e_peak, index1, index2):
     f1 = _cpl_one(energy=energy, e_peak=e_peak, index1=index1, e_piv=e_piv)
 
     f21 = (i1_minus_i2 * break_) / e_piv
-    f2 = f21**i1_minus_i2 * unp.exp(-i1_minus_i2) * _pl_one(energy=energy, e_piv=e_piv, index1=index2)
+    f2 = f21**i1_minus_i2 * np.exp(-i1_minus_i2) * _pl_one(energy=energy, e_piv=e_piv, index1=index2)
 
     return amp * np.where(energy < transition_condition, f1, f2)
 
 
 def cutoff_powerlaw(energy, amp, e_peak, index1, e_piv):
     exp_ = -energy * (2 + index1)
-    return amp * _pl_one(energy=energy, e_piv=e_piv, index1=index1) * unp.exp(exp_ / e_peak)
+    return amp * _pl_one(energy=energy, e_piv=e_piv, index1=index1) * np.exp(exp_ / e_peak)
 
 
 def black_body(energy, amp, temperature):
     kt_clip = np.clip(a=energy / temperature, a_min=0, a_max=325)
-    return amp * energy**2 / (unp.exp(kt_clip) - 1)
+    return amp * energy**2 / (np.exp(kt_clip) - 1)
 
 
 def plot_model(
-    x,
-    model_values,
-    model_strings,
-    styles,
-    plot_labels=None,
-    x_lims=None,
-    x_label=None,
-    y_lims=None,
-    y_label=None,
-    axis=None,
-    use_ergs=False,
+        x,
+        model_values,
+        model_strings,
+        styles,
+        plot_labels=None,
+        x_lims=None,
+        x_label=None,
+        y_lims=None,
+        y_label=None,
+        axis=None,
+        use_ergs=False,
 ):
     kev_to_ergs = kev_to_erg if use_ergs else 1
     if axis is None:
@@ -118,15 +121,15 @@ def _swap(list_of_values):
 
 
 def plot_single_model(
-    x,
-    model_values,
-    model_string: str,
-    plot_labels: str = None,
-    x_lims: Optional[Tuple] = None,
-    x_label: Optional[str] = None,
-    y_label: Optional[str] = None,
-    use_ergs: bool = False,
-    axis=None,
+        x,
+        model_values,
+        model_string: str,
+        plot_labels: str = None,
+        x_lims: Optional[Tuple] = None,
+        x_label: Optional[str] = None,
+        y_label: Optional[str] = None,
+        use_ergs: bool = False,
+        axis=None,
 ):
     plot_model(
         x=x,
@@ -143,7 +146,7 @@ def plot_single_model(
 
 
 def plot_double_model(
-    x, model_values, model_string, plot_labels=None, x_lims=None, x_label=None, y_label=None, axis=None, use_ergs=False
+        x, model_values, model_string, plot_labels=None, x_lims=None, x_label=None, y_label=None, axis=None, use_ergs=False
 ):
     m1, m2 = model_string.split("_")
     if m2 == "pl":
@@ -167,7 +170,7 @@ def plot_double_model(
 
 
 def plot_triple_model(
-    x, model_values, model_string, plot_labels=None, x_lims=None, x_label=None, y_label=None, use_ergs: bool = False
+        x, model_values, model_string, plot_labels=None, x_lims=None, x_label=None, y_label=None, use_ergs: bool = False
 ):
     m1, m2, m3 = model_string.split("_")
 
@@ -193,7 +196,7 @@ def plot_triple_model(
 
 
 def _pl_one(energy, e_piv, index1):
-    return (energy / e_piv) ** index1
+    return (energy / e_piv)**index1
 
 
 def _cpl_one(energy, e_peak, index1, e_piv):

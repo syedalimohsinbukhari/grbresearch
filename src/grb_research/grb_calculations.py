@@ -6,6 +6,7 @@ from typing import Tuple
 
 import numpy as np
 from astropy.cosmology import FlatLambdaCDM
+from matplotlib import pyplot as plt
 from numpy.random import multivariate_normal
 from scipy.integrate import simpson
 from tqdm import tqdm
@@ -13,7 +14,7 @@ from tqdm import tqdm
 from .grb_constants import kev_to_erg
 from .grb_model import Model
 from .grb_sed import SpectralModels
-from .grb_time import TimeInterval
+from .grb_time import EpisodeTypes, TimeInterval
 
 
 @dataclass
@@ -56,7 +57,6 @@ class IsotropicEnergy:
 
         # E_iso = (4 * pi * dl^2 * fluence) / (1 + z)
         dl = self.luminosity_distance()
-        print(dl)
         e_iso = (4 * np.pi * dl**2 * fluence) / (1 + self.redshift)
 
         return e_iso
@@ -180,9 +180,9 @@ def credible_interval_partition(samples: np.ndarray) -> Tuple[np.ndarray, np.nda
         containing the 50th, 16th, and 84th percentiles respectively.
     """
     s = samples.T
-    part = np.percentile(s, [16, 50, 80], axis=1)
+    part = np.nanpercentile(s, [16, 50, 80], axis=1)
 
-    return np.asarray(part[1], float), np.asarray(part[0], float), np.asarray(part[2], float)
+    return np.asarray(part[1], float).T, np.asarray(part[0], float).T, np.asarray(part[2], float).T
 
 
 def mcmc_e_iso_sampler(
@@ -239,3 +239,39 @@ def mcmc_e_iso_sampler(
 
     lum_distance = FlatLambdaCDM(H0=67.4, Om0=0.315).luminosity_distance(z).cgs.value
     return (4 * np.pi * lum_distance**2 * bolometric_fluence.reshape(1, -1)) / (1 + z)
+
+
+def plot_best_models(best_models, n_rows=2, n_cols=None, grb_name=None, fig_size=(15, 4)):
+    n_grid = 500
+    n_samples = 1000
+    x = np.logspace(1, 7, n_grid)
+
+    f, ax = plt.subplots(n_rows, n_cols, figsize=fig_size, sharex=True, sharey=True)
+    ax = ax.flatten()
+
+    has_cpl_bb = False
+
+    for i, v in enumerate(best_models):
+        if 'BB' in v.name or 'CPL' in v.name:
+            has_cpl_bb = True
+        color = 'k' if v.interval.kind == EpisodeTypes.T90 else 'b' if v.interval.kind in [EpisodeTypes.EX0, EpisodeTypes.EX1] else 'r'
+        print(f'processing {v.name}')
+        samples = mcmc_sampler_parallel(v, n_samples=n_samples, n_grid=n_grid)
+        samples = np.array(samples)
+
+        p = np.percentile(samples, [16, 50, 84], axis=0)
+        med, low, high = credible_interval_partition(samples)
+        med, low, high = med * kev_to_erg, low * kev_to_erg, high * kev_to_erg
+        ax[i].loglog(x, med * x**2, f'{color}--', label=f"{v.name.replace('_', '+')}\n({v.interval.start} - {v.interval.end})")
+        ax[i].fill_between(x, low * x**2, high * x**2, color=color, alpha=0.2)
+        ax[i].legend()
+
+    [v.set_xlabel("Energy [keV]") for i, v in enumerate(ax) if i > (n_cols - 1)]
+    [v.set_ylabel("Energy Flux\n" + r"[erg/cm$^2$/s]") for i, v in enumerate(ax) if i % n_cols == 0]
+
+    if has_cpl_bb:
+        ax[-1].set_ylim(bottom=3.2e-10, top=2.8e-4)
+
+    f.tight_layout()
+    [plt.savefig(f'butterfly_{grb_name}.{i}', dpi=300) for i in ["png", "pdf"]]
+    plt.close()

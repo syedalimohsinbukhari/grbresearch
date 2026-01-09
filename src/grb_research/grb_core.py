@@ -1,7 +1,7 @@
 """Created on Dec 26 14:40:22 2025"""
 
 from dataclasses import dataclass
-from typing import Dict, Iterable, Optional
+from typing import Dict, Iterable, Optional, Union
 
 from .grb_model import GoodnessOfFit, Model, ModelSet
 from .grb_time import EpisodeTypes, TimeInterval, TimeIntervalSet
@@ -13,7 +13,7 @@ class GRB:
     intervals: Optional[TimeIntervalSet] = None
 
     @classmethod
-    def from_dictionary(cls, name: str, data: Dict) -> "GRB":
+    def from_dictionary(cls, name: str, grb_data: Dict) -> "GRB":
         """
         Create a GRB instance from a nested dictionary representation.
 
@@ -23,7 +23,7 @@ class GRB:
             The GRB class.
         name : str
             The name for the created GRB.
-        data : Dict
+        grb_data : Dict
             Mapping where keys are time-interval strings and values are dictionaries mapping model names to model dictionaries.
 
         Returns
@@ -38,10 +38,10 @@ class GRB:
             If an expected interval key referenced during model construction is missing in `data`.
         """
         grb = cls(name=name)
-        grb.intervals = grb.__interval_container(data.keys())
+        grb.intervals = grb.__interval_container(grb_data.keys())
         for interval_ in grb.intervals:
             gm = []
-            temp_data = data[interval_.to_string()]
+            temp_data = grb_data[interval_.to_string()]
             for m_name in temp_data.keys():
                 gm.append(Model.from_dictionary(m_name, temp_data[m_name], interval_))
             interval_.models = ModelSet(gm)
@@ -125,11 +125,13 @@ class GRBCatalog:
         return self.__repr__()
 
     @classmethod
-    def from_iterable(cls, grb_list: Iterable[str], data: dict, name_mapping: dict) -> "GRBCatalog":
+    def from_iterable(cls, grb_list: Union[str, Iterable[str]], data: dict, name_mapping: dict) -> "GRBCatalog":
         """Construct a GRBCatalog object from iterable"""
+        if isinstance(grb_list, str):
+            grb_list = [grb_list]
         grb_ = [name_mapping[i] for i in grb_list]
         eps_ = [data[i] for i in grb_]
-        grb_data_ = [GRB.from_dictionary(name=i, data=j) for i, j in zip(grb_, eps_)]
+        grb_data_ = [GRB.from_dictionary(name=i, grb_data=j) for i, j in zip(grb_, eps_)]
         return GRBCatalog(grb_data_)
 
     def get_grb(self, name: str) -> Optional[GRB]:
