@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from . import model_n_pars
+from .grb_constants import model_n_pars
 
 
 ###############################################################################

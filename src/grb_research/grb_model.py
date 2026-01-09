@@ -1,13 +1,18 @@
 """Created on Dec 26 14:20:28 2025"""
 
+from __future__ import annotations
+
+import copy
 from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 
 from .grb_atomic import CovarianceMatrix, Parameter
-from .grb_time import TimeInterval
+
+if TYPE_CHECKING:
+    from .grb_time import TimeInterval
 
 
 class GoodnessOfFit(Enum):
@@ -32,7 +37,7 @@ class Model:
 
     name: str
     parameters: List[Parameter]
-    _interval: Optional[TimeInterval] = None
+    interval: Optional[TimeInterval] = None
 
     status: Optional[GoodnessOfFit] = None
     cstat: Optional[float] = None
@@ -65,6 +70,8 @@ class Model:
     @property
     def get_reduced_cstat(self):
         """Get the reduced c-statistic (cstat/dof)."""
+        if self.dof == 0:
+            return np.inf
         return self.cstat / self.dof
 
     @property
@@ -75,16 +82,18 @@ class Model:
     @classmethod
     def from_dictionary(cls, name: str, data: Dict, interval: TimeInterval) -> "Model":
         """Create a SingleModel from its dictionary representation."""
-        status = GoodnessOfFit(data["_status"])
-        cstat = data["c-stat/dof"][0]
-        dof = int(data["c-stat/dof"][1])
-        cov_matrix = np.array(data["covariance_matrix"])
+        internal_dict = copy.deepcopy(data)
+
+        status = GoodnessOfFit(internal_dict["_status"])
+        cstat = internal_dict["c-stat/dof"][0]
+        dof = int(internal_dict["c-stat/dof"][1])
+        cov_matrix = np.array(internal_dict["covariance_matrix"])
         aux_keys1 = ["_status", "c-stat/dof", "covariance_matrix"]
         for aux_ in aux_keys1:
-            data.pop(aux_)
+            internal_dict.pop(aux_)
 
         return cls(
-            name, [Parameter(k, v, e) for k, (v, e) in data.items()], interval, status, cstat, dof, CovarianceMatrix(cov_matrix)
+            name, [Parameter(k, v, e) for k, (v, e) in internal_dict.items()], interval, status, cstat, dof, CovarianceMatrix(cov_matrix)
         )
 
     def __str__(self) -> str:
@@ -147,8 +156,11 @@ class ModelSet:
 
     @property
     def best(self) -> Model:
-        """Return the BEST model, if any."""
-        return [m for m in self._models if m.status is GoodnessOfFit.BEST][0]
+        """Return the BEST model."""
+        for m in self._models:
+            if m.status is GoodnessOfFit.BEST:
+                return m
+        raise LookupError("No model with status BEST found.")
 
     @property
     def safe(self) -> "ModelSet":

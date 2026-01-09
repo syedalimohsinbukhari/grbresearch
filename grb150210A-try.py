@@ -5,7 +5,7 @@ import numpy as np
 from uncertainties import correlated_values, unumpy
 
 import src.grb_research.seds as grb_seds
-from src.grb_research import short_to_long, model_n_pars
+from src.grb_research.grb_constants import model_n_pars, short_to_long
 from src.grb_research.core import flattened_json, query_data
 
 BEST_MODEL_FUNCTION_DICT = {'CPL': grb_seds.cutoff_powerlaw,

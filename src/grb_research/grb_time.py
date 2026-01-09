@@ -1,14 +1,17 @@
 """Created on Dec 26 01:34:58 2025"""
 
+from __future__ import annotations
+
 import re
 from collections import defaultdict
 from dataclasses import dataclass
 from enum import Enum
-from typing import ForwardRef, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, List, Optional, Tuple, Union
 
 import numpy as np
 
-ModelSet = ForwardRef("ModelSet")
+if TYPE_CHECKING:
+    from .grb_model import ModelSet
 
 
 class EpisodeTypes(Enum):
@@ -113,7 +116,7 @@ class TimeInterval:
         return self.end - self.start
 
     @property
-    def difference(self):
+    def half_difference(self):
         """Average difference between end and start times for midpoint and error calculations, or None if undefined."""
         if self.start is None or self.end is None:
             return None
@@ -149,12 +152,12 @@ class TimeInterval:
 class TimeIntervalSet:
     """Semantic container for GRB time intervals."""
 
-    __intervals: List[TimeInterval]
+    time_intervals: List[TimeInterval]
 
     def __post_init__(self):
         self._by_kind = defaultdict(list)
 
-        for i in self.__intervals:
+        for i in self.time_intervals:
             self._by_kind[i.kind].append(i)
 
         # Enforce invariants
@@ -166,6 +169,10 @@ class TimeIntervalSet:
 
         if len(self._by_kind[EpisodeTypes.EX1]) > 1:
             raise ValueError("Multiple EX1 intervals found")
+
+        self._trs = tuple(
+            sorted(self._by_kind.get(EpisodeTypes.TR, []), key=lambda i: i.index)
+        )
 
     # ---------- canonical access ----------
 
@@ -187,7 +194,7 @@ class TimeIntervalSet:
     @property
     def trs(self) -> tuple[TimeInterval, ...]:
         """Get all TR intervals, sorted by index."""
-        return tuple(sorted(self._by_kind[EpisodeTypes.TR], key=lambda i: i.index))
+        return self._trs
 
     @property
     def n_trs(self):
@@ -211,13 +218,13 @@ class TimeIntervalSet:
         Special key:
         - "all": include all derived quantities
         """
-        filtered = [i for i in self.__intervals if not (exclude_ex and i.is_ex)]
+        filtered = [i for i in self.time_intervals if not (exclude_ex and i.is_ex)]
 
         st = np.array([i.start for i in filtered])
         ed = np.array([i.end for i in filtered])
 
         # Registry of derived quantities
-        _derived = {"diff": lambda i: i.difference, "midpoint": lambda i: i.midpoint, "duration": lambda i: i.duration}
+        _derived = {"diff": lambda i: i.half_difference, "midpoint": lambda i: i.midpoint, "duration": lambda i: i.duration}
 
         # Expand "all" into concrete keys
         if "all" in return_include:
@@ -234,20 +241,20 @@ class TimeIntervalSet:
         return st, ed, *extra_arrays
 
     def __iter__(self):
-        return iter(self.__intervals)
+        return iter(self.time_intervals)
 
     def __getitem__(self, index: Union[int, slice]):
-        return self.__intervals[index]
+        return self.time_intervals[index]
 
     def __len__(self):
-        return len(self.__intervals)
+        return len(self.time_intervals)
 
     def __repr__(self) -> str:
-        if not self.__intervals:
+        if not self.time_intervals:
             return "TimeIntervalSet()"
 
         lines = ["TimeIntervalSet("]
-        for interval in self.__intervals:
+        for interval in self.time_intervals:
             lines.append(f"    {interval!r},")
         lines.append(")")
 

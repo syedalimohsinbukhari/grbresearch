@@ -10,10 +10,11 @@ from pymultifit.fitters.others import LineFitter
 
 import src.grb_research
 import src.grb_research.core as grb_core
+from src.grb_research import grb_constants
 
 data = grb_core.flattened_json()
 
-grb_name = src.grb_research.short_to_long['150210A']
+grb_name = grb_constants.short_to_long['150210A']
 m_name = 'CPL'
 a_name = m_name + '_BB'
 N_CONST = 4

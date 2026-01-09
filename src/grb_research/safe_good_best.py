@@ -6,7 +6,7 @@ from typing import Dict, Iterable, List
 import numpy as np
 from astropy.io import fits
 
-from . import MODEL_PARAMETERS
+from .grb_constants import MODEL_PARAMETERS
 from .flags import analyze_model_hierarchy
 
 BASE_PARAM_SCHEMAS = {

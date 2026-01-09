@@ -10,7 +10,7 @@ import seaborn
 from matplotlib.patches import Ellipse
 from uncertainties import unumpy
 
-from . import model_n_pars, MODEL_PARAMETERS, NOK_THRESHOLD, OK_THRESHOLD
+from .grb_constants import model_n_pars, MODEL_PARAMETERS, NOK_THRESHOLD, OK_THRESHOLD
 
 m_style = seaborn.color_palette("deep6")
 

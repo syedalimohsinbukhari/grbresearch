@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 
 import numpy as np
+from numpy.linalg import cholesky, inv, LinAlgError
 
 
 @dataclass(frozen=True)
@@ -32,7 +33,7 @@ class Parameter:
     @property
     def is_moderately_constrained(self):
         """Returns True if 0.1 <= relative error < 0.4."""
-        return self.relative_error < 0.4
+        return 0.1 <= self.relative_error <= 0.4
 
     @property
     def is_well_constrained(self):
@@ -75,8 +76,6 @@ class CovarianceMatrix:
 
     def is_positive_definite(self):
         """Checks if the matrix is positive definite."""
-        from numpy.linalg import cholesky, LinAlgError
-
         try:
             cholesky(self.matrix)
             return True
@@ -92,8 +91,6 @@ class CovarianceMatrix:
 
     def inverse(self):
         """Returns the inverse covariance (precision matrix)."""
-        from numpy.linalg import inv
-
         return inv(self.matrix)
 
     def __repr__(self):

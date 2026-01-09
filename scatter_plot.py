@@ -2,7 +2,8 @@
 
 from matplotlib import pyplot as plt
 
-from src.grb_research import model_n_pars, PARAMETERS, short_to_long
+from src.grb_research import PARAMETERS
+from src.grb_research.grb_constants import model_n_pars, short_to_long
 from src.grb_research.core import flattened_json, query_data, two_scatter
 
 data = flattened_json()

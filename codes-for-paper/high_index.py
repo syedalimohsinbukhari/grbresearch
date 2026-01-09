@@ -6,8 +6,8 @@ from typing import Tuple
 import matplotlib.pyplot as plt
 import numpy as np
 
-from src.grb_research import short_to_long
 from src.grb_research.core import plot_per_episode
+from src.grb_research.grb_constants import short_to_long
 from src.grb_research.grb_core import GRBCatalog
 from src.grb_research.grb_model import ModelSet
 
@@ -19,8 +19,6 @@ with open("./../results.json", "r") as f:
 grb_list = ["080916C", "110721A", "110731A", "150210A"]
 grb_list_long = [short_to_long[i] for i in grb_list]
 
-kev_to_erg = 1.60218e-9
-
 gc = GRBCatalog.from_iterable(grb_list=grb_list, data=example_data, name_mapping=short_to_long)
 
 grb080916c = gc.get_grb(grb_list_long[0])
@@ -28,10 +26,10 @@ grb110721a = gc.get_grb(grb_list_long[1])
 grb110731a = gc.get_grb(grb_list_long[2])
 grb150210a = gc.get_grb(grb_list_long[3])
 
-grb080916c_best = grb080916c.get_best()
-grb110721a_best = grb110721a.get_best()
-grb110731a_best = grb110731a.get_best()
-grb150210a_best = grb150210a.get_best()
+grb080916c_best = grb080916c.get_all_best_models()
+grb110721a_best = grb110721a.get_all_best_models()
+grb110731a_best = grb110731a.get_all_best_models()
+grb150210a_best = grb150210a.get_all_best_models()
 
 start_080916, end_080916, diff_080916, midpoint_080916 = grb080916c.intervals.extract_interval_arrays(
     return_include=("diff", "midpoint")
@@ -63,10 +61,7 @@ def extract_peak_energy(best_model: ModelSet) -> Tuple[np.ndarray, np.ndarray]:
     values = []
     errors = []
 
-    sbpl_band_models = {
-        "band", "band_pl", "band_bb", "band_pl_bb",
-        "sbpl", "sbpl_pl", "sbpl_bb", "sbpl_pl_bb",
-    }
+    sbpl_band_models = {"band", "band_pl", "band_bb", "band_pl_bb", "sbpl", "sbpl_pl", "sbpl_bb", "sbpl_pl_bb"}
 
     cpl_pl_models = {"cpl_pl", "cpl_pl_bb"}
 
@@ -75,10 +70,7 @@ def extract_peak_energy(best_model: ModelSet) -> Tuple[np.ndarray, np.ndarray]:
 
         # --- BAND / SBPL family ---
         if model_name in sbpl_band_models:
-            param = next(
-                (p for p in model.parameters if "index2" in p.name),
-                None
-            )
+            param = next((p for p in model.parameters if "index2" in p.name), None)
 
             if param is not None:
                 values.append(param.value)
@@ -86,10 +78,7 @@ def extract_peak_energy(best_model: ModelSet) -> Tuple[np.ndarray, np.ndarray]:
 
         # --- CPL + PL family ---
         elif model_name in cpl_pl_models:
-            param = next(
-                (p for p in model.parameters if "add_index_pl" in p.name),
-                None
-            )
+            param = next((p for p in model.parameters if "add_index_pl" in p.name), None)
 
             if param is not None:
                 values.append(param.value)

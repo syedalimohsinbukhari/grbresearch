@@ -10,7 +10,7 @@ from numpy.typing import NDArray
 from uncertainties import correlated_values
 from uncertainties.unumpy import nominal_values, std_devs
 
-from . import model_n_pars, MODEL_PARAMETERS
+from .grb_constants import model_n_pars, MODEL_PARAMETERS
 
 ## TODO:
 # for each episode, collect the parameters +/- errors

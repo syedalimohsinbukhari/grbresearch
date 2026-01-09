@@ -53,11 +53,8 @@ class GRB:
 
     def __str__(self):
         tr_eps = f"TR({self.intervals.n_trs})"
-        ex1 = self.intervals.__getattribute__("ex0")
-        try:
-            ex2 = self.intervals.__getattribute__("ex1")
-        except AttributeError:
-            ex2 = None
+        ex1 = self.intervals.ex0
+        ex2 = self.intervals.ex1
         if ex2 is not None:
             ex_eps = f"{ex1.kind}/{tr_eps}/{ex2.kind}"
         else:
@@ -72,7 +69,7 @@ class GRB:
             time_intervals.append(interval)
         return TimeIntervalSet(time_intervals)
 
-    def get_best(self):
+    def get_all_best_models(self):
         """Get the best model for each interval."""
         m_total = []
         for i in self.intervals:

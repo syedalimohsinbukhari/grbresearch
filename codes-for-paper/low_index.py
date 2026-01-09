@@ -5,11 +5,9 @@ from typing import Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
-from uncertainties import ufloat
 
-from src import sbpl_e_peak_indices
-from src.grb_research import short_to_long
-from src.grb_research.core import break_e_to_e_peak, plot_per_episode
+from src.grb_research.core import plot_per_episode
+from src.grb_research.grb_constants import short_to_long
 from src.grb_research.grb_core import GRBCatalog
 from src.grb_research.grb_model import ModelSet
 
@@ -30,10 +28,10 @@ grb110721a = gc.get_grb(grb_list_long[1])
 grb110731a = gc.get_grb(grb_list_long[2])
 grb150210a = gc.get_grb(grb_list_long[3])
 
-grb080916c_best = grb080916c.get_best()
-grb110721a_best = grb110721a.get_best()
-grb110731a_best = grb110731a.get_best()
-grb150210a_best = grb150210a.get_best()
+grb080916c_best = grb080916c.get_all_best_models()
+grb110721a_best = grb110721a.get_all_best_models()
+grb110731a_best = grb110731a.get_all_best_models()
+grb150210a_best = grb150210a.get_all_best_models()
 
 print(grb150210a_best)
 
@@ -49,6 +47,7 @@ start_110731, end_110731, diff_110731, midpoint_110731 = grb110731a.intervals.ex
 start_150210, end_150210, diff_150210, midpoint_150210 = grb150210a.intervals.extract_interval_arrays(
     return_include=("diff", "midpoint")
 )
+
 
 # print([i.parameters for i in grb150210a_best])
 
@@ -132,7 +131,6 @@ plot_per_episode(
     midpoints=midpoint_150210,
     axes=ax[1],
 )
-
 
 [i.grid(True, which="both", alpha=0.5, ls="--") for i in ax]
 ax[-1].set_xlabel("Time [s]", fontsize=fs)

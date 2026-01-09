@@ -4,9 +4,10 @@ from typing import Optional, Tuple
 
 import numpy as np
 from matplotlib import pyplot as plt
-from uncertainties import unumpy
+from uncertainties import unumpy as unp
 
-from . import GRB_COLORS, model_n_pars
+from .grb_constants import GRB_COLORS, kev_to_erg
+from .grb_enums import GRBModelsCombinations as gmC
 
 
 def powerlaw(energy, amp, e_piv, index1):
@@ -17,11 +18,11 @@ def smoothly_broken_power_law(energy, amp, e_piv, index1, break_energy, delta, i
     m = (index2 - index1) / 2
     b = (index1 + index2) / 2
 
-    a = unumpy.log10(energy / break_energy) / delta
-    beta = m * delta * unumpy.log(0.5 * (unumpy.exp(a) + unumpy.exp(-a)))
+    a = unp.log10(energy / break_energy) / delta
+    beta = m * delta * unp.log(0.5 * (unp.exp(a) + unp.exp(-a)))
 
-    a_piv = unumpy.log10(e_piv / break_energy) / delta
-    beta_piv = m * delta * unumpy.log(0.5 * (unumpy.exp(a_piv) + unumpy.exp(-a_piv)))
+    a_piv = unp.log10(e_piv / break_energy) / delta
+    beta_piv = m * delta * unp.log(0.5 * (unp.exp(a_piv) + unp.exp(-a_piv)))
 
     return amp * (energy / e_piv)**b * 10.0**(beta - beta_piv)
 
@@ -35,53 +36,19 @@ def band_function(energy, amp, e_peak, index1, index2):
     f1 = _cpl_one(energy=energy, e_peak=e_peak, index1=index1, e_piv=e_piv)
 
     f21 = (i1_minus_i2 * break_) / e_piv
-    f2 = f21**i1_minus_i2 * unumpy.exp(-i1_minus_i2) * _pl_one(energy=energy, e_piv=e_piv, index1=index2)
+    f2 = f21**i1_minus_i2 * unp.exp(-i1_minus_i2) * _pl_one(energy=energy, e_piv=e_piv, index1=index2)
 
     return amp * np.where(energy < transition_condition, f1, f2)
 
 
 def cutoff_powerlaw(energy, amp, e_peak, index1, e_piv):
     exp_ = -energy * (2 + index1)
-    return amp * _pl_one(energy=energy, e_piv=e_piv, index1=index1) * unumpy.exp(exp_ / e_peak)
+    return amp * _pl_one(energy=energy, e_piv=e_piv, index1=index1) * unp.exp(exp_ / e_peak)
 
 
 def black_body(energy, amp, temperature):
     kt_clip = np.clip(a=energy / temperature, a_min=0, a_max=325)
-    return amp * energy**2 / (unumpy.exp(kt_clip) - 1)
-
-
-def model_pl(x, model_values, model_string: str):
-    model_string = model_string.lower()
-    model_dict = {"cpl": cutoff_powerlaw, "band": band_function, "sbpl": smoothly_broken_power_law, "bb": black_body}
-    model_init = model_string.split("_")[0] if model_string != "pl_bb" else model_string.split("_")[1]
-
-    pl_ = powerlaw(x, *model_values[: model_n_pars["pl"]])
-    model_ = model_dict[model_init](x, *model_values[model_n_pars["pl"]:])
-
-    return pl_, model_, pl_ + model_
-
-
-def model_bb(x, model_values, model_string: str):
-    model_string = model_string.lower()
-    model_dict = {"pl": powerlaw, "cpl": cutoff_powerlaw, "band": band_function, "sbpl": smoothly_broken_power_law}
-    model_init = model_string.split("_")[0]
-
-    model_ = model_dict[model_init](x, *model_values[: model_n_pars[model_init]])
-    bb_ = black_body(x, *model_values[model_n_pars[model_init]:])
-
-    return model_, bb_, model_ + bb_
-
-
-def pl_model_bb(x, model_values, model_string: str):
-    model_string = model_string.lower()
-    model_dict = {"cpl": cutoff_powerlaw, "band": band_function, "sbpl": smoothly_broken_power_law}
-    model_init = model_string.split("_")[0]
-
-    pl_ = powerlaw(x, *model_values[: model_n_pars["pl"]])
-    model_ = model_dict[model_init](x, *model_values[model_n_pars["pl"]: -model_n_pars["bb"]])
-    bb_ = black_body(x, *model_values[-model_n_pars["bb"]:])
-
-    return pl_, model_, bb_, pl_ + model_ + bb_
+    return amp * energy**2 / (unp.exp(kt_clip) - 1)
 
 
 def plot_model(
@@ -97,7 +64,7 @@ def plot_model(
         axis=None,
         use_ergs=False,
 ):
-    kev_to_ergs = 1.60217662e-9 if use_ergs else 1.0
+    kev_to_ergs = kev_to_erg if use_ergs else 1
     if axis is None:
         f, ax = plt.subplots(figsize=(8, 6))
     else:
@@ -112,20 +79,20 @@ def plot_model(
     plot_labels = model_strings if plot_labels is None else plot_labels
 
     for index, (mv, label, style) in enumerate(zip(model_values, plot_labels, styles)):
-        y_nom = unumpy.nominal_values(mv)
-        y_err = unumpy.std_devs(mv)
+        y_nom = unp.nominal_values(mv)
+        y_err = unp.std_devs(mv)
 
         y_plot = y_nom * kev_to_ergs * x**2
         y_upper = (y_nom + y_err) * kev_to_ergs * x**2
         y_lower = (y_nom - y_err) * kev_to_ergs * x**2
 
         max_y = max(max_y, y_upper.max())
-        max_y = max_y * kev_to_ergs if use_ergs else max_y
 
-        # color = 'k' if index == 0 else GRB_COLORS[label.lower()]
         try:
-            color = GRB_COLORS[model_strings[index].lower()]
-        except KeyError:
+            # Use Enum lookup for colors
+            clean_name = model_strings[index].replace("+", "_").lower()
+            color = GRB_COLORS[gmC(clean_name)]
+        except (KeyError, ValueError):
             color = 'k'
         ax.loglog(x, y_plot, style, color=color, label=label)
         ax.fill_between(x=x, y1=y_lower, y2=y_upper, color=color, alpha=0.2)
@@ -139,6 +106,10 @@ def plot_model(
 
 
 def _swap(list_of_values):
+    """
+    Rotate the list to the right by one position.
+    Used to move the 'total' model (usually the last in the list) to the first position.
+    """
     if isinstance(list_of_values, tuple):
         list_of_values = list(list_of_values)
     list_of_values.insert(0, list_of_values[-1])
@@ -214,78 +185,6 @@ def plot_triple_model(
         y_label=y_label,
         use_ergs=use_ergs,
     )
-
-
-# def preamble(energy, ep_folder_path, model_string, err_check=False, par_constraint=0.4, arg_dict=None):
-#     if arg_dict is None:
-#         arg_dict = {}
-#     x_lim = arg_dict.get("x_lim", (10, 1e7))
-#
-#     x_label = arg_dict.get("x_label", "Energy (keV)")
-#     y_label = arg_dict.get("y_label", "Flux (erg cm$^{-2}$ s$^{-1}$ keV$^{-1}$)")
-#
-#     model_dict = {"pl": powerlaw, "bb": black_body, "cpl": cutoff_powerlaw, "band": band_function,
-#                   "sbpl": smoothly_broken_power_law}
-#
-#     plot_dispatch = {1: plot_single_model, 2: plot_double_model, 3: plot_triple_model}
-#
-#     fit_path = f"{ep_folder_path}/{model_string.upper()}.fit"
-#
-#     ff = fits.open(fit_path)
-#     n_params = model_n_pars[model_string]
-#     cov_ = ff[2].data["COVARMAT"][0]
-#     params = get_value(fit_file=ff, n_parameters=n_params, full_cov=cov_)
-#
-#     parts = model_string.split("_")
-#     n_parts = len(parts)
-#
-#     if n_parts not in plot_dispatch:
-#         raise ValueError(f"Unsupported model type: {model_string}")
-#
-#     models_to_plot = []
-#
-#     model_values = get_value(fit_file=ff, n_parameters=model_n_pars[model_string], full_cov=ff[2].data["COVARMAT"][0])
-#
-#     if n_parts == 1:
-#         model = model_dict[parts[0]](energy, *params)
-#         models_to_plot = model
-#     elif n_parts == 2:
-#         if parts[1] == "pl":
-#             c1, c2, model = model_pl(x=energy, model_values=model_values, model_string=model_string)
-#             c1, c2 = c2, c1
-#         elif parts[1] == "bb":
-#             c1, c2, model = model_bb(x=energy, model_values=model_values, model_string=model_string)
-#         else:
-#             raise ValueError(f"Unsupported model type: {model_string}")
-#         models_to_plot = [c1, c2, model]
-#     elif n_parts == 3:
-#         c1, c2, c3, model = pl_model_bb(x=energy, model_values=model_values, model_string=model_string)
-#         models_to_plot = [c2, c1, c3, model]
-#
-#     plot_dispatch[n_parts](
-#         x=energy,
-#         model_values=models_to_plot,
-#         model_string=model_string,
-#         x_lims=x_lim,
-#         x_label=x_label,
-#         y_label=y_label,
-#     )
-#
-#     if err_check:
-#         nominal = np.array([p.nominal_value for p in params])
-#         errors = np.array([p.std_dev for p in params])
-#         rel_unc = np.abs(errors / nominal) * 100
-#
-#         mask = errors <= par_constraint * np.abs(nominal)
-#         print("\nParameter Error Check:\n")
-#         for i, (v, e, r, ok) in enumerate(zip(nominal, errors, rel_unc, mask)):
-#             print(f"Param {i}: {v:.4g} ± {e:.4g} ({r:.1f}%) -> {'OK' if ok else 'HIGH UNCERTAINTY'}")
-#         print(f"Summary: {np.sum(mask)}/{len(mask)} parameters within {par_constraint * 100:.0f}%")
-#
-#     ff.close()
-#     plt.savefig(f"{ep_folder_path}/{model_string.upper()}.png")
-#     print(f"[SAVED] as {ep_folder_path}/{model_string.upper()}.png")
-#     plt.close()
 
 
 ###############################################################################

@@ -2,7 +2,7 @@
 
 import json
 
-from src.grb_research import short_to_long
+from src.grb_research.grb_constants import short_to_long
 from src.grb_research.grb_core import GRBCatalog
 
 # Example data with multiple interval types

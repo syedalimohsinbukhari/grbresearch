@@ -8,7 +8,7 @@ import numpy as np
 from uncertainties import ufloat
 
 from src import sbpl_e_peak_indices
-from src.grb_research import short_to_long
+from src.grb_research.grb_constants import short_to_long
 from src.grb_research.core import break_e_to_e_peak, plot_per_episode
 from src.grb_research.grb_core import GRBCatalog
 from src.grb_research.grb_model import ModelSet
@@ -30,12 +30,10 @@ grb110721a = gc.get_grb(grb_list_long[1])
 grb110731a = gc.get_grb(grb_list_long[2])
 grb150210a = gc.get_grb(grb_list_long[3])
 
-grb080916c_best = grb080916c.get_best()
-grb110721a_best = grb110721a.get_best()
-grb110731a_best = grb110731a.get_best()
-grb150210a_best = grb150210a.get_best()
-
-print(grb150210a_best)
+grb080916c_best = grb080916c.get_all_best_models()
+grb110721a_best = grb110721a.get_all_best_models()
+grb110731a_best = grb110731a.get_all_best_models()
+grb150210a_best = grb150210a.get_all_best_models()
 
 start_080916, end_080916, diff_080916, midpoint_080916 = grb080916c.intervals.extract_interval_arrays(
     return_include=("diff", "midpoint")
