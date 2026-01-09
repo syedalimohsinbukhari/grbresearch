@@ -11,7 +11,7 @@ from .grb_constants import model_n_pars
 
 
 def powerlaw(energy, amp, e_piv, index1):
-    return amp * (energy / e_piv)**index1
+    return amp * (energy / e_piv) ** index1
 
 
 def smoothly_broken_power_law(energy, amp, e_piv, index1, break_energy, delta, index2):
@@ -24,7 +24,7 @@ def smoothly_broken_power_law(energy, amp, e_piv, index1, break_energy, delta, i
     a_piv = np.log10(e_piv / break_energy) / delta
     beta_piv = m * delta * np.log(0.5 * (np.exp(a_piv) + np.exp(-a_piv)))
 
-    return amp * (energy / e_piv)**b * 10.0**(beta - beta_piv)
+    return amp * (energy / e_piv) ** b * 10.0 ** (beta - beta_piv)
 
 
 def band_function(energy, amp, e_peak, index1, index2):
@@ -174,14 +174,14 @@ def blackbody_errors(energy, amp, temperature, cov, correlated=True):
 
 
 def broken_powerlaw(energy, amp, e_piv, index1, break_energy, index2):
-    f1 = (energy / e_piv)**index1
-    f2 = (break_energy / e_piv)**index1 * (energy / break_energy)**index2
+    f1 = (energy / e_piv) ** index1
+    f2 = (break_energy / e_piv) ** index1 * (energy / break_energy) ** index2
     return amp * np.where(energy <= break_energy, f1, f2)
 
 
 def broken_powerlaw_two_breaks(energy, amp, e_piv, index1, break_energy1, index12, break_energy2, index2):
-    f1 = (energy / e_piv)**index1
-    f2 = (break_energy1 / e_piv)**index1 * (energy / break_energy1)**index2
+    f1 = (energy / e_piv) ** index1
+    f2 = (break_energy1 / e_piv) ** index1 * (energy / break_energy1) ** index2
 
     f31 = _pl_one(energy=break_energy1, e_piv=e_piv, index1=index1)
     f32 = _pl_one(energy=break_energy1, e_piv=break_energy2, index1=index12)
@@ -200,7 +200,7 @@ def cutoff_powerlaw_old(energy, amp, temperature, index1, e_piv):
 
 
 def _pl_one(energy, e_piv, index1):
-    return (energy / e_piv)**index1
+    return (energy / e_piv) ** index1
 
 
 def _cpl_one(energy, e_peak, index1, e_piv):

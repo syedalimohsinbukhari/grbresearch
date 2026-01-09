@@ -1,12 +1,14 @@
 """Created on Jan 07 14:42:35 2026"""
 
-__all__ = ["GRB_COLORS",
-           "MODEL_PARAMETERS",
-           "NOK_THRESHOLD",
-           "OK_THRESHOLD",
-           "kev_to_erg",
-           "model_n_pars",
-           "short_to_long"]
+__all__ = [
+    "GRB_COLORS",
+    "MODEL_PARAMETERS",
+    "NOK_THRESHOLD",
+    "OK_THRESHOLD",
+    "kev_to_erg",
+    "model_n_pars",
+    "short_to_long",
+]
 
 from .grb_enums import GRBModelsCombinations as gmC
 
@@ -15,21 +17,23 @@ NOK_THRESHOLD = 1.0
 
 kev_to_erg = 1.6021766208e-09
 
-GRB_COLORS = {gmC.PL: "blue",
-              gmC.PL_BB: "blue",
-              gmC.CPL: "orange",
-              gmC.CPL_PL: "orange",
-              gmC.CPL_BB: "orange",
-              gmC.CPL_PL_BB: "orange",
-              gmC.BAND: "green",
-              gmC.BAND_PL: "green",
-              gmC.BAND_BB: "green",
-              gmC.BAND_PL_BB: "green",
-              gmC.SBPL: "red",
-              gmC.SBPL_PL: "red",
-              gmC.SBPL_BB: "red",
-              gmC.SBPL_PL_BB: "red",
-              gmC.BB: "purple"}
+GRB_COLORS = {
+    gmC.PL: "blue",
+    gmC.PL_BB: "blue",
+    gmC.CPL: "orange",
+    gmC.CPL_PL: "orange",
+    gmC.CPL_BB: "orange",
+    gmC.CPL_PL_BB: "orange",
+    gmC.BAND: "green",
+    gmC.BAND_PL: "green",
+    gmC.BAND_BB: "green",
+    gmC.BAND_PL_BB: "green",
+    gmC.SBPL: "red",
+    gmC.SBPL_PL: "red",
+    gmC.SBPL_BB: "red",
+    gmC.SBPL_PL_BB: "red",
+    gmC.BB: "purple",
+}
 
 short_to_long = {
     "150210A": "GRB150210935",
@@ -57,7 +61,7 @@ model_n_pars = {
 }
 
 pl_par = ["amp_pl", "e_piv_pl", "index1_pl"]
-pl_par_second = ['amp_pl', 'e_piv_pl', 'add_index_pl']
+pl_par_second = ["amp_pl", "e_piv_pl", "add_index_pl"]
 cpl_par = ["amp_cpl", "e_peak_cpl", "index1_cpl", "e_piv_cpl"]
 band_par = ["amp_band", "e_peak_band", "index1_band", "index2_band"]
 sbpl_par = ["amp_sbpl", "e_piv_sbpl", "index1_sbpl", "e_break_sbpl", "delta_sbpl", "index2_sbpl"]

@@ -6,7 +6,7 @@ import re
 from collections import defaultdict
 from dataclasses import dataclass
 from enum import Enum
-from typing import TYPE_CHECKING, List, Optional, Tuple, Union
+from typing import List, Optional, Tuple, TYPE_CHECKING, Union
 
 import numpy as np
 
@@ -170,9 +170,7 @@ class TimeIntervalSet:
         if len(self._by_kind[EpisodeTypes.EX1]) > 1:
             raise ValueError("Multiple EX1 intervals found")
 
-        self._trs = tuple(
-            sorted(self._by_kind.get(EpisodeTypes.TR, []), key=lambda i: i.index)
-        )
+        self._trs = tuple(sorted(self._by_kind.get(EpisodeTypes.TR, []), key=lambda i: i.index))
 
     # ---------- canonical access ----------
 
@@ -209,7 +207,7 @@ class TimeIntervalSet:
         return None
 
     def extract_interval_arrays(
-            self, *, return_include: tuple[str, ...] = (), exclude_ex: bool = False
+        self, *, return_include: tuple[str, ...] = (), exclude_ex: bool = False
     ) -> Tuple[np.ndarray, ...]:
         """
         Extract start and end times as numpy arrays.
@@ -224,7 +222,11 @@ class TimeIntervalSet:
         ed = np.array([i.end for i in filtered])
 
         # Registry of derived quantities
-        _derived = {"diff": lambda i: i.half_difference, "midpoint": lambda i: i.midpoint, "duration": lambda i: i.duration}
+        _derived = {
+            "diff": lambda i: i.half_difference,
+            "midpoint": lambda i: i.midpoint,
+            "duration": lambda i: i.duration,
+        }
 
         # Expand "all" into concrete keys
         if "all" in return_include:

@@ -11,7 +11,7 @@ from .grb_enums import GRBModelsCombinations as gmC
 
 
 def powerlaw(energy, amp, e_piv, index1):
-    return amp * (energy / e_piv)**index1
+    return amp * (energy / e_piv) ** index1
 
 
 def smoothly_broken_power_law(energy, amp, e_piv, index1, break_energy, delta, index2):
@@ -24,7 +24,7 @@ def smoothly_broken_power_law(energy, amp, e_piv, index1, break_energy, delta, i
     a_piv = unp.log10(e_piv / break_energy) / delta
     beta_piv = m * delta * unp.log(0.5 * (unp.exp(a_piv) + unp.exp(-a_piv)))
 
-    return amp * (energy / e_piv)**b * 10.0**(beta - beta_piv)
+    return amp * (energy / e_piv) ** b * 10.0 ** (beta - beta_piv)
 
 
 def band_function(energy, amp, e_peak, index1, index2):
@@ -52,17 +52,17 @@ def black_body(energy, amp, temperature):
 
 
 def plot_model(
-        x,
-        model_values,
-        model_strings,
-        styles,
-        plot_labels=None,
-        x_lims=None,
-        x_label=None,
-        y_lims=None,
-        y_label=None,
-        axis=None,
-        use_ergs=False,
+    x,
+    model_values,
+    model_strings,
+    styles,
+    plot_labels=None,
+    x_lims=None,
+    x_label=None,
+    y_lims=None,
+    y_label=None,
+    axis=None,
+    use_ergs=False,
 ):
     kev_to_ergs = kev_to_erg if use_ergs else 1
     if axis is None:
@@ -93,7 +93,7 @@ def plot_model(
             clean_name = model_strings[index].replace("+", "_").lower()
             color = GRB_COLORS[gmC(clean_name)]
         except (KeyError, ValueError):
-            color = 'k'
+            color = "k"
         ax.loglog(x, y_plot, style, color=color, label=label)
         ax.fill_between(x=x, y1=y_lower, y2=y_upper, color=color, alpha=0.2)
 
@@ -118,15 +118,15 @@ def _swap(list_of_values):
 
 
 def plot_single_model(
-        x,
-        model_values,
-        model_string: str,
-        plot_labels: str = None,
-        x_lims: Optional[Tuple] = None,
-        x_label: Optional[str] = None,
-        y_label: Optional[str] = None,
-        use_ergs: bool = False,
-        axis=None,
+    x,
+    model_values,
+    model_string: str,
+    plot_labels: str = None,
+    x_lims: Optional[Tuple] = None,
+    x_label: Optional[str] = None,
+    y_label: Optional[str] = None,
+    use_ergs: bool = False,
+    axis=None,
 ):
     plot_model(
         x=x,
@@ -143,7 +143,7 @@ def plot_single_model(
 
 
 def plot_double_model(
-        x, model_values, model_string, plot_labels=None, x_lims=None, x_label=None, y_label=None, axis=None, use_ergs=False
+    x, model_values, model_string, plot_labels=None, x_lims=None, x_label=None, y_label=None, axis=None, use_ergs=False
 ):
     m1, m2 = model_string.split("_")
     if m2 == "pl":
@@ -167,7 +167,7 @@ def plot_double_model(
 
 
 def plot_triple_model(
-        x, model_values, model_string, plot_labels=None, x_lims=None, x_label=None, y_label=None, use_ergs: bool = False
+    x, model_values, model_string, plot_labels=None, x_lims=None, x_label=None, y_label=None, use_ergs: bool = False
 ):
     m1, m2, m3 = model_string.split("_")
 
@@ -193,7 +193,7 @@ def plot_triple_model(
 
 
 def _pl_one(energy, e_piv, index1):
-    return (energy / e_piv)**index1
+    return (energy / e_piv) ** index1
 
 
 def _cpl_one(energy, e_peak, index1, e_piv):

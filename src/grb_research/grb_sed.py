@@ -11,16 +11,18 @@ from .grb_enums import GRBModelsCombinations as gmC
 from .grb_model import Model
 from .seds import band_function, black_body, cutoff_powerlaw, powerlaw, smoothly_broken_power_law
 
-MODEL_MAP = {gmC.PL_BB: (gmC.PL, gmC.BB),
-             gmC.CPL_PL: (gmC.PL, gmC.CPL),
-             gmC.CPL_BB: (gmC.CPL, gmC.BB),
-             gmC.CPL_PL_BB: (gmC.PL, gmC.CPL, gmC.BB),
-             gmC.BAND_PL: (gmC.PL, gmC.BAND),
-             gmC.BAND_BB: (gmC.BAND, gmC.BB),
-             gmC.BAND_PL_BB: (gmC.PL, gmC.BAND, gmC.BB),
-             gmC.SBPL_PL: (gmC.PL, gmC.SBPL),
-             gmC.SBPL_BB: (gmC.SBPL, gmC.BB),
-             gmC.SBPL_PL_BB: (gmC.PL, gmC.SBPL, gmC.BB)}
+MODEL_MAP = {
+    gmC.PL_BB: (gmC.PL, gmC.BB),
+    gmC.CPL_PL: (gmC.PL, gmC.CPL),
+    gmC.CPL_BB: (gmC.CPL, gmC.BB),
+    gmC.CPL_PL_BB: (gmC.PL, gmC.CPL, gmC.BB),
+    gmC.BAND_PL: (gmC.PL, gmC.BAND),
+    gmC.BAND_BB: (gmC.BAND, gmC.BB),
+    gmC.BAND_PL_BB: (gmC.PL, gmC.BAND, gmC.BB),
+    gmC.SBPL_PL: (gmC.PL, gmC.SBPL),
+    gmC.SBPL_BB: (gmC.SBPL, gmC.BB),
+    gmC.SBPL_PL_BB: (gmC.PL, gmC.SBPL, gmC.BB),
+}
 
 
 class GRBExceptions(Exception):
@@ -37,11 +39,13 @@ class ModelNotFoundInDataError(GRBExceptions):
 @dataclass
 class SpectralModels:
     """Class to handle spectral models for GRB analysis."""
-    model: Model
-    model_type: str = 'counts'
 
-    n_points: int = 10_000
-    energy_range: Tuple[int, int] = (1, 7,)
+    model: Model
+    model_type: str = "counts"
+
+    n_sample: int = 10_000
+    energy_range: Tuple[int, int] = (1, 7)
+    n_grid: int = 10_000
 
     redshift: float = 0.0
     h0: float = 67.4
@@ -63,20 +67,44 @@ class SpectralModels:
         }
 
     def __repr__(self):
-        return (f"SpectralModels[\n"
-                f"\tx=({self.energy_range[0]:g}, {self.energy_range[-1]}) Log[keV],\n"
-                f"\t{self.model.name}, {self.interval}, '{self.model_type}', z={self.redshift:g}\n"
-                f"\n]")
+        return (
+            f"SpectralModels[\n"
+            f"\tx=({self.energy_range[0]:g}, {self.energy_range[-1]}) Log[keV],\n"
+            f"\t{self.model.name}, {self.interval}, '{self.model_type}', z={self.redshift:g}\n"
+            f"\n]"
+        )
 
     @classmethod
-    def legacy_build(cls, m_name, interval_instance, p_name, p_vals, cov_, n_points=10_000, model_type='counts', e_range=(1, 7), redshift=0, h0=67.4,
-                     omega_m=0.315):
+    def legacy_build(
+        cls,
+        m_name,
+        interval_instance,
+        p_name,
+        p_vals,
+        cov_,
+        n_samples=10_000,
+        n_grid=10_000,
+        model_type="counts",
+        e_range=(1, 7),
+        redshift=0,
+        h0=67.4,
+        omega_m=0.315,
+    ):
         """Build a SpectralModel from legacy data."""
         errors = np.sqrt(np.diag(cov_))
         p = [Parameter(i, j, k) for i, j, k in zip(p_name, p_vals, errors)]
         model = Model(m_name, p, interval_instance)
 
-        return cls(model, model_type, n_points=n_points, energy_range=e_range, redshift=redshift, h0=h0, omega_m=omega_m)
+        return cls(
+            model,
+            model_type,
+            n_sample=n_samples,
+            n_grid=n_grid,
+            energy_range=e_range,
+            redshift=redshift,
+            h0=h0,
+            omega_m=omega_m,
+        )
 
     def _evaluate_components(self, components):
         values = [p.value for p in self.model.parameters]
@@ -85,7 +113,7 @@ class SpectralModels:
         idx = 0
         for name in components:
             func_name, n_pars = self.SINGLE_COMPONENTS[name]
-            pars = values[idx: idx + n_pars]
+            pars = values[idx : idx + n_pars]
             idx += n_pars
 
             spectra.append(func_name(pars))
@@ -101,23 +129,25 @@ class SpectralModels:
 
     def _compute_model(self, spectral_func: Callable, joint_pars=None):
         st, ed = self.energy_range
-        e_ = np.logspace(st, ed, self.n_points)
+        e_ = np.logspace(st, ed, self.n_grid)
         pars = joint_pars if joint_pars is not None else self._model_params
 
         spectrum = spectral_func(e_, *pars)
 
         # Dispatch based on model_type
-        if self.model_type == 'counts':
+        if self.model_type == "counts":
             return spectrum
 
-        elif self.model_type == 'energy':
+        elif self.model_type == "energy":
             return e_ * spectrum
 
-        elif self.model_type in ['nuFnu', 'nfn']:
+        elif self.model_type in ["nuFnu", "nfn"]:
             return e_**2 * spectrum
 
         else:
-            raise LookupError(f"Invalid model_type: {self.model_type}. Only 'counts', 'energy', 'nuFnu', and 'nfn' are supported.")
+            raise LookupError(
+                f"Invalid model_type: {self.model_type}. Only 'counts', 'energy', 'nuFnu', and 'nfn' are supported."
+            )
 
     def _powerlaw(self, joint_pars=None):
         return self._compute_model(spectral_func=powerlaw, joint_pars=joint_pars)
@@ -151,6 +181,7 @@ class SpectralModels:
             return self.SINGLE_COMPONENTS[m_name][0]()
         else:
             return self.evaluate_model(model_key=m_name)
+
 
 # elif self.model_type == 'integrate':
 #     return simpson(energy * spectrum, x=energy) * kev_to_erg

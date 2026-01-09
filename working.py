@@ -22,17 +22,17 @@ with open(log_filename, "w", buffering=1) as log_file:
         cwd_ = os.getcwd()
         outer_dirs = grb_core.get_directories_in_current_folder()
         for out_ in outer_dirs:
-            inner_dirs = grb_core.get_directories_in_current_folder(f'{cwd_}/{out_}')
+            inner_dirs = grb_core.get_directories_in_current_folder(f"{cwd_}/{out_}")
             for in_ in inner_dirs:
                 cw_test = in_.split("__")[0].split("/")[-1]
-                if '0' in cw_test:
+                if "0" in cw_test:
                     ep_ext = "T90"
                 elif "A" in cw_test or "B" in cw_test:
                     ep_ext = f"EX{tex_count}"
                 else:
                     ep_ext = f"TR{tr_count}"
                 print(f"\n[RUN] Started at {timestamp} on directory {cwd_}/{out_}/{in_}\n")
-                cwd = f'{cwd_}/{out_}/{in_}'
+                cwd = f"{cwd_}/{out_}/{in_}"
                 candidates = [m + ".fit" for m in sorted(sgb.ALLOWED_MODELS)]
                 existing = [f for f in candidates if os.path.exists(os.path.join(cwd, f))]
                 mapping = sgb.collect_model_cstat([os.path.join(cwd, f) for f in existing])
@@ -40,8 +40,9 @@ with open(log_filename, "w", buffering=1) as log_file:
                     print(f"{k}: {v[0]:.4f}/{v[1]}")
                 mapping = {k: v[0] for k, v in mapping.items()}
                 try:
-                    base_filtered = sgb.filter_models_by_error(c_stats=mapping, folder_path=cwd,
-                                                               candidates=["PL", "CPL", "BAND", "SBPL"])
+                    base_filtered = sgb.filter_models_by_error(
+                        c_stats=mapping, folder_path=cwd, candidates=["PL", "CPL", "BAND", "SBPL"]
+                    )
                     if base_filtered:
                         best, best_c = sgb.pick_best_single_model(base_filtered)
                         print(f"Best single model: {best} (cstat={best_c})")
@@ -52,11 +53,12 @@ with open(log_filename, "w", buffering=1) as log_file:
                 for label, group in {
                     "+BB": ["PL_BB", "CPL_BB", "BAND_BB", "SBPL_BB"],
                     "+PL": ["CPL_PL", "BAND_PL", "SBPL_PL"],
-                    "+PL+BB": ["CPL_PL_BB", "BAND_PL_BB", "SBPL_PL_BB"]
+                    "+PL+BB": ["CPL_PL_BB", "BAND_PL_BB", "SBPL_PL_BB"],
                 }.items():
                     try:
-                        best, best_c = sgb.pick_best_model(c_stats=mapping, candidates=group,
-                                                           group_name=label, folder_path=cwd)
+                        best, best_c = sgb.pick_best_model(
+                            c_stats=mapping, candidates=group, group_name=label, folder_path=cwd
+                        )
                         print(f"Best {label} model: {best} (cstat={best_c})")
                     except Exception as e:
                         print(f"Best {label} model unavailable ({e})")
@@ -78,7 +80,7 @@ with open(log_filename, "w", buffering=1) as log_file:
                 pp = grb_core.flatten_results(res_total)
                 with open("results.json", "w") as f:
                     json.dump(obj=grb_core.make_json_safe(res_total), fp=f, indent=4)
-                if '0' in cw_test:
+                if "0" in cw_test:
                     pass
                 elif "A" in cw_test or "B" in cw_test:
                     tex_count += 1
@@ -87,7 +89,6 @@ with open(log_filename, "w", buffering=1) as log_file:
 
             tr_count = 0
             tex_count = 0
-
 
     finally:
         sys.stdout = orig_stdout

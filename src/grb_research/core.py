@@ -249,18 +249,18 @@ def query_data(data, grb_name: str, m_name: str, status: str = "both", epoch: st
 
 
 def two_scatter(
-        start_list,
-        end_list,
-        val1,
-        val2,
-        err1,
-        err2,
-        ti_fmt="s",
-        ti_color="r",
-        tr_fmt="o",
-        x_time=False,
-        plot_axis=None,
-        remove_extra=False,
+    start_list,
+    end_list,
+    val1,
+    val2,
+    err1,
+    err2,
+    ti_fmt="s",
+    ti_color="r",
+    tr_fmt="o",
+    x_time=False,
+    plot_axis=None,
+    remove_extra=False,
 ):
     """Create a scatter plot comparing two sets of values with error bars."""
     for index, (v1, v2, e1, e2) in enumerate(zip(val1, val2, err1, err2)):
@@ -344,14 +344,21 @@ def grb_characteristics(grb_df, model_name, epoch_difference=False):
 
 def break_e_to_e_peak(lambda1, lambda2, break_energy):
     f1 = (lambda1 + lambda2 + 4) / (lambda1 - lambda2)
-    return break_energy * 10**(0.3 * unumpy.arctanh(f1))
+    return break_energy * 10 ** (0.3 * unumpy.arctanh(f1))
 
 
 def plot_per_episode(values, errors, m_name, start, end, difference, midpoints, axes):
-    axes.plot([], [], ls='none', marker=None, label=f'GRB{m_name}')
-    axes.plot([start[0], end[0]], [values[0], values[0]], c='k', ls='--', lw=2)
-    axes.fill_between(x=[start[0], end[0]], y1=values[0] - errors[0], y2=values[0] + errors[0], color='k', alpha=0.15)
+    axes.plot([], [], ls="none", marker=None, label=f"GRB{m_name}")
+    axes.plot([start[0], end[0]], [values[0], values[0]], c="k", ls="--", lw=2)
+    axes.fill_between(x=[start[0], end[0]], y1=values[0] - errors[0], y2=values[0] + errors[0], color="k", alpha=0.15)
     for i, value in enumerate(midpoints[1:]):
-        axes.errorbar(value, values[i + 1], xerr=difference[i + 1], yerr=errors[i + 1],
-                      color='b' if np.logical_or(start[i + 1] < start[0],
-                                                 end[i + 1] > end[0] + 0.064) else 'g', marker='.', ms=10, capsize=5)
+        axes.errorbar(
+            value,
+            values[i + 1],
+            xerr=difference[i + 1],
+            yerr=errors[i + 1],
+            color="b" if np.logical_or(start[i + 1] < start[0], end[i + 1] > end[0] + 0.064) else "g",
+            marker=".",
+            ms=10,
+            capsize=5,
+        )

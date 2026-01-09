@@ -1,17 +1,20 @@
 """Created on Jan 07 14:43:25 2026"""
 
-__all__ = ["GRBModelsCombinations",
-           "PowerLawParameters",
-           "BlackBodyParameters",
-           "ComptonizedParameters",
-           "BandGRBParameters",
-           "SmoothlyBrokenPowerLawParameters"]
+__all__ = [
+    "GRBModelsCombinations",
+    "PowerLawParameters",
+    "BlackBodyParameters",
+    "ComptonizedParameters",
+    "BandGRBParameters",
+    "SmoothlyBrokenPowerLawParameters",
+]
 
 from enum import Enum
 
 
 class GRBModelsCombinations(Enum):
     """Enumeration of GRB models."""
+
     PL = "pl"
     BB = "bb"
     PL_BB = "pl_bb"
@@ -34,6 +37,7 @@ class GRBModelsCombinations(Enum):
 
 class PowerLawParameters(Enum):
     """Enumeration of power law parameters."""
+
     AMP_PL = "amp_pl"
     INDEX_1_PL = "index1_pl"
     E_PIV_PL = "e_piv_pl"
@@ -42,12 +46,14 @@ class PowerLawParameters(Enum):
 
 class BlackBodyParameters(Enum):
     """Enumeration of black body parameters."""
+
     AMP_BB = "amp_bb"
     KT_BB = "kt_bb"
 
 
 class ComptonizedParameters(Enum):
     """Enumeration of comptonized parameters."""
+
     AMP_CPL = "amp_cpl"
     PEAK_ENERGY_CPL = "e_peak_cpl"
     INDEX_1_CPL = "index1_cpl"
@@ -56,6 +62,7 @@ class ComptonizedParameters(Enum):
 
 class BandGRBParameters(Enum):
     """Enumeration of band GRB parameters."""
+
     AMP_BAND = "amp_band"
     PEAK_ENERGY_BAND = "e_peak_band"
     INDEX_1_BAND = "index1_band"
@@ -64,6 +71,7 @@ class BandGRBParameters(Enum):
 
 class SmoothlyBrokenPowerLawParameters(Enum):
     """Enumeration of smoothly broken power law parameters."""
+
     AMP_SBPL = "amp_sbpl"
     E_PIV_SBPL = "e_piv_sbpl"
     INDEX_1_SBPL = "index1_sbpl"

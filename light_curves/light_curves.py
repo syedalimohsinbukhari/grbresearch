@@ -37,10 +37,10 @@ def lightcurve_data(dat_file: str, energy_low: float, energy_high: float, errors
     with open(dat_file) as f:
         lines = f.readlines()
 
-    energy_channels = np.array([line.split() for line in lines[11:11 + channel_number]], dtype=float)
+    energy_channels = np.array([line.split() for line in lines[11 : 11 + channel_number]], dtype=float)
     low_energy_channel, high_energy_channel = energy_channels[:, 0], energy_channels[:, 1]
 
-    detector_data = np.array([np.fromstring(line, sep=' ') for line in lines[12 + channel_number:]])
+    detector_data = np.array([np.fromstring(line, sep=" ") for line in lines[12 + channel_number :]])
 
     # Determine which channels fall into the requested energy range
     start_idx: int = int(np.sum(low_energy_channel < energy_low))

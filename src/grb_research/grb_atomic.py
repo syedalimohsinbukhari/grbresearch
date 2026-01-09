@@ -9,6 +9,7 @@ from numpy.linalg import cholesky, inv, LinAlgError
 @dataclass(frozen=True)
 class Parameter:
     """Scalar parameter with uncertainty."""
+
     name: str
     value: float
     error: float

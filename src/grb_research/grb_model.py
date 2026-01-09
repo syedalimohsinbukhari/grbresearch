@@ -5,7 +5,7 @@ from __future__ import annotations
 import copy
 from dataclasses import dataclass
 from enum import Enum
-from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, TYPE_CHECKING, Union
 
 import numpy as np
 
@@ -93,7 +93,13 @@ class Model:
             internal_dict.pop(aux_)
 
         return cls(
-            name, [Parameter(k, v, e) for k, (v, e) in internal_dict.items()], interval, status, cstat, dof, CovarianceMatrix(cov_matrix)
+            name,
+            [Parameter(k, v, e) for k, (v, e) in internal_dict.items()],
+            interval,
+            status,
+            cstat,
+            dof,
+            CovarianceMatrix(cov_matrix),
         )
 
     def __str__(self) -> str:
