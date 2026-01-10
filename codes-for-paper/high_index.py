@@ -121,7 +121,7 @@ plot_per_episode(
 
 [i.grid(True, which="both", alpha=0.5, ls="--") for i in ax]
 ax[-1].set_xlabel("Time [s]", fontsize=fs)
-[i.set_ylabel(r"Higher Index [$\beta]", fontsize=fs) for i in ax]
+[i.set_ylabel(r"Higher Index [$\beta$]", fontsize=fs) for i in ax]
 plt.xticks(fontsize=fs)
 plt.yticks(fontsize=fs)
 [i.legend(loc="upper right", frameon=False, fontsize=fs) for i in ax]
@@ -155,7 +155,7 @@ plot_per_episode(
 
 [i.grid(True, which="both", alpha=0.5, ls="--") for i in ax]
 ax[-1].set_xlabel("Time [s]", fontsize=fs)
-[i.set_ylabel(r"Higher Index [$\beta]", fontsize=fs) for i in ax]
+[i.set_ylabel(r"Higher Index [$\beta$]", fontsize=fs) for i in ax]
 plt.xticks(fontsize=fs)
 plt.yticks(fontsize=fs)
 [i.legend(loc="center right", frameon=False, fontsize=fs) for i in ax]

@@ -19,8 +19,6 @@ with open("./../results.json", "r") as f:
 grb_list = ["080916C", "110721A", "110731A", "150210A"]
 grb_list_long = [short_to_long[i] for i in grb_list]
 
-kev_to_erg = 1.60218e-9
-
 gc = GRBCatalog.from_iterable(grb_list=grb_list, data=example_data, name_mapping=short_to_long)
 
 grb080916c = gc.get_grb(grb_list_long[0])

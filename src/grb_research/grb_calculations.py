@@ -259,7 +259,6 @@ def plot_best_models(best_models, n_rows=2, n_cols=None, grb_name=None, fig_size
         samples = mcmc_sampler_parallel(v, n_samples=n_samples, n_grid=n_grid)
         samples = np.array(samples)
 
-        p = np.percentile(samples, [16, 50, 84], axis=0)
         med, low, high = credible_interval_partition(samples)
         med, low, high = med * kev_to_erg, low * kev_to_erg, high * kev_to_erg
         ax[i].loglog(x, med * x**2, f'{color}--', label=f"{v.name.replace('_', '+')}\n({v.interval.start} - {v.interval.end})")
@@ -274,4 +273,60 @@ def plot_best_models(best_models, n_rows=2, n_cols=None, grb_name=None, fig_size
 
     f.tight_layout()
     [plt.savefig(f'butterfly_{grb_name}.{i}', dpi=300) for i in ["png", "pdf"]]
+    plt.close()
+
+
+def plot_all_models(best_models, grb_name, n_rows=2, n_cols=None, fig_size=(12, 8)):
+    n_grid = 500
+    n_samples = 1000
+    x = np.logspace(1, 7, n_grid)
+
+    f, ax = plt.subplots(n_rows, n_cols, figsize=fig_size)
+    ax = ax.flatten()
+
+    has_cpl_bb = False
+
+    for i, v in enumerate(best_models):
+        print(f'processing {grb_name[i]}')
+        is_ex = sum([i.interval.is_ex for i in v])
+        if is_ex == 2:
+            v[-1], v[-2] = v[-2], v[-1]
+
+        for j, w in enumerate(v):
+            if 'CPL' in w.name:
+                has_cpl_bb = True
+
+            print(f'processing {w.name}')
+            samples = mcmc_sampler_parallel(w, n_samples=n_samples, n_grid=n_grid)
+            samples = np.array(samples)
+
+            med, low, high = credible_interval_partition(samples)
+            med, low, high = med * kev_to_erg, low * kev_to_erg, high * kev_to_erg
+
+            if j == 0:
+                ax[i].loglog(x, med * x**2, 'k--', label=f"{w.interval.kind}")
+                ax[i].fill_between(x, low * x**2, high * x**2, color='k', alpha=0.2)
+            else:
+                sub = f'{w.interval.kind}{w.interval.index}' if w.interval.kind == EpisodeTypes.TR else w.interval.kind
+                ax[i].loglog(x, med * x**2, '--', label=f"{sub}")
+                ax[i].fill_between(x, low * x**2, high * x**2, alpha=0.2)
+
+            if has_cpl_bb:
+                ax[i].set_ylim(bottom=3.2e-10, top=2.8e-4)
+
+            has_cpl_bb = False
+
+        ax[i].legend(ncols=4 if i == 0 else 2, title=f'{grb_name[i]}')
+
+        if i % 2 != 0:
+            ax[i].set_yticks([])
+
+        if i % 2 == 0:
+            ax[i].set_ylabel("Energy Flux\n" + r"[erg/cm$^2$/s]")
+
+    [i.set_xticks([]) for i in [ax[0], ax[1]]]
+    [i.set_xlabel('Energy [keV]') for i in [ax[2], ax[3]]]
+    plt.tight_layout()
+    # plt.show()
+    [plt.savefig(f'butterfly_all.{i}', dpi=300) for i in ["png", "pdf"]]
     plt.close()

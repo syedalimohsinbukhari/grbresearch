@@ -8,8 +8,8 @@ import numpy as np
 from uncertainties import ufloat
 
 from src import sbpl_e_peak_indices
-from src.grb_research.grb_constants import short_to_long
 from src.grb_research.core import break_e_to_e_peak, plot_per_episode
+from src.grb_research.grb_constants import short_to_long
 from src.grb_research.grb_core import GRBCatalog
 from src.grb_research.grb_model import ModelSet
 
@@ -20,8 +20,6 @@ with open("./../results.json", "r") as f:
 
 grb_list = ["080916C", "110721A", "110731A", "150210A"]
 grb_list_long = [short_to_long[i] for i in grb_list]
-
-kev_to_erg = 1.60218e-9
 
 gc = GRBCatalog.from_iterable(grb_list=grb_list, data=example_data, name_mapping=short_to_long)
 
@@ -63,7 +61,7 @@ def extract_peak_energy(best_model: ModelSet) -> Tuple[np.ndarray, np.ndarray]:
         for p in model.parameters:
             if "e_break" in p.name:
                 sbpl_idx = sbpl_e_peak_indices[model.name.lower()]
-                pars = [ufloat(i.value, i.error) for i in model.parameters[sbpl_idx[0] : sbpl_idx[1]]]
+                pars = [ufloat(i.value, i.error) for i in model.parameters[sbpl_idx[0]: sbpl_idx[1]]]
                 e_peak = break_e_to_e_peak(pars[2], pars[5], pars[3])
                 value.append(e_peak.n)
                 error.append(e_peak.s)
@@ -134,7 +132,6 @@ plot_per_episode(
     midpoints=midpoint_150210,
     axes=ax[1],
 )
-
 
 [i.grid(True, which="both", alpha=0.5, ls="--") for i in ax]
 ax[-1].set_xlabel("Time [s]", fontsize=fs)
