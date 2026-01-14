@@ -92,7 +92,7 @@ class GRB:
             if model:
                 all_models.append(model)
 
-        return ModelSet(all_models)
+        return ModelSet(all_models) if len(all_models) > 1 else all_models[0]
 
 
 @dataclass

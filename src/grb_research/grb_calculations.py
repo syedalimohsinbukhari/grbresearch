@@ -19,6 +19,29 @@ from .grb_time import EpisodeTypes, TimeInterval
 
 @dataclass
 class IsotropicEnergy:
+    """
+    Class to calculate isotropic energy for a given model and time interval.
+
+    Attributes
+    ----------
+    model : Model
+        The spectral model used for calculations.
+    model_interval : TimeInterval
+        The time interval for the model.
+    n_iter : int
+        Number of iterations for Monte Carlo simulations.
+    e_low : int, optional
+        Lower energy bound for calculations (default: 1).
+    e_high : int, optional
+        Upper energy bound for calculations (default: 7).
+    redshift : float, optional
+        Redshift value for the GRB (default: 0.0).
+    h0 : float, optional
+        Hubble constant (default: 70).
+    omega_m : float, optional
+        Matter density parameter (default: 0.315).
+    """
+
     model: Model
     model_interval: TimeInterval
     n_iter: int
@@ -28,7 +51,7 @@ class IsotropicEnergy:
 
     redshift: float = 0.0
 
-    h0: float = 67.4
+    h0: float = 70
     omega_m: float = 0.315
 
     def __post_init__(self):
@@ -42,17 +65,40 @@ class IsotropicEnergy:
         param_covar_ = 0.5 * (param_covar_ + param_covar_.T)
         mn_distribution = multivariate_normal(param_values, param_covar_, self.n_iter)
 
-        for i, v in enumerate(param_names):
-            multivariate_dict[v] = mn_distribution[:, i]
+        for index, value in enumerate(param_names):
+            multivariate_dict[value] = mn_distribution[:, index]
 
         return multivariate_dict
 
-    def luminosity_distance(self):
-        """Calculate luminosity distance in cm."""
-        return FlatLambdaCDM(H0=self.h0, Om0=self.omega_m).luminosity_distance(self.redshift).cgs.value
+    def luminosity_distance(self, in_units: bool = False):
+        """
+        Calculate the luminosity distance in cm.
+
+        Parameters
+        ----------
+        in_units : bool, optional
+            If True, returns the distance as an astropy Quantity object (default: False).
+
+        Returns
+        -------
+        float or Quantity
+            Luminosity distance in cm (or as a Quantity if in_units is True).
+        """
+        qty = FlatLambdaCDM(H0=self.h0, Om0=self.omega_m).luminosity_distance(self.redshift)
+
+        return (
+            qty.cgs.value if not in_units else qty.cgs
+        )
 
     def calculate(self):
-        """Calculate the isotropic energy in ergs."""
+        """
+        Calculate the isotropic energy in ergs.
+
+        Returns
+        -------
+        float
+            The isotropic energy in ergs.
+        """
         fluence = self.spectral_model(m_type="bolometric")
 
         # E_iso = (4 * pi * dl^2 * fluence) / (1 + z)
@@ -62,6 +108,19 @@ class IsotropicEnergy:
         return e_iso
 
     def spectral_model(self, m_type="integrate"):
+        """
+        Generate the spectral model values.
+
+        Parameters
+        ----------
+        m_type : str, optional
+            Type of model to generate (default: "integrate").
+
+        Returns
+        -------
+        np.ndarray
+            Spectral model values.
+        """
         p_name = [i.name for i in self.model.parameters]
         p_values = [i.value for i in self.model.parameters]
 
@@ -81,20 +140,32 @@ class IsotropicEnergy:
         return sp_model.get_values()
 
 
-def legacy_build_mp_runner(pars):
+def legacy_build_mp(pars):
     """
     Multiprocessing worker wrapper for `SpectralModels.legacy_build`.
 
     Parameters
     ----------
-    pars : tuple[str, object, list[str], list[float], np.ndarray, str]
+    pars : tuple
         Tuple containing:
-        - m_name: model name
-        - interval: model interval object (opaque to this function)
-        - m_keys: list of parameter names
-        - sample: parameter values for this sample (list of floats)
-        - covar: covariance matrix (np.ndarray)
-        - model_type: string passed through to `legacy_build`
+        - m_name: str
+            Model name.
+        - interval: object
+            Model interval object (opaque to this function).
+        - m_keys: list of str
+            List of parameter names.
+        - sample: list of float
+            Parameter values for this sample.
+        - covar: np.ndarray
+            Covariance matrix.
+        - model_type: str
+            String passed through to `legacy_build`.
+        - e_range: tuple
+            Energy range for the model.
+        - n_sample: int
+            Number of samples.
+        - n_grid: int
+            Number of grid points.
 
     Returns
     -------
@@ -120,27 +191,31 @@ def legacy_build_mp_runner(pars):
     return built
 
 
-def mcmc_sampler_parallel(
-        model: Model, e_range=(1, 7), n_samples: int = 10_000, n_grid: int = 10_000, n_workers: int = None
+def mcmc_spectra_sampler(
+        model: Model, model_type='counts', e_range=(1, 7), n_samples: int = 10_000, n_grid: int = 10_000, n_workers: int = None
 ):
     """
     Parallel MCMC sampler for spectral model parameter estimation.
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     model : Model
-        The model to sample from
-    n_iters : int
-        Number of MCMC iterations
+        The model to sample from.
+    model_type : str, optional
+        Type of model to generate (default: 'counts').
+    e_range : tuple, optional
+        Energy range for the model (default: (1, 7)).
+    n_samples : int, optional
+        Number of MCMC samples to draw (default: 10,000).
+    n_grid : int, optional
+        Number of grid points for numerical integration (default: 10,000).
     n_workers : int, optional
-        Number of parallel workers (default: CPU count)
+        Number of parallel workers (default: CPU count).
 
-    Returns:
-    --------
-    pars : np.ndarray
-        Array of parameter values (shape: n_iters)
-    samples : np.ndarray
-        Array of all samples (shape: n_iters x n_parameters)
+    Returns
+    -------
+    list
+        List of evaluated model values for each sample.
     """
     m_keys = [i.name for i in model.parameters]
     m_vals = [i.value for i in model.parameters]
@@ -154,11 +229,11 @@ def mcmc_sampler_parallel(
         n_workers = cpu_count()
 
     args_list = [
-        (model.name, model.interval, m_keys, v.tolist(), covar_, "counts", e_range, n_samples, n_grid) for v in samples
+        (model.name, model.interval, m_keys, v, covar_, model_type, e_range, n_samples, n_grid) for v in samples
     ]
 
     with Pool(n_workers) as pool:
-        results = list(tqdm(pool.imap(legacy_build_mp_runner, args_list), total=n_samples))
+        results = list(tqdm(pool.imap(legacy_build_mp, args_list), total=n_samples))
 
     return results
 
@@ -175,7 +250,7 @@ def credible_interval_partition(samples: np.ndarray) -> Tuple[np.ndarray, np.nda
 
     Returns
     -------
-    tuple[np.ndarray, np.ndarray, np.ndarray]
+    tuple
         A tuple (median, lower, upper), each a 1D array of shape (n_parameters,)
         containing the 50th, 16th, and 84th percentiles respectively.
     """
@@ -194,50 +269,64 @@ def mcmc_e_iso_sampler(
         det_max: float = 7.0,
         bol_min: float = -1.0,
         bol_max: float = 4.0,
+        h0: float = 70.0,
+        omega_m: float = 0.315,
 ) -> np.ndarray:
     """
     Draw MCMC samples and compute isotropic-equivalent energy (E_iso).
 
     Parameters
-    \- `model` : Model
+    ----------
+    model : Model
         Spectral model container providing sampling and interval duration.
-    \- `n_samples` : int
-        Number of MCMC samples to draw.
-    \- `n_grid` : int
-        Number of energy grid points for numerical integration.
-    \- `det_min`, `det_max` : float
-        Log10 bounds for detector energy grid (keV).
-    \- `bol_min`, `bol_max` : float
-        Log10 bounds for bolometric energy grid (keV).
-    \- `z` : float
-        Redshift used for K-correction and luminosity distance.
+    z : float, optional
+        Redshift used for K-correction and luminosity distance (default: 1.0).
+    n_samples : int, optional
+        Number of MCMC samples to draw (default: 100).
+    n_grid : int, optional
+        Number of energy grid points for numerical integration (default: 100).
+    det_min : float, optional
+        Log10 lower bound for detector energy grid (keV) (default: 1.0).
+    det_max : float, optional
+        Log10 upper bound for detector energy grid (keV) (default: 7.0).
+    bol_min : float, optional
+        Log10 lower bound for bolometric energy grid (keV) (default: -1.0).
+    bol_max : float, optional
+        Log10 upper bound for bolometric energy grid (keV) (default: 4.0).
+    h0 : float, optional
+        Hubble constant (default: 70.0).
+    omega_m : float, optional
+        Matter density parameter (default: 0.315).
 
     Returns
-    \- `np.ndarray`
-        Array of E\_iso samples in erg with shape `(1, n_samples)`.
+    -------
+    np.ndarray
+        Array of E_iso samples in erg with shape (1, n_samples).
     """
-    energy_detector = np.logspace(det_min, det_max, n_grid)
-    energy_bolometric = np.logspace(bol_min, bol_max, n_grid)
+    energy_detector = np.logspace(start=det_min, stop=det_max, num=n_grid)
+    energy_bolometric = np.logspace(start=bol_min, stop=bol_max, num=n_grid)
 
     # ph / cm^2 / s / keV (n_samples, n_grid)
-    detector_samples = mcmc_sampler_parallel(model, (det_min, det_max), n_samples, n_grid)
-    bolometric_samples = mcmc_sampler_parallel(model, (bol_min, bol_max), n_samples, n_grid)
+    detector_samples = mcmc_spectra_sampler(model, 'counts',
+                                            e_range=(det_min, det_max), n_samples=n_samples, n_grid=n_grid)
+    bolometric_samples = mcmc_spectra_sampler(model, 'counts',
+                                              e_range=(bol_min, bol_max), n_samples=n_samples, n_grid=n_grid)
 
     detector_samples, bolometric_samples = np.asarray(detector_samples), np.asarray(bolometric_samples)
 
     # keV / cm^2: vectorized integration over axis=1
-    detector_fluence = simpson(detector_samples * energy_detector, x=energy_detector, axis=1) * model.interval.duration
+    detector_fluence = simpson(y=detector_samples * energy_detector, x=energy_detector, axis=1) * model.interval.duration
 
     e_observed = energy_bolometric / (1 + z)
-    num = simpson(bolometric_samples * e_observed, x=e_observed, axis=1)
-    den = simpson(detector_samples * energy_detector, x=energy_detector, axis=1)
+    numerator = simpson(y=bolometric_samples * e_observed, x=e_observed, axis=1)
+    denominator = simpson(y=detector_samples * energy_detector, x=energy_detector, axis=1)
 
     # k correction
-    bolometric_fluence = detector_fluence * (num / den)
+    bolometric_fluence = detector_fluence * (numerator / denominator)
     # erg / cm^2
     bolometric_fluence = np.asarray(bolometric_fluence, dtype=float) * kev_to_erg
 
-    lum_distance = FlatLambdaCDM(H0=67.4, Om0=0.315).luminosity_distance(z).cgs.value
+    lum_distance = FlatLambdaCDM(H0=h0, Om0=omega_m).luminosity_distance(z).cgs.value
     return (4 * np.pi * lum_distance**2 * bolometric_fluence.reshape(1, -1)) / (1 + z)
 
 
@@ -256,7 +345,7 @@ def plot_best_models(best_models, n_rows=2, n_cols=None, grb_name=None, fig_size
             has_cpl_bb = True
         color = 'k' if v.interval.kind == EpisodeTypes.T90 else 'b' if v.interval.kind in [EpisodeTypes.EX0, EpisodeTypes.EX1] else 'r'
         print(f'processing {v.name}')
-        samples = mcmc_sampler_parallel(v, n_samples=n_samples, n_grid=n_grid)
+        samples = mcmc_spectra_sampler(v, n_samples=n_samples, n_grid=n_grid)
         samples = np.array(samples)
 
         med, low, high = credible_interval_partition(samples)
@@ -297,7 +386,7 @@ def plot_all_models(best_models, grb_name, n_rows=2, n_cols=None, fig_size=(12, 
                 has_cpl_bb = True
 
             print(f'processing {w.name}')
-            samples = mcmc_sampler_parallel(w, n_samples=n_samples, n_grid=n_grid)
+            samples = mcmc_spectra_sampler(w, n_samples=n_samples, n_grid=n_grid)
             samples = np.array(samples)
 
             med, low, high = credible_interval_partition(samples)

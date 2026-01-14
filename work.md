@@ -30,14 +30,22 @@
 
 # Date: Jan 3, 2026
 
-1. low index evolution plots for all the best models in the GRBs.
+## low index evolution plots for all the best models in the GRBs.
 
 ![img_080916c_110712a.png](codes-for-paper/low_index__best__080916c_110721a.png)
 
 ![img_110731a_150210a.png](codes-for-paper/low_index__best__110731a_150210a.png)
 
-2. high index evolution plots for all the best models in the GRBs.
+## high index evolution plots for all the best models in the GRBs.
 
 ![img_080916c_110712a.png](codes-for-paper/high_index__best__080916c_110721a.png)
 
 ![img_110731a_150210a.png](codes-for-paper/high_index__best__110731a_150210a.png)
+
+# Date: Jan 14, 2026
+## Butterfly plots for all the best models in the GRBs.
+
+![img_080916c.png](codes-for-paper/butterfly_plots/butterfly_080916C.png)
+![img_110721a.png](codes-for-paper/butterfly_plots/butterfly_110721A.png)
+![img_110731a.png](codes-for-paper/butterfly_plots/butterfly_110731A.png)
+![img_150210a.png](codes-for-paper/butterfly_plots/butterfly_150210A.png)

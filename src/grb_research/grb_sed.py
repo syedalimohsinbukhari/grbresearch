@@ -6,7 +6,7 @@ from typing import Callable, Tuple
 import numpy as np
 
 from .grb_atomic import Parameter
-from .grb_constants import model_n_pars
+from .grb_constants import kev_to_erg, model_n_pars
 from .grb_enums import GRBModelsCombinations as gmC
 from .grb_model import Model
 from .seds import band_function, black_body, cutoff_powerlaw, powerlaw, smoothly_broken_power_law
@@ -76,19 +76,19 @@ class SpectralModels:
 
     @classmethod
     def legacy_build(
-        cls,
-        m_name,
-        interval_instance,
-        p_name,
-        p_vals,
-        cov_,
-        n_samples=10_000,
-        n_grid=10_000,
-        model_type="counts",
-        e_range=(1, 7),
-        redshift=0,
-        h0=67.4,
-        omega_m=0.315,
+            cls,
+            m_name,
+            interval_instance,
+            p_name,
+            p_vals,
+            cov_,
+            n_samples=10_000,
+            n_grid=10_000,
+            model_type="counts",
+            e_range=(1, 7),
+            redshift=0,
+            h0=67.4,
+            omega_m=0.315,
     ):
         """Build a SpectralModel from legacy data."""
         errors = np.sqrt(np.diag(cov_))
@@ -113,7 +113,7 @@ class SpectralModels:
         idx = 0
         for name in components:
             func_name, n_pars = self.SINGLE_COMPONENTS[name]
-            pars = values[idx : idx + n_pars]
+            pars = values[idx: idx + n_pars]
             idx += n_pars
 
             spectra.append(func_name(pars))
@@ -168,8 +168,9 @@ class SpectralModels:
         """Evaluate a composite model based on the model key."""
         return self._evaluate_components(components=MODEL_MAP[model_key])
 
-    def get_values(self):
+    def get_values(self, in_ergs=False):
         """Get the total spectral model values based on the model type."""
+        convert = 1 if not in_ergs else kev_to_erg
         if self.model is None:
             raise ModelNotFoundInDataError()
 
@@ -178,10 +179,10 @@ class SpectralModels:
         singular_models = [gmC.PL, gmC.BB, gmC.CPL, gmC.BAND, gmC.SBPL]
 
         if m_name in singular_models:
-            return self.SINGLE_COMPONENTS[m_name][0]()
+            return self.SINGLE_COMPONENTS[m_name][0]() * convert
         else:
-            return self.evaluate_model(model_key=m_name)
-
+            seq = self.evaluate_model(model_key=m_name)
+            return [i * convert if isinstance(i[0], float) else [j * convert for j in i] for i in seq]
 
 # elif self.model_type == 'integrate':
 #     return simpson(energy * spectrum, x=energy) * kev_to_erg
