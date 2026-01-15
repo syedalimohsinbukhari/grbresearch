@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 from multiprocessing import cpu_count, Pool
-from typing import Tuple
+from typing import Tuple, Union
 
 import numpy as np
 from astropy.cosmology import FlatLambdaCDM
@@ -186,8 +186,6 @@ def legacy_build_mp(pars):
     ).get_values()
 
     # the original behavior returned element 1 when the name contains an underscore
-    if "_" in m_name:
-        return built[1]
     return built
 
 
@@ -238,7 +236,9 @@ def mcmc_spectra_sampler(
     return results
 
 
-def credible_interval_partition(samples: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+def credible_interval_partition(samples: Union[np.ndarray, list]) -> Tuple[
+    np.ndarray, np.ndarray, np.ndarray
+]:
     """
     Compute 16th, 50th (median), and 84th percentiles per parameter from MCMC samples.
 
@@ -254,8 +254,11 @@ def credible_interval_partition(samples: np.ndarray) -> Tuple[np.ndarray, np.nda
         A tuple (median, lower, upper), each a 1D array of shape (n_parameters,)
         containing the 50th, 16th, and 84th percentiles respectively.
     """
+    if isinstance(samples, list):
+        samples = np.asarray(samples)
+
     s = samples.T
-    part = np.nanpercentile(s, [16, 50, 80], axis=1)
+    part = np.nanpercentile(s, [16, 50, 84], axis=1)
 
     return np.asarray(part[1], float).T, np.asarray(part[0], float).T, np.asarray(part[2], float).T
 
@@ -271,6 +274,7 @@ def mcmc_e_iso_sampler(
         bol_max: float = 4.0,
         h0: float = 70.0,
         omega_m: float = 0.315,
+        use_ergs: bool = False
 ) -> np.ndarray:
     """
     Draw MCMC samples and compute isotropic-equivalent energy (E_iso).
@@ -303,6 +307,8 @@ def mcmc_e_iso_sampler(
     np.ndarray
         Array of E_iso samples in erg with shape (1, n_samples).
     """
+    erg_condition = kev_to_erg if use_ergs else 1
+
     energy_detector = np.logspace(start=det_min, stop=det_max, num=n_grid)
     energy_bolometric = np.logspace(start=bol_min, stop=bol_max, num=n_grid)
 
@@ -324,7 +330,7 @@ def mcmc_e_iso_sampler(
     # k correction
     bolometric_fluence = detector_fluence * (numerator / denominator)
     # erg / cm^2
-    bolometric_fluence = np.asarray(bolometric_fluence, dtype=float) * kev_to_erg
+    bolometric_fluence = np.asarray(bolometric_fluence, dtype=float) * erg_condition
 
     lum_distance = FlatLambdaCDM(H0=h0, Om0=omega_m).luminosity_distance(z).cgs.value
     return (4 * np.pi * lum_distance**2 * bolometric_fluence.reshape(1, -1)) / (1 + z)
