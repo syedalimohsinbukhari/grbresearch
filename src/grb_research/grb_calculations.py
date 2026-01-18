@@ -249,7 +249,7 @@ def mcmc_e_iso_sampler(
         n_grid: int = 100,
         det_min: float = 1.0,
         det_max: float = 7.0,
-        bol_min: float = -1.0,
+        bol_min: float = 0,
         bol_max: float = 4.0,
         h0: float = 70.0,
         omega_m: float = 0.315,
