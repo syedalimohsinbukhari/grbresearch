@@ -6,6 +6,41 @@ import numpy as np
 from numpy.linalg import cholesky, inv, LinAlgError
 
 
+# make the class as dataclass
+@dataclass
+class ParameterSet:
+    """Container for a set of parameters."""
+    parameters: list
+
+    def __repr__(self):
+        return f"ParameterSet[\n\t{', '.join(repr(param) for param in self.parameters)}\n]"
+
+    def __getitem__(self, key):
+        if isinstance(key, str):
+            for param in self.parameters:
+                if param.name == key:
+                    return param
+            raise KeyError(f"Parameter '{key}' not found in ParameterSet")
+        else:
+            return self.parameters[key]
+
+    # make the returnable such that the user can specify the name in funciton argument as to which parameter the function
+    # should return and the array returned corresponds to the index of the parameter name in the name array otherwise return the entire array
+    def get_populated_values(self, cov_matrix, parameter_name=None, size=10_000):
+        """Returns a multivariate normal sample from the parameter set with a given covariance matrix."""
+        cov_ = 0.5 * (cov_matrix + cov_matrix.T)
+        values = [i.value for i in self.parameters]
+        names = [i.name for i in self.parameters]
+
+        if parameter_name is not None:
+            if isinstance(parameter_name, str):
+                parameter_name = [parameter_name]
+            index = [names.index(i) for i in parameter_name]
+            return np.random.multivariate_normal(values, cov_, size=size)[:, index]
+
+        return np.random.multivariate_normal(values, cov_, size=size)
+
+
 @dataclass(frozen=True)
 class Parameter:
     """Scalar parameter with uncertainty."""

@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 from multiprocessing import cpu_count, Pool
-from typing import Tuple, Union
+from typing import Tuple
 
 import numpy as np
 from astropy.cosmology import FlatLambdaCDM
@@ -28,7 +28,7 @@ class IsotropicEnergy:
         The spectral model used for calculations.
     model_interval : TimeInterval
         The time interval for the model.
-    n_iter : int
+    n_samples : int
         Number of iterations for Monte Carlo simulations.
     e_low : int, optional
         Lower energy bound for calculations (default: 1).
@@ -44,7 +44,7 @@ class IsotropicEnergy:
 
     model: Model
     model_interval: TimeInterval
-    n_iter: int
+    n_samples: int = 10_000
 
     e_low: int = 1
     e_high: int = 7
@@ -63,7 +63,7 @@ class IsotropicEnergy:
         param_values = [param.value for param in self.model.parameters]
         param_covar_ = self.model.covariance_matrix_value
         param_covar_ = 0.5 * (param_covar_ + param_covar_.T)
-        mn_distribution = multivariate_normal(param_values, param_covar_, self.n_iter)
+        mn_distribution = multivariate_normal(param_values, param_covar_, self.n_samples)
 
         for index, value in enumerate(param_names):
             multivariate_dict[value] = mn_distribution[:, index]
@@ -124,18 +124,9 @@ class IsotropicEnergy:
         p_name = [i.name for i in self.model.parameters]
         p_values = [i.value for i in self.model.parameters]
 
-        sp_model = SpectralModels.legacy_build(
-            m_name=self.model.name,
-            interval_instance=self.model_interval,
-            p_name=p_name,
-            p_vals=p_values,
-            cov_=self.model.covariance_matrix_value,
-            model_type=m_type,
-            e_range=(self.e_low, self.e_high),
-            redshift=self.redshift,
-            h0=self.h0,
-            omega_m=self.omega_m,
-        )
+        sp_model = SpectralModels.legacy_build(m_name=self.model.name, interval_instance=self.model_interval, p_name=p_name, p_vals=p_values,
+                                               cov_=self.model.covariance_matrix_value, model_type=m_type, e_range=(self.e_low, self.e_high),
+                                               redshift=self.redshift)
 
         return sp_model.get_values()
 
@@ -173,24 +164,17 @@ def legacy_build_mp(pars):
         The evaluated model values.
     """
     m_name, interval, m_keys, sample, covar, model_type, e_range, n_sample, n_grid = pars
-    built = SpectralModels.legacy_build(
-        m_name,
-        interval,
-        m_keys,
-        sample,
-        covar,
-        n_samples=n_sample,
-        n_grid=n_grid,
-        model_type=model_type,
-        e_range=e_range,
-    ).get_values()
+    built = SpectralModels.legacy_build(m_name, interval, m_keys, sample, covar, n_samples=n_sample, n_grid=n_grid, model_type=model_type,
+                                        e_range=e_range).get_values()
 
     # the original behavior returned element 1 when the name contains an underscore
+    if "_" in m_name:
+        return built[1]
     return built
 
 
 def mcmc_spectra_sampler(
-        model: Model, model_type='counts', e_range=(1, 7), n_samples: int = 10_000, n_grid: int = 10_000, n_workers: int = None
+        model: Model, model_type='counts', e_range=(1, 7), n_samples: int = 10_000, n_grid: int = 10_000, n_workers: int = None, samples = None
 ):
     """
     Parallel MCMC sampler for spectral model parameter estimation.
@@ -221,7 +205,7 @@ def mcmc_spectra_sampler(
     covar_ = model.covariance_matrix_value
     covar_ = 0.5 * (covar_ + covar_.T)
 
-    samples = multivariate_normal(m_vals, covar_, n_samples)
+    samples = multivariate_normal(m_vals, covar_, n_samples) if samples is None else samples
 
     if n_workers is None:
         n_workers = cpu_count()
@@ -236,9 +220,7 @@ def mcmc_spectra_sampler(
     return results
 
 
-def credible_interval_partition(samples: Union[np.ndarray, list]) -> Tuple[
-    np.ndarray, np.ndarray, np.ndarray
-]:
+def credible_interval_partition(samples: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Compute 16th, 50th (median), and 84th percentiles per parameter from MCMC samples.
 
@@ -254,11 +236,8 @@ def credible_interval_partition(samples: Union[np.ndarray, list]) -> Tuple[
         A tuple (median, lower, upper), each a 1D array of shape (n_parameters,)
         containing the 50th, 16th, and 84th percentiles respectively.
     """
-    if isinstance(samples, list):
-        samples = np.asarray(samples)
-
     s = samples.T
-    part = np.nanpercentile(s, [16, 50, 84], axis=1)
+    part = np.nanpercentile(s, [16, 50, 80], axis=1)
 
     return np.asarray(part[1], float).T, np.asarray(part[0], float).T, np.asarray(part[2], float).T
 
@@ -274,7 +253,9 @@ def mcmc_e_iso_sampler(
         bol_max: float = 4.0,
         h0: float = 70.0,
         omega_m: float = 0.315,
-        use_ergs: bool = False
+        method=1,
+        seed_number=1234,
+        samples=None
 ) -> np.ndarray:
     """
     Draw MCMC samples and compute isotropic-equivalent energy (E_iso).
@@ -307,30 +288,30 @@ def mcmc_e_iso_sampler(
     np.ndarray
         Array of E_iso samples in erg with shape (1, n_samples).
     """
-    erg_condition = kev_to_erg if use_ergs else 1
+    np.random.seed(seed_number)
+    bolometric_fluence = 0
 
-    energy_detector = np.logspace(start=det_min, stop=det_max, num=n_grid)
     energy_bolometric = np.logspace(start=bol_min, stop=bol_max, num=n_grid)
-
-    # ph / cm^2 / s / keV (n_samples, n_grid)
-    detector_samples = mcmc_spectra_sampler(model, 'counts',
-                                            e_range=(det_min, det_max), n_samples=n_samples, n_grid=n_grid)
-    bolometric_samples = mcmc_spectra_sampler(model, 'counts',
-                                              e_range=(bol_min, bol_max), n_samples=n_samples, n_grid=n_grid)
-
-    detector_samples, bolometric_samples = np.asarray(detector_samples), np.asarray(bolometric_samples)
-
-    # keV / cm^2: vectorized integration over axis=1
-    detector_fluence = simpson(y=detector_samples * energy_detector, x=energy_detector, axis=1) * model.interval.duration
-
     e_observed = energy_bolometric / (1 + z)
-    numerator = simpson(y=bolometric_samples * e_observed, x=e_observed, axis=1)
-    denominator = simpson(y=detector_samples * energy_detector, x=energy_detector, axis=1)
+    # ph / cm^2 / s / keV (n_samples, n_grid)
+    bolometric_samples = np.asarray(mcmc_spectra_sampler(model, 'energy',
+                                                         e_range=(bol_min, bol_max), n_samples=n_samples, n_grid=n_grid, samples=samples))
+    if method == 1:
+        energy_detector = np.logspace(start=det_min, stop=det_max, num=n_grid)
+        detector_samples = np.asarray(mcmc_spectra_sampler(model, 'energy',
+                                                           e_range=(det_min, det_max), n_samples=n_samples, n_grid=n_grid))
+        # keV / cm^2: vectorized integration over axis=1
+        detector_fluence = simpson(y=detector_samples * energy_detector, x=energy_detector, axis=1) * model.interval.duration
 
-    # k correction
-    bolometric_fluence = detector_fluence * (numerator / denominator)
-    # erg / cm^2
-    bolometric_fluence = np.asarray(bolometric_fluence, dtype=float) * erg_condition
+        numerator = simpson(y=bolometric_samples * e_observed, x=e_observed, axis=1)
+        denominator = simpson(y=detector_samples * energy_detector, x=energy_detector, axis=1)
+
+        # k correction
+        bolometric_fluence = detector_fluence * (numerator / denominator)
+        # erg / cm^2
+        bolometric_fluence = np.asarray(bolometric_fluence, dtype=float) * kev_to_erg
+    elif method == 2:
+        bolometric_fluence = simpson(y=bolometric_samples, x=e_observed, axis=1) * model.interval.duration * kev_to_erg
 
     lum_distance = FlatLambdaCDM(H0=h0, Om0=omega_m).luminosity_distance(z).cgs.value
     return (4 * np.pi * lum_distance**2 * bolometric_fluence.reshape(1, -1)) / (1 + z)

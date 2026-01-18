@@ -48,8 +48,6 @@ class SpectralModels:
     n_grid: int = 10_000
 
     redshift: float = 0.0
-    h0: float = 67.4
-    omega_m: float = 0.315
 
     def __post_init__(self):
         self.interval = self.model.interval
@@ -87,8 +85,6 @@ class SpectralModels:
             model_type="counts",
             e_range=(1, 7),
             redshift=0,
-            h0=67.4,
-            omega_m=0.315,
     ):
         """Build a SpectralModel from legacy data."""
         errors = np.sqrt(np.diag(cov_))
@@ -101,9 +97,7 @@ class SpectralModels:
             n_sample=n_samples,
             n_grid=n_grid,
             energy_range=e_range,
-            redshift=redshift,
-            h0=h0,
-            omega_m=omega_m,
+            redshift=redshift
         )
 
     def _evaluate_components(self, components):

@@ -9,7 +9,7 @@ from typing import Dict, List, Optional, Tuple, TYPE_CHECKING, Union
 
 import numpy as np
 
-from .grb_atomic import CovarianceMatrix, Parameter
+from .grb_atomic import CovarianceMatrix, Parameter, ParameterSet
 
 if TYPE_CHECKING:
     from .grb_time import TimeInterval
@@ -101,6 +101,10 @@ class Model:
             dof,
             CovarianceMatrix(cov_matrix),
         )
+
+    @property
+    def get_parameters(self):
+        return ParameterSet(self.parameters)
 
     def __str__(self) -> str:
         safety = GoodnessOfFit.BEST if self.is_best else GoodnessOfFit.SAFE if self.is_good else GoodnessOfFit.UNSAFE
