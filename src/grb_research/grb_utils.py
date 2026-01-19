@@ -2,7 +2,7 @@
 
 import json
 import os
-from typing import Dict
+from typing import Dict, Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -108,7 +108,7 @@ def filter_covariance(cov_matrix, param_names):
     return filtered_cov, filtered_names, keep_idx
 
 
-def plot_covariance_corner(means, cov_matrix, param_names):
+def plot_covariance_corner(means, cov_matrix, param_names, seed: Optional[int] = None, rng: Optional[np.random.Generator] = None):
     """
     Corner-style plot with histograms on the diagonal and covariance ellipses off-diagonal.
 
@@ -120,10 +120,20 @@ def plot_covariance_corner(means, cov_matrix, param_names):
         Covariance matrix.
     param_names : list of str
         Names of parameters (length N).
+    seed : int, optional
+        Random seed for reproducibility. Ignored if rng is provided.
+    rng : np.random.Generator, optional
+        Random number generator instance for reproducibility.
     """
     means = np.asarray(means)
     cov_matrix = np.asarray(cov_matrix)
     n_params = len(param_names)
+
+    # Get or create RNG
+    if rng is not None:
+        rng_instance = rng
+    else:
+        rng_instance = np.random.default_rng(seed)
 
     stds = np.sqrt(np.diag(cov_matrix))
     n_stds = range(1, 4)
@@ -137,7 +147,7 @@ def plot_covariance_corner(means, cov_matrix, param_names):
 
             if i == j:
                 # 1D Gaussian histogram centered on mean
-                vals = np.random.normal(loc=means[i], scale=stds[i], size=10_000)
+                vals = rng_instance.normal(loc=means[i], scale=stds[i], size=10_000)
                 ax.hist(vals, bins=24, fc="w", ec="k", histtype="step")
                 ax.set_xlim(means[i] - max_std * stds[i], means[i] + max_std * stds[i])
                 m, s = np.mean(vals), np.std(vals)
@@ -154,7 +164,7 @@ def plot_covariance_corner(means, cov_matrix, param_names):
 
                 theta = np.degrees(np.arctan2(*vectors[:, 0][::-1]))
 
-                samples = np.random.multivariate_normal(mean=[means[j], means[i]], cov=cov_2d, size=5_000)
+                samples = rng_instance.multivariate_normal(mean=[means[j], means[i]], cov=cov_2d, size=5_000)
 
                 ax.scatter(samples[:, 0], samples[:, 1], s=1, color="k", alpha=0.3, zorder=1)
                 for k, n_std in enumerate(n_stds[::-1]):

@@ -2,21 +2,40 @@
 
 from dataclasses import dataclass
 from multiprocessing import cpu_count, Pool
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 
 import numpy as np
 from astropy.cosmology import FlatLambdaCDM
 from matplotlib import pyplot as plt
-from numpy.random import multivariate_normal
 from scipy.integrate import simpson
 from tqdm import tqdm
 
-from . import ModelSet
-from .grb_utils import break_e_to_e_peak
 from .grb_constants import kev_to_erg
 from .grb_model import Model
 from .grb_sed import SpectralModels
 from .grb_time import EpisodeTypes, TimeInterval
+from .grb_utils import break_e_to_e_peak
+
+
+def get_rng(seed: Optional[int] = None, rng: Optional[np.random.Generator] = None) -> np.random.Generator:
+    """
+    Get or create a NumPy random number generator.
+
+    Parameters
+    ----------
+    seed : int, optional
+        Seed for creating a new RNG. Ignored if rng is provided.
+    rng : np.random.Generator, optional
+        Existing RNG instance to use.
+
+    Returns
+    -------
+    np.random.Generator
+        RNG instance to use for random sampling.
+    """
+    if rng is not None:
+        return rng
+    return np.random.default_rng(seed)
 
 
 @dataclass
@@ -65,7 +84,9 @@ class IsotropicEnergy:
         param_values = [param.value for param in self.model.parameters]
         param_covar_ = self.model.covariance_matrix_value
         param_covar_ = 0.5 * (param_covar_ + param_covar_.T)
-        mn_distribution = multivariate_normal(param_values, param_covar_, self.n_samples)
+
+        rng = np.random.default_rng()
+        mn_distribution = rng.multivariate_normal(param_values, param_covar_, self.n_samples)
 
         for index, value in enumerate(param_names):
             multivariate_dict[value] = mn_distribution[:, index]
@@ -190,13 +211,15 @@ def legacy_build_mp(pars):
 
 
 def mcmc_spectra_sampler(
-    model: Model,
-    model_type="counts",
-    e_range=(1, 7),
-    n_samples: int = 10_000,
-    n_grid: int = 10_000,
-    n_workers: int = None,
-    samples=None,
+        model: Model,
+        model_type="counts",
+        e_range=(1, 7),
+        n_samples: int = 10_000,
+        n_grid: int = 10_000,
+        n_workers: int = None,
+        samples=None,
+        seed: Optional[int] = None,
+        rng: Optional[np.random.Generator] = None,
 ):
     """
     Parallel MCMC sampler for spectral model parameter estimation.
@@ -215,6 +238,12 @@ def mcmc_spectra_sampler(
         Number of grid points for numerical integration (default: 10,000).
     n_workers : int, optional
         Number of parallel workers (default: CPU count).
+    samples : np.ndarray, optional
+        Pre-generated samples. If None, samples will be generated.
+    seed : int, optional
+        Random seed for reproducibility. Ignored if rng is provided.
+    rng : np.random.Generator, optional
+        Random number generator instance for reproducibility.
 
     Returns
     -------
@@ -227,7 +256,9 @@ def mcmc_spectra_sampler(
     covar_ = model.covariance_matrix_value
     covar_ = 0.5 * (covar_ + covar_.T)
 
-    samples = multivariate_normal(m_vals, covar_, n_samples) if samples is None else samples
+    if samples is None:
+        rng_instance = get_rng(seed=seed, rng=rng)
+        samples = rng_instance.multivariate_normal(m_vals, covar_, n_samples)
 
     if n_workers is None:
         n_workers = cpu_count()
@@ -265,19 +296,20 @@ def credible_interval_partition(samples: np.ndarray) -> Tuple[np.ndarray, np.nda
 
 
 def mcmc_e_iso_sampler(
-    model: Model,
-    z: float = 1.0,
-    n_samples: int = 100,
-    n_grid: int = 100,
-    det_min: float = 1.0,
-    det_max: float = 7.0,
-    bol_min: float = 0,
-    bol_max: float = 4.0,
-    h0: float = 70.0,
-    omega_m: float = 0.315,
-    method=1,
-    seed_number=1234,
-    samples=None,
+        model: Model,
+        z: float = 1.0,
+        n_samples: int = 100,
+        n_grid: int = 100,
+        det_min: float = 1.0,
+        det_max: float = 7.0,
+        bol_min: float = 0,
+        bol_max: float = 4.0,
+        h0: float = 70.0,
+        omega_m: float = 0.315,
+        method=1,
+        seed_number=1234,
+        samples=None,
+        rng: Optional[np.random.Generator] = None,
 ) -> np.ndarray:
     """
     Draw MCMC samples and compute isotropic-equivalent energy (E_iso).
@@ -304,13 +336,21 @@ def mcmc_e_iso_sampler(
         Hubble constant (default: 70.0).
     omega_m : float, optional
         Matter density parameter (default: 0.315).
+    method : int, optional
+        Method to use for calculation (default: 1).
+    seed_number : int, optional
+        Random seed for reproducibility (default: 1234). Ignored if rng is provided.
+    samples : np.ndarray, optional
+        Pre-generated samples. If None, samples will be generated.
+    rng : np.random.Generator, optional
+        Random number generator instance for reproducibility.
 
     Returns
     -------
     np.ndarray
         Array of E_iso samples in erg with shape (1, n_samples).
     """
-    np.random.seed(seed_number)
+    rng_instance = get_rng(seed=seed_number, rng=rng)
     bolometric_fluence = 0
 
     energy_bolometric = np.logspace(start=bol_min, stop=bol_max, num=n_grid)
@@ -318,17 +358,17 @@ def mcmc_e_iso_sampler(
     # ph / cm^2 / s / keV (n_samples, n_grid)
     bolometric_samples = np.asarray(
         mcmc_spectra_sampler(
-            model, "energy", e_range=(bol_min, bol_max), n_samples=n_samples, n_grid=n_grid, samples=samples
+            model, "energy", e_range=(bol_min, bol_max), n_samples=n_samples, n_grid=n_grid, samples=samples, rng=rng_instance
         )
     )
     if method == 1:
         energy_detector = np.logspace(start=det_min, stop=det_max, num=n_grid)
         detector_samples = np.asarray(
-            mcmc_spectra_sampler(model, "energy", e_range=(det_min, det_max), n_samples=n_samples, n_grid=n_grid)
+            mcmc_spectra_sampler(model, "energy", e_range=(det_min, det_max), n_samples=n_samples, n_grid=n_grid, rng=rng_instance)
         )
         # keV / cm^2: vectorized integration over axis=1
         detector_fluence = (
-            simpson(y=detector_samples * energy_detector, x=energy_detector, axis=1) * model.interval.duration
+                simpson(y=detector_samples * energy_detector, x=energy_detector, axis=1) * model.interval.duration
         )
 
         numerator = simpson(y=bolometric_samples * e_observed, x=e_observed, axis=1)
@@ -443,18 +483,18 @@ def plot_all_models(best_models, grb_name, n_rows=2, n_cols=None, fig_size=(12, 
 
 
 def amati_relationship_dirirsia2019(
-    e_iso_norm=1e52,
-    e_i_peak_norm=950.0,
-    log_k=1.67,
-    sigma_log_k=0.16,
-    m=1.16,
-    sigma_m=0.37,
-    sigma_ext=0.47,
-    sigmas=(1, 2, 3),
-    x_lim=(10, 1e5),
-    y_lim=(1e50, 1e55),
-    num_points=1_000,
-    use_average=False
+        e_iso_norm=1e52,
+        e_i_peak_norm=950.0,
+        log_k=1.67,
+        sigma_log_k=0.16,
+        m=1.16,
+        sigma_m=0.37,
+        sigma_ext=0.47,
+        sigmas=(1, 2, 3),
+        x_lim=(10, 1e5),
+        y_lim=(1e50, 1e55),
+        num_points=1_000,
+        use_average=False
 ):
     """Plot the Amati relation with confidence bands."""
 
@@ -496,7 +536,7 @@ def amati_relationship_dirirsia2019(
 
 def plot_grbs_over_amati_relationship(
         grb_names: List[str],
-        best_model_list: ModelSet,
+        best_model_list,
         redshift_list: List[float],
         marker_list: List[str],
         n_grid: int = 10_000,
@@ -511,7 +551,7 @@ def plot_grbs_over_amati_relationship(
     ----------
     grb_names : List[str]
         Names of the GRBs for labeling in the plot.
-    best_model_list : ModelSet
+    best_model_list
         Nested list containing model objects for each GRB.
     redshift_list : List[float]
         Redshift values corresponding to each GRB.
@@ -544,7 +584,7 @@ def plot_grbs_over_amati_relationship(
             cov_ = 0.5 * (m.covariance_matrix_value + m.covariance_matrix_value.T)
             if "sbpl" in m_name.lower():
                 new_sample_size = int(1.5 * n_sample)
-                vals = pc.get_populated_values(cov_, size=new_sample_size)
+                vals = pc.get_populated_values(cov_, size=new_sample_size, rng=rng)
                 mvd = {}
                 for i, v in enumerate(pc_names):
                     mvd[v] = vals[:, i]
@@ -562,7 +602,8 @@ def plot_grbs_over_amati_relationship(
 
                 mvd_n_samples = {k: v[idx] for k, v in mvd_filtered.items()}
 
-                vals = break_e_to_e_peak(mvd_n_samples["index1_sbpl"], mvd_n_samples["index2_sbpl"], mvd_n_samples["e_break_sbpl"])
+                vals = break_e_to_e_peak(mvd_n_samples["index1_sbpl"], mvd_n_samples["index2_sbpl"],
+                                         mvd_n_samples["e_break_sbpl"])
                 e_iso = mcmc_e_iso_sampler(
                     m,
                     redshift_list[index],
@@ -571,6 +612,7 @@ def plot_grbs_over_amati_relationship(
                     method=2,
                     samples=np.array(list(mvd_n_samples.values())).T,
                     seed_number=seed_number + index2,
+                    rng=rng,
                 )
             else:
                 name_split = m_name.lower().split("_")
@@ -578,7 +620,7 @@ def plot_grbs_over_amati_relationship(
                     name_split = name_split[0] if "BB" in m_name else name_split[1]
                 else:
                     name_split = m_name
-                vals = pc.get_populated_values(cov_, size=n_sample)
+                vals = pc.get_populated_values(cov_, size=n_sample, rng=rng)
                 mvd = {}
                 for i, v in enumerate(pc_names):
                     mvd[v] = vals[:, i]
@@ -592,6 +634,7 @@ def plot_grbs_over_amati_relationship(
                     method=2,
                     samples=np.array(list(mvd.values())).T,
                     seed_number=seed_number + index2,
+                    rng=rng,
                 )
 
             e_peak_i = vals * (1 + redshift_list[index])
@@ -633,9 +676,10 @@ def plot_grbs_over_amati_relationship(
 
 
 def plot_unknown_redshift_grb(
-    best_model, grb_name, z_values=(1, 2, 3, 4, 5, 6, 7), n_grid=10_0000, n_sample=10_000, seed_number=0
+        best_model, grb_name, z_values=(1, 2, 3, 4, 5, 6, 7), n_grid=10_0000, n_sample=10_000, seed_number=0
 ):
     """Plot the unknown redshift GRB."""
     temp_best = [[best_model]] * len(z_values)
     grb_name = [grb_name]
-    plot_grbs_over_amati_relationship(grb_name, temp_best, z_values, ["D"] * len(z_values), n_grid, n_sample, seed_number, unknown_redshift=True)
+    plot_grbs_over_amati_relationship(grb_name, temp_best, z_values, ["D"] * len(z_values), n_grid, n_sample,
+                                      seed_number, unknown_redshift=True)
