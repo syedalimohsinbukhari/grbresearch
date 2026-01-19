@@ -5,7 +5,7 @@ import os
 import sys
 from datetime import datetime
 
-import src.grb_research.core as grb_core
+import src.grb_research.grb_utils as utils
 import src.grb_research.safe_good_best as sgb
 
 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -20,9 +20,9 @@ with open(log_filename, "w", buffering=1) as log_file:
     try:
         res_safe, res_unsafe, res_total = {}, {}, {}
         cwd_ = os.getcwd()
-        outer_dirs = grb_core.get_directories_in_current_folder()
+        outer_dirs = utils.get_directories_in_current_folder()
         for out_ in outer_dirs:
-            inner_dirs = grb_core.get_directories_in_current_folder(f"{cwd_}/{out_}")
+            inner_dirs = utils.get_directories_in_current_folder(f"{cwd_}/{out_}")
             for in_ in inner_dirs:
                 cw_test = in_.split("__")[0].split("/")[-1]
                 if "0" in cw_test:
@@ -75,11 +75,11 @@ with open(log_filename, "w", buffering=1) as log_file:
                 print(f"UNSAFE models: {sorted(unsafe)}")
                 sgb.list_par_err(cwd_=cwd, fit_type=unsafe, string=0, result_dict=res_unsafe, ep_ext=ep_ext)
                 print(f"[RUN] Finished at {datetime.now().strftime('%Y%m%d_%H%M%S')}")
-                res_total = grb_core.deep_merge(d=res_total, u=res_safe)
-                res_total = grb_core.deep_merge(d=res_total, u=res_unsafe)
-                pp = grb_core.flatten_results(res_total)
+                res_total = utils.deep_merge(d=res_total, u=res_safe)
+                res_total = utils.deep_merge(d=res_total, u=res_unsafe)
+                pp = utils.flatten_results(res_total)
                 with open("results.json", "w") as f:
-                    json.dump(obj=grb_core.make_json_safe(res_total), fp=f, indent=4)
+                    json.dump(obj=utils.make_json_safe(res_total), fp=f, indent=4)
                 if "0" in cw_test:
                     pass
                 elif "A" in cw_test or "B" in cw_test:

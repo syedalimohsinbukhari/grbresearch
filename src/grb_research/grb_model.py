@@ -4,31 +4,15 @@ from __future__ import annotations
 
 import copy
 from dataclasses import dataclass
-from enum import Enum
 from typing import Dict, List, Optional, Tuple, TYPE_CHECKING, Union
 
 import numpy as np
 
 from .grb_atomic import CovarianceMatrix, Parameter, ParameterSet
+from .grb_enums import GoodnessOfFit
 
 if TYPE_CHECKING:
     from .grb_time import TimeInterval
-
-
-class GoodnessOfFit(Enum):
-    """Enum class for goodness of fit types."""
-
-    SAFE = "SAFE"
-    UNSAFE = "UNSAFE"
-    GOOD = SAFE
-    BEST = "BEST"
-    UNKNOWN = "UNKNOWN"
-
-    def __str__(self):
-        return self.value
-
-    def __repr__(self):
-        return f"{self.__class__.__name__}.{self.name}"
 
 
 @dataclass
@@ -75,6 +59,17 @@ class Model:
         return self.cstat / self.dof
 
     @property
+    def get_parameter_set(self):
+        """Retrieve the parameter set associated with current parameters.
+
+        This property provides access to a ParameterSet object representing the current parameters of the instance.
+
+        Returns:
+            ParameterSet: An object encapsulating the current parameters.
+        """
+        return ParameterSet(self.parameters)
+
+    @property
     def covariance_matrix_value(self):
         """Get the covariance matrix."""
         return self.covariance_matrix.matrix
@@ -101,10 +96,6 @@ class Model:
             dof,
             CovarianceMatrix(cov_matrix),
         )
-
-    @property
-    def get_parameters(self):
-        return ParameterSet(self.parameters)
 
     def __str__(self) -> str:
         safety = GoodnessOfFit.BEST if self.is_best else GoodnessOfFit.SAFE if self.is_good else GoodnessOfFit.UNSAFE

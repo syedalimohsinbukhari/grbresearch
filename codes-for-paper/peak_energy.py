@@ -7,8 +7,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from uncertainties import ufloat
 
-from src import sbpl_e_peak_indices
-from src.grb_research.core import break_e_to_e_peak, plot_per_episode
+from src.grb_research import sbpl_e_peak_indices
+from src.grb_research.grb_utils import break_e_to_e_peak, plot_per_episode
 from src.grb_research.grb_constants import short_to_long
 from src.grb_research.grb_core import GRBCatalog
 from src.grb_research.grb_model import ModelSet

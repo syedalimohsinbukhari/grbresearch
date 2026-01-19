@@ -1,46 +1,39 @@
 """Created on Dec 17 13:22:15 2025"""
 
-import json
 from typing import Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
 
-from src.grb_research.core import plot_per_episode
-from src.grb_research.grb_constants import short_to_long
-from src.grb_research.grb_core import GRBCatalog
+from src.grb_research import find_project_root
+from src.grb_research.grb_core import prepare_grbs
 from src.grb_research.grb_model import ModelSet
+from src.grb_research.grb_utils import plot_per_episode
 
 fs = 12
 
-with open("./../results.json", "r") as f:
-    example_data = json.load(f)
-
 grb_list = ["080916C", "110721A", "110731A", "150210A"]
-grb_list_long = [short_to_long[i] for i in grb_list]
 
-gc = GRBCatalog.from_iterable(grb_list=grb_list, data=example_data, name_mapping=short_to_long)
+SOURCE_ROOT = find_project_root()
+result_file = SOURCE_ROOT / "results.json"
 
-grb080916c = gc.get_grb(grb_list_long[0])
-grb110721a = gc.get_grb(grb_list_long[1])
-grb110731a = gc.get_grb(grb_list_long[2])
-grb150210a = gc.get_grb(grb_list_long[3])
+_, grb_list_long, grb_objs, grb_best = prepare_grbs(grb_list, result_file, get_best=True)
 
-grb080916c_best = grb080916c.get_all_best_models()
-grb110721a_best = grb110721a.get_all_best_models()
-grb110731a_best = grb110731a.get_all_best_models()
-grb150210a_best = grb150210a.get_all_best_models()
+grb080916c_best = grb_best[0]
+grb110721a_best = grb_best[1]
+grb110731a_best = grb_best[2]
+grb150210a_best = grb_best[3]
 
-start_080916, end_080916, diff_080916, midpoint_080916 = grb080916c.intervals.extract_interval_arrays(
+start_080916, end_080916, diff_080916, midpoint_080916 = grb_objs[0].intervals.extract_interval_arrays(
     return_include=("diff", "midpoint")
 )
-start_110721, end_110721, diff_110721, midpoint_110721 = grb110721a.intervals.extract_interval_arrays(
+start_110721, end_110721, diff_110721, midpoint_110721 = grb_objs[1].intervals.extract_interval_arrays(
     return_include=("diff", "midpoint")
 )
-start_110731, end_110731, diff_110731, midpoint_110731 = grb110731a.intervals.extract_interval_arrays(
+start_110731, end_110731, diff_110731, midpoint_110731 = grb_objs[2].intervals.extract_interval_arrays(
     return_include=("diff", "midpoint")
 )
-start_150210, end_150210, diff_150210, midpoint_150210 = grb150210a.intervals.extract_interval_arrays(
+start_150210, end_150210, diff_150210, midpoint_150210 = grb_objs[3].intervals.extract_interval_arrays(
     return_include=("diff", "midpoint")
 )
 
@@ -161,6 +154,6 @@ plt.yticks(fontsize=fs)
 [i.legend(loc="center right", frameon=False, fontsize=fs) for i in ax]
 # plt.title("Peak Energy of GRB 150210A")
 plt.tight_layout()
-# plt.show()
+plt.show()
 [plt.savefig(f"./high_index__best__110731a_150210a.{i}", dpi=600) for i in ["png", "pdf"]]
 plt.close()

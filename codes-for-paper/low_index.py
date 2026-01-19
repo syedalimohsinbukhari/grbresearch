@@ -6,7 +6,7 @@ from typing import Tuple
 import matplotlib.pyplot as plt
 import numpy as np
 
-from src.grb_research.core import plot_per_episode
+from src.grb_research.grb_utils import plot_per_episode
 from src.grb_research.grb_constants import short_to_long
 from src.grb_research.grb_core import GRBCatalog
 from src.grb_research.grb_model import ModelSet

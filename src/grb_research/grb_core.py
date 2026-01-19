@@ -1,9 +1,11 @@
 """Created on Dec 26 14:40:22 2025"""
-
+import json
 from dataclasses import dataclass
 from typing import Dict, Iterable, Optional, Union
 
-from .grb_model import GoodnessOfFit, Model, ModelSet
+from .grb_constants import short_to_long
+from .grb_enums import GoodnessOfFit
+from .grb_model import Model, ModelSet
 from .grb_time import EpisodeTypes, TimeInterval, TimeIntervalSet
 
 
@@ -137,3 +139,18 @@ class GRBCatalog:
     def get_grb(self, name: str) -> Optional[GRB]:
         """Get the GRB from catalog by name."""
         return self._grb_list.get(name)
+
+
+def prepare_grbs(grb_list, result_file, name_mapping=short_to_long, get_best=False):
+    """Load results, build GRB catalog, and return objects and best-model lists."""
+    with open(result_file, "r") as f:
+        data = json.load(f)
+
+    grb_list_long = [name_mapping[i] for i in grb_list]
+    gc = GRBCatalog.from_iterable(grb_list=grb_list, data=data, name_mapping=name_mapping)
+    grb_objs = [gc.get_grb(name) for name in grb_list_long]
+    grb_best = [g.get_all_best_models() for g in grb_objs]
+    if get_best:
+        return gc, grb_list_long, grb_objs, grb_best
+    else:
+        return gc, grb_list_long, grb_objs

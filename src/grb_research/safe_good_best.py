@@ -7,7 +7,7 @@ import numpy as np
 from astropy.io import fits
 
 from .grb_constants import MODEL_PARAMETERS
-from .flags import analyze_model_hierarchy
+from .grb_utils import analyze_model_hierarchy
 
 BASE_PARAM_SCHEMAS = {
     "PL": [("amplitude", False, False), ("e_pivot", True, False), ("index1", False, False)],
@@ -102,42 +102,58 @@ def get_model_name_from_path(path: str) -> str:
 
 
 def read_cstat_from_fit(path: str, give_covariance=False):
-    ff = fits.open(path)
-    try:
+    with fits.open(path) as ff:
         dof = ff[2].data["CHSQDOF"][0]
         cstat = float(ff[2].data["REDCHSQ"][0][1] * dof)
         if not give_covariance:
             return cstat, dof
-        else:
-            return cstat, dof, ff[2].data["COVARMAT"][0]
-    finally:
-        ff.close()
+        cov = ff[2].data["COVARMAT"][0]
+        return cstat, dof, cov
 
 
 def collect_model_cstat(paths: Iterable[str]) -> Dict[str, List[float]]:
     result = {}
     for p in paths:
         model = get_model_name_from_path(p)
-        try:
-            cstat, dof = read_cstat_from_fit(p)
-            result[model] = [cstat, dof]
-        except Exception:
-            result[model] = [float("nan"), float("nan")]
+        cstat, dof = read_cstat_from_fit(p)
+        result[model] = [cstat, dof]
     return result
 
 
 def read_param_values_errors(path: str, n_parameters=None):
+    """
+    Read parameter values and their corresponding errors from a FITS file.
+
+    Parameters
+    ----------
+    path : str
+        Path to the FITS file to be read.
+    n_parameters : int, optional
+        Number of parameters to extract. If ``None`` (default), the number is
+        inferred from the composite schema derived from the model name in the
+        FITS file name.
+
+    Returns
+    -------
+    tuple of (numpy.ndarray, numpy.ndarray)
+        A tuple ``(values, errors)`` where both are 1-D ``numpy.ndarray`` objects
+        of length ``n_parameters``.
+
+    Raises
+    ------
+    ValueError
+        If the model name cannot be mapped to a known schema when ``n_parameters`` is not provided.
+    OSError
+        If the FITS file cannot be opened.
+    """
     model = get_model_name_from_path(path)
     if n_parameters is None:
         schema = build_composite_schema(model)
         n_parameters = len(schema)
-    ff = fits.open(path)
-    try:
+    with fits.open(path) as ff:
         vals = [ff[2].data[f"PARAM{i}"][0][0] for i in range(n_parameters)]
         errs = [ff[2].data[f"PARAM{i}"][0][1] for i in range(n_parameters)]
         return np.array(object=vals, dtype=float), np.array(object=errs, dtype=float)
-    finally:
-        ff.close()
 
 
 # ----------------- Comparison -----------------
@@ -213,8 +229,8 @@ def filter_models_by_error(c_stats, folder_path, candidates, **kwargs):
         m: c_stats[m]
         for m in candidates
         if m in c_stats
-        and os.path.exists(os.path.join(folder_path, f"{m}.fit"))
-        and model_passes_error_criteria(path=os.path.join(folder_path, f"{m}.fit"), **kwargs)
+           and os.path.exists(os.path.join(folder_path, f"{m}.fit"))
+           and model_passes_error_criteria(path=os.path.join(folder_path, f"{m}.fit"), **kwargs)
     }
 
 
@@ -258,7 +274,7 @@ def list_safe_models(folder_path, **kwargs):
         m
         for m in ALLOWED_MODELS
         if os.path.exists(os.path.join(folder_path, f"{m}.fit"))
-        and model_passes_error_criteria(os.path.join(folder_path, f"{m}.fit"), **kwargs)
+           and model_passes_error_criteria(os.path.join(folder_path, f"{m}.fit"), **kwargs)
     }
 
 

@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 from multiprocessing import cpu_count, Pool
-from typing import Tuple
+from typing import List, Tuple
 
 import numpy as np
 from astropy.cosmology import FlatLambdaCDM
@@ -11,6 +11,8 @@ from numpy.random import multivariate_normal
 from scipy.integrate import simpson
 from tqdm import tqdm
 
+from . import ModelSet
+from .grb_utils import break_e_to_e_peak
 from .grb_constants import kev_to_erg
 from .grb_model import Model
 from .grb_sed import SpectralModels
@@ -86,9 +88,7 @@ class IsotropicEnergy:
         """
         qty = FlatLambdaCDM(H0=self.h0, Om0=self.omega_m).luminosity_distance(self.redshift)
 
-        return (
-            qty.cgs.value if not in_units else qty.cgs
-        )
+        return qty.cgs.value if not in_units else qty.cgs
 
     def calculate(self):
         """
@@ -124,9 +124,16 @@ class IsotropicEnergy:
         p_name = [i.name for i in self.model.parameters]
         p_values = [i.value for i in self.model.parameters]
 
-        sp_model = SpectralModels.legacy_build(m_name=self.model.name, interval_instance=self.model_interval, p_name=p_name, p_vals=p_values,
-                                               cov_=self.model.covariance_matrix_value, model_type=m_type, e_range=(self.e_low, self.e_high),
-                                               redshift=self.redshift)
+        sp_model = SpectralModels.legacy_build(
+            m_name=self.model.name,
+            interval_instance=self.model_interval,
+            p_name=p_name,
+            p_vals=p_values,
+            cov_=self.model.covariance_matrix_value,
+            model_type=m_type,
+            e_range=(self.e_low, self.e_high),
+            redshift=self.redshift,
+        )
 
         return sp_model.get_values()
 
@@ -164,8 +171,17 @@ def legacy_build_mp(pars):
         The evaluated model values.
     """
     m_name, interval, m_keys, sample, covar, model_type, e_range, n_sample, n_grid = pars
-    built = SpectralModels.legacy_build(m_name, interval, m_keys, sample, covar, n_samples=n_sample, n_grid=n_grid, model_type=model_type,
-                                        e_range=e_range).get_values()
+    built = SpectralModels.legacy_build(
+        m_name,
+        interval,
+        m_keys,
+        sample,
+        covar,
+        n_samples=n_sample,
+        n_grid=n_grid,
+        model_type=model_type,
+        e_range=e_range,
+    ).get_values()
 
     # the original behavior returned element 1 when the name contains an underscore
     if "_" in m_name:
@@ -174,7 +190,13 @@ def legacy_build_mp(pars):
 
 
 def mcmc_spectra_sampler(
-        model: Model, model_type='counts', e_range=(1, 7), n_samples: int = 10_000, n_grid: int = 10_000, n_workers: int = None, samples = None
+    model: Model,
+    model_type="counts",
+    e_range=(1, 7),
+    n_samples: int = 10_000,
+    n_grid: int = 10_000,
+    n_workers: int = None,
+    samples=None,
 ):
     """
     Parallel MCMC sampler for spectral model parameter estimation.
@@ -243,19 +265,19 @@ def credible_interval_partition(samples: np.ndarray) -> Tuple[np.ndarray, np.nda
 
 
 def mcmc_e_iso_sampler(
-        model: Model,
-        z: float = 1.0,
-        n_samples: int = 100,
-        n_grid: int = 100,
-        det_min: float = 1.0,
-        det_max: float = 7.0,
-        bol_min: float = 0,
-        bol_max: float = 4.0,
-        h0: float = 70.0,
-        omega_m: float = 0.315,
-        method=1,
-        seed_number=1234,
-        samples=None
+    model: Model,
+    z: float = 1.0,
+    n_samples: int = 100,
+    n_grid: int = 100,
+    det_min: float = 1.0,
+    det_max: float = 7.0,
+    bol_min: float = 0,
+    bol_max: float = 4.0,
+    h0: float = 70.0,
+    omega_m: float = 0.315,
+    method=1,
+    seed_number=1234,
+    samples=None,
 ) -> np.ndarray:
     """
     Draw MCMC samples and compute isotropic-equivalent energy (E_iso).
@@ -294,14 +316,20 @@ def mcmc_e_iso_sampler(
     energy_bolometric = np.logspace(start=bol_min, stop=bol_max, num=n_grid)
     e_observed = energy_bolometric / (1 + z)
     # ph / cm^2 / s / keV (n_samples, n_grid)
-    bolometric_samples = np.asarray(mcmc_spectra_sampler(model, 'energy',
-                                                         e_range=(bol_min, bol_max), n_samples=n_samples, n_grid=n_grid, samples=samples))
+    bolometric_samples = np.asarray(
+        mcmc_spectra_sampler(
+            model, "energy", e_range=(bol_min, bol_max), n_samples=n_samples, n_grid=n_grid, samples=samples
+        )
+    )
     if method == 1:
         energy_detector = np.logspace(start=det_min, stop=det_max, num=n_grid)
-        detector_samples = np.asarray(mcmc_spectra_sampler(model, 'energy',
-                                                           e_range=(det_min, det_max), n_samples=n_samples, n_grid=n_grid))
+        detector_samples = np.asarray(
+            mcmc_spectra_sampler(model, "energy", e_range=(det_min, det_max), n_samples=n_samples, n_grid=n_grid)
+        )
         # keV / cm^2: vectorized integration over axis=1
-        detector_fluence = simpson(y=detector_samples * energy_detector, x=energy_detector, axis=1) * model.interval.duration
+        detector_fluence = (
+            simpson(y=detector_samples * energy_detector, x=energy_detector, axis=1) * model.interval.duration
+        )
 
         numerator = simpson(y=bolometric_samples * e_observed, x=e_observed, axis=1)
         denominator = simpson(y=detector_samples * energy_detector, x=energy_detector, axis=1)
@@ -328,16 +356,22 @@ def plot_best_models(best_models, n_rows=2, n_cols=None, grb_name=None, fig_size
     has_cpl_bb = False
 
     for i, v in enumerate(best_models):
-        if 'BB' in v.name or 'CPL' in v.name:
+        if "BB" in v.name or "CPL" in v.name:
             has_cpl_bb = True
-        color = 'k' if v.interval.kind == EpisodeTypes.T90 else 'b' if v.interval.kind in [EpisodeTypes.EX0, EpisodeTypes.EX1] else 'r'
-        print(f'processing {v.name}')
+        color = (
+            "k"
+            if v.interval.kind == EpisodeTypes.T90
+            else "b" if v.interval.kind in [EpisodeTypes.EX0, EpisodeTypes.EX1] else "r"
+        )
+        print(f"processing {v.name}")
         samples = mcmc_spectra_sampler(v, n_samples=n_samples, n_grid=n_grid)
         samples = np.array(samples)
 
         med, low, high = credible_interval_partition(samples)
         med, low, high = med * kev_to_erg, low * kev_to_erg, high * kev_to_erg
-        ax[i].loglog(x, med * x**2, f'{color}--', label=f"{v.name.replace('_', '+')}\n({v.interval.start} - {v.interval.end})")
+        ax[i].loglog(
+            x, med * x**2, f"{color}--", label=f"{v.name.replace('_', '+')}\n({v.interval.start} - {v.interval.end})"
+        )
         ax[i].fill_between(x, low * x**2, high * x**2, color=color, alpha=0.2)
         ax[i].legend()
 
@@ -348,7 +382,7 @@ def plot_best_models(best_models, n_rows=2, n_cols=None, grb_name=None, fig_size
         ax[-1].set_ylim(bottom=3.2e-10, top=2.8e-4)
 
     f.tight_layout()
-    [plt.savefig(f'butterfly_{grb_name}.{i}', dpi=300) for i in ["png", "pdf"]]
+    [plt.savefig(f"butterfly_{grb_name}.{i}", dpi=300) for i in ["png", "pdf"]]
     plt.close()
 
 
@@ -363,16 +397,16 @@ def plot_all_models(best_models, grb_name, n_rows=2, n_cols=None, fig_size=(12, 
     has_cpl_bb = False
 
     for i, v in enumerate(best_models):
-        print(f'processing {grb_name[i]}')
+        print(f"processing {grb_name[i]}")
         is_ex = sum([i.interval.is_ex for i in v])
         if is_ex == 2:
             v[-1], v[-2] = v[-2], v[-1]
 
         for j, w in enumerate(v):
-            if 'CPL' in w.name:
+            if "CPL" in w.name:
                 has_cpl_bb = True
 
-            print(f'processing {w.name}')
+            print(f"processing {w.name}")
             samples = mcmc_spectra_sampler(w, n_samples=n_samples, n_grid=n_grid)
             samples = np.array(samples)
 
@@ -380,11 +414,11 @@ def plot_all_models(best_models, grb_name, n_rows=2, n_cols=None, fig_size=(12, 
             med, low, high = med * kev_to_erg, low * kev_to_erg, high * kev_to_erg
 
             if j == 0:
-                ax[i].loglog(x, med * x**2, 'k--', label=f"{w.interval.kind}")
-                ax[i].fill_between(x, low * x**2, high * x**2, color='k', alpha=0.2)
+                ax[i].loglog(x, med * x**2, "k--", label=f"{w.interval.kind}")
+                ax[i].fill_between(x, low * x**2, high * x**2, color="k", alpha=0.2)
             else:
-                sub = f'{w.interval.kind}{w.interval.index}' if w.interval.kind == EpisodeTypes.TR else w.interval.kind
-                ax[i].loglog(x, med * x**2, '--', label=f"{sub}")
+                sub = f"{w.interval.kind}{w.interval.index}" if w.interval.kind == EpisodeTypes.TR else w.interval.kind
+                ax[i].loglog(x, med * x**2, "--", label=f"{sub}")
                 ax[i].fill_between(x, low * x**2, high * x**2, alpha=0.2)
 
             if has_cpl_bb:
@@ -392,7 +426,7 @@ def plot_all_models(best_models, grb_name, n_rows=2, n_cols=None, fig_size=(12, 
 
             has_cpl_bb = False
 
-        ax[i].legend(ncols=4 if i == 0 else 2, title=f'{grb_name[i]}')
+        ax[i].legend(ncols=4 if i == 0 else 2, title=f"{grb_name[i]}")
 
         if i % 2 != 0:
             ax[i].set_yticks([])
@@ -401,8 +435,207 @@ def plot_all_models(best_models, grb_name, n_rows=2, n_cols=None, fig_size=(12, 
             ax[i].set_ylabel("Energy Flux\n" + r"[erg/cm$^2$/s]")
 
     [i.set_xticks([]) for i in [ax[0], ax[1]]]
-    [i.set_xlabel('Energy [keV]') for i in [ax[2], ax[3]]]
+    [i.set_xlabel("Energy [keV]") for i in [ax[2], ax[3]]]
     plt.tight_layout()
     # plt.show()
-    [plt.savefig(f'butterfly_all.{i}', dpi=300) for i in ["png", "pdf"]]
+    [plt.savefig(f"butterfly_all.{i}", dpi=300) for i in ["png", "pdf"]]
     plt.close()
+
+
+def amati_relationship_dirirsia2019(
+    e_iso_norm=1e52,
+    e_i_peak_norm=950.0,
+    log_k=1.67,
+    sigma_log_k=0.16,
+    m=1.16,
+    sigma_m=0.37,
+    sigma_ext=0.47,
+    sigmas=(1, 2, 3),
+    x_lim=(10, 1e5),
+    y_lim=(1e50, 1e55),
+    num_points=1_000,
+    use_average=False
+):
+    """Plot the Amati relation with confidence bands."""
+
+    # Generate e_i_peak and calculate log-space values
+    e_i_peak = np.logspace(np.log10(x_lim[0]), np.log10(x_lim[1]), num=num_points)
+    x = np.log10(e_i_peak / e_i_peak_norm)
+
+    # Central relation and point-wise uncertainty
+    y = log_k + m * x
+    sigma_y = np.sqrt(sigma_log_k**2 + x**2 * sigma_m**2 + sigma_ext**2)
+    if use_average:
+        sigma_y = np.mean(sigma_y)
+    e_isotropic = (10**y) * e_iso_norm
+
+    # Plot central line
+    plt.plot(e_i_peak, e_isotropic, lw=1, alpha=0.45, color="k")
+
+    # Plot confidence bands
+    colors = ["#FFD166", "#FF9F43", "#FF6B6B"]
+    for i, n_sigma in enumerate(sigmas):
+        c = colors[i % len(colors)]
+        y_upper, y_lower = y + n_sigma * sigma_y, y - n_sigma * sigma_y
+        e_iso_upper, e_iso_lower = (10**y_upper) * e_iso_norm, (10**y_lower) * e_iso_norm
+
+        plt.fill_between(e_i_peak, e_iso_lower, e_iso_upper, color=c, alpha=0.1)
+        plt.plot(e_i_peak, e_iso_lower, color=c, ls="--")
+        plt.plot(e_i_peak, e_iso_upper, color=c, ls="--")
+
+    # Formatting
+    plt.xlabel(r"E$_\text{i,peak}$ [keV]", fontsize=12)
+    plt.ylabel(r"E$_\text{iso}$ [erg]", fontsize=12)
+    plt.xticks(fontsize=12)
+    plt.yticks(fontsize=12)
+    plt.xscale("log")
+    plt.yscale("log")
+    plt.xlim(x_lim)
+    plt.ylim(y_lim)
+
+
+def plot_grbs_over_amati_relationship(
+        grb_names: List[str],
+        best_model_list: ModelSet,
+        redshift_list: List[float],
+        marker_list: List[str],
+        n_grid: int = 10_000,
+        n_sample: int = 10_000,
+        seed_number: int = 0,
+        unknown_redshift: bool = False,
+) -> None:
+    """
+    Plot GRBs on the Amati plane.
+    
+    Parameters
+    ----------
+    grb_names : List[str]
+        Names of the GRBs for labeling in the plot.
+    best_model_list : ModelSet
+        Nested list containing model objects for each GRB.
+    redshift_list : List[float]
+        Redshift values corresponding to each GRB.
+    marker_list  : List[str]
+        Marker styles for each GRB on the plot.
+    n_grid : int, optional
+        Number of grid points for MCMC sampling. Default is 10,000.
+    n_sample : int, optional
+        Number of samples for Monte Carlo simulations. Default is 10,000.
+    seed_number : int, optional
+        Random seed number for reproducibility. Default is 0.
+    unknown_redshift : bool, optional
+        If True, GRBs with unknown redshift are plotted with reduced opacity. Default is False.
+    
+    Notes
+    -----
+    The function evaluates E_peak and E_iso (with uncertainties) for each model using MCMC sampling.
+    It supports SBPL and other spectral models and plots their median values with error bars on the Amati plane.
+    """
+    rng = np.random.default_rng(seed_number)
+
+    ep_sc, ei_sc, col = [], [], []
+    for index, k in enumerate(best_model_list):
+        for index2, m in enumerate(k):
+            m_name = m.name
+            print(m_name)
+            pc = m.get_parameter_set
+            pc_names = [i.name for i in pc]
+            # print(pc_names)
+            cov_ = 0.5 * (m.covariance_matrix_value + m.covariance_matrix_value.T)
+            if "sbpl" in m_name.lower():
+                new_sample_size = int(1.5 * n_sample)
+                vals = pc.get_populated_values(cov_, size=new_sample_size)
+                mvd = {}
+                for i, v in enumerate(pc_names):
+                    mvd[v] = vals[:, i]
+                mask = np.logical_and(
+                    np.abs((mvd["index1_sbpl"] + mvd["index2_sbpl"] + 4) / (mvd["index1_sbpl"] - mvd["index2_sbpl"]))
+                    < 1,
+                    mvd["e_break_sbpl"] > 0,
+                )
+                mvd_filtered = {k: v[mask] for k, v in mvd.items()}
+
+                if mvd_filtered["index1_sbpl"].shape[0] < n_sample:
+                    raise ValueError("Not enough samples")
+
+                idx = rng.choice(mvd_filtered["index1_sbpl"].shape[0], size=n_sample, replace=False)
+
+                mvd_n_samples = {k: v[idx] for k, v in mvd_filtered.items()}
+
+                vals = break_e_to_e_peak(mvd_n_samples["index1_sbpl"], mvd_n_samples["index2_sbpl"], mvd_n_samples["e_break_sbpl"])
+                e_iso = mcmc_e_iso_sampler(
+                    m,
+                    redshift_list[index],
+                    n_samples=n_sample,
+                    n_grid=n_grid,
+                    method=2,
+                    samples=np.array(list(mvd_n_samples.values())).T,
+                    seed_number=seed_number + index2,
+                )
+            else:
+                name_split = m_name.lower().split("_")
+                if len(name_split) > 1:
+                    name_split = name_split[0] if "BB" in m_name else name_split[1]
+                else:
+                    name_split = m_name
+                vals = pc.get_populated_values(cov_, size=n_sample)
+                mvd = {}
+                for i, v in enumerate(pc_names):
+                    mvd[v] = vals[:, i]
+                vals = mvd[f"e_peak_{name_split.lower()}"]
+
+                e_iso = mcmc_e_iso_sampler(
+                    m,
+                    redshift_list[index],
+                    n_samples=n_sample,
+                    n_grid=n_grid,
+                    method=2,
+                    samples=np.array(list(mvd.values())).T,
+                    seed_number=seed_number + index2,
+                )
+
+            e_peak_i = vals * (1 + redshift_list[index])
+
+            p16_e_peak, p50_e_peak, p84_e_peak = np.percentile(e_peak_i, [16, 50, 84])
+            p16_e_iso, p50_e_iso, p84_e_iso = np.percentile(e_iso, [16, 50, 84])
+
+            x_err = np.array([[p50_e_peak - p16_e_peak], [p84_e_peak - p50_e_peak]])
+            y_err = np.array([[p50_e_iso - p16_e_iso], [p84_e_iso - p50_e_iso]])
+
+            col = (
+                "r"
+                if m.interval.kind == EpisodeTypes.T90
+                else "b" if m.interval.kind in [EpisodeTypes.EX0, EpisodeTypes.EX1] else "g"
+            )
+
+            plt.errorbar(
+                p50_e_peak,
+                p50_e_iso,
+                xerr=x_err,
+                yerr=y_err,
+                # capsize=5,
+                fmt=marker_list[index],
+                # ms=6,
+                label=(
+                    f"{grb_names[index] if not unknown_redshift else grb_names[-1]}"
+                    if m.interval.kind is EpisodeTypes.T90
+                    else ""
+                ),
+                color=col,
+                alpha=0.5 if unknown_redshift else 1,
+            )
+
+            ep_sc.append(p50_e_peak)
+            ei_sc.append(p50_e_iso)
+
+    if unknown_redshift:
+        plt.plot(np.array(ep_sc), np.array(ei_sc), f"{col}--", marker="D", alpha=0.5, ms=0)
+
+
+def plot_unknown_redshift_grb(
+    best_model, grb_name, z_values=(1, 2, 3, 4, 5, 6, 7), n_grid=10_0000, n_sample=10_000, seed_number=0
+):
+    """Plot the unknown redshift GRB."""
+    temp_best = [[best_model]] * len(z_values)
+    grb_name = [grb_name]
+    plot_grbs_over_amati_relationship(grb_name, temp_best, z_values, ["D"] * len(z_values), n_grid, n_sample, seed_number, unknown_redshift=True)

@@ -9,7 +9,7 @@ from .grb_atomic import Parameter
 from .grb_constants import kev_to_erg, model_n_pars
 from .grb_enums import GRBModelsCombinations as gmC
 from .grb_model import Model
-from .seds import band_function, black_body, cutoff_powerlaw, powerlaw, smoothly_broken_power_law
+from .grb_seds import band_function, black_body, cutoff_powerlaw, powerlaw, smoothly_broken_power_law
 
 MODEL_MAP = {
     gmC.PL_BB: (gmC.PL, gmC.BB),
@@ -74,31 +74,24 @@ class SpectralModels:
 
     @classmethod
     def legacy_build(
-            cls,
-            m_name,
-            interval_instance,
-            p_name,
-            p_vals,
-            cov_,
-            n_samples=10_000,
-            n_grid=10_000,
-            model_type="counts",
-            e_range=(1, 7),
-            redshift=0,
+        cls,
+        m_name,
+        interval_instance,
+        p_name,
+        p_vals,
+        cov_,
+        n_samples=10_000,
+        n_grid=10_000,
+        model_type="counts",
+        e_range=(1, 7),
+        redshift=0,
     ):
         """Build a SpectralModel from legacy data."""
         errors = np.sqrt(np.diag(cov_))
         p = [Parameter(i, j, k) for i, j, k in zip(p_name, p_vals, errors)]
         model = Model(m_name, p, interval_instance)
 
-        return cls(
-            model,
-            model_type,
-            n_sample=n_samples,
-            n_grid=n_grid,
-            energy_range=e_range,
-            redshift=redshift
-        )
+        return cls(model, model_type, n_sample=n_samples, n_grid=n_grid, energy_range=e_range, redshift=redshift)
 
     def _evaluate_components(self, components):
         values = [p.value for p in self.model.parameters]
@@ -107,7 +100,7 @@ class SpectralModels:
         idx = 0
         for name in components:
             func_name, n_pars = self.SINGLE_COMPONENTS[name]
-            pars = values[idx: idx + n_pars]
+            pars = values[idx : idx + n_pars]
             idx += n_pars
 
             spectra.append(func_name(pars))
@@ -177,6 +170,7 @@ class SpectralModels:
         else:
             seq = self.evaluate_model(model_key=m_name)
             return [i * convert if isinstance(i[0], float) else [j * convert for j in i] for i in seq]
+
 
 # elif self.model_type == 'integrate':
 #     return simpson(energy * spectrum, x=energy) * kev_to_erg

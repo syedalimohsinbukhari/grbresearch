@@ -1,12 +1,16 @@
 """Created on Jan 07 14:43:25 2026"""
 
+from __future__ import annotations
+
 __all__ = [
     "GRBModelsCombinations",
     "PowerLawParameters",
     "BlackBodyParameters",
-    "ComptonizedParameters",
+    "CutOffPowerLawParameters",
     "BandGRBParameters",
     "SmoothlyBrokenPowerLawParameters",
+    "ModelStatus",
+    "GoodnessOfFit",
 ]
 
 from enum import Enum
@@ -51,8 +55,8 @@ class BlackBodyParameters(Enum):
     KT_BB = "kt_bb"
 
 
-class ComptonizedParameters(Enum):
-    """Enumeration of comptonized parameters."""
+class CutOffPowerLawParameters(Enum):
+    """Enumeration of cutoff power law parameters."""
 
     AMP_CPL = "amp_cpl"
     PEAK_ENERGY_CPL = "e_peak_cpl"
@@ -78,3 +82,28 @@ class SmoothlyBrokenPowerLawParameters(Enum):
     BREAK_ENERGY_SBPL = "e_break_sbpl"
     DELTA_SBPL = "delta_sbpl"
     INDEX_2_SBPL = "index2_sbpl"
+
+
+class ModelStatus(Enum):
+    """Custom flags for model evaluation"""
+
+    INVALID = -2
+    UNNECESSARY = -1
+    REJECTED = 0
+    ACCEPTED = 1
+
+
+class GoodnessOfFit(Enum):
+    """Enum class for goodness of fit types."""
+
+    SAFE = "SAFE"
+    UNSAFE = "UNSAFE"
+    GOOD = SAFE
+    BEST = "BEST"
+    UNKNOWN = "UNKNOWN"
+
+    def __str__(self):
+        return self.value
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}.{self.name}"

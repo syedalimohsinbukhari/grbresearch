@@ -16,3 +16,6 @@ def find_project_root(marker="results.json"):
         if (parent / marker).exists():
             return parent
     raise RuntimeError("Project root not found")
+
+
+sbpl_e_peak_indices = {"sbpl": (0, 7), "sbpl_bb": (0, -2), "sbpl_pl": (3, 10), "sbpl_pl_bb": (3, 10)}

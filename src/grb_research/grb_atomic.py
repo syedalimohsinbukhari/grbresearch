@@ -10,6 +10,7 @@ from numpy.linalg import cholesky, inv, LinAlgError
 @dataclass
 class ParameterSet:
     """Container for a set of parameters."""
+
     parameters: list
 
     def __repr__(self):
@@ -24,8 +25,6 @@ class ParameterSet:
         else:
             return self.parameters[key]
 
-    # make the returnable such that the user can specify the name in funciton argument as to which parameter the function
-    # should return and the array returned corresponds to the index of the parameter name in the name array otherwise return the entire array
     def get_populated_values(self, cov_matrix, parameter_name=None, size=10_000):
         """Returns a multivariate normal sample from the parameter set with a given covariance matrix."""
         cov_ = 0.5 * (cov_matrix + cov_matrix.T)
