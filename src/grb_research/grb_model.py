@@ -72,11 +72,11 @@ class Model:
     @property
     def covariance_matrix_value(self):
         """Get the covariance matrix."""
-        return self.covariance_matrix.matrix
+        return 0.5 * (self.covariance_matrix.matrix + self.covariance_matrix.matrix.T)
 
     @classmethod
     def from_dictionary(cls, name: str, data: Dict, interval: TimeInterval) -> "Model":
-        """Create a SingleModel from its dictionary representation."""
+        """Create a Model from its dictionary representation."""
         internal_dict = copy.deepcopy(data)
 
         status = GoodnessOfFit(internal_dict["_status"])

@@ -7,6 +7,7 @@ import numpy as np
 from astropy.io import fits
 
 from .grb_constants import MODEL_PARAMETERS
+from .grb_enums import GRBModelsCombinations as gmC
 from .grb_utils import analyze_model_hierarchy
 
 BASE_PARAM_SCHEMAS = {
@@ -376,7 +377,7 @@ def list_par_err(cwd_, fit_type, string=1, is_good=None, result_dict=None, ep_ex
                     model_dict["_status"] = "BEST"
 
             # store parameters
-            for m2, v, e in zip(MODEL_PARAMETERS[m.lower()], vals, errs):
+            for m2, v, e in zip(MODEL_PARAMETERS[gmC(m.lower())], vals, errs):
                 model_dict[m2] = [v, e]
 
             model_dict["c-stat/dof"] = [c_stat, dof]

@@ -5,17 +5,48 @@ from typing import Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
-from uncertainties import ufloat
 
-from src.grb_research import sbpl_e_peak_indices
-from src.grb_research.grb_utils import break_e_to_e_peak, plot_per_episode
+from src.grb_research import find_project_root
+from src.grb_research.grb_atomic import ParameterSet
 from src.grb_research.grb_constants import short_to_long
 from src.grb_research.grb_core import GRBCatalog
 from src.grb_research.grb_model import ModelSet
+from src.grb_research.grb_utils import break_e_to_e_peak, plot_per_episode, save_value_error_as_parquet
 
 fs = 12
 
-with open("./../results.json", "r") as f:
+rng = np.random.default_rng(42)
+
+
+def extract_peak_energy(best_model: ModelSet) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    value, error1, error2 = [], [], []
+    for model in best_model:
+        if 'SBPL' in model.name:
+            par_dist = ParameterSet(model.parameters).get_populated_values(model.covariance_matrix_value,
+                                                                           size=5_000,
+                                                                           rng=rng)
+            idx = (5, 8, 6) if model.name == 'SBPL_PL' else (2, 5, 3)
+            peak_energy = break_e_to_e_peak(par_dist[:, idx[0]],
+                                            par_dist[:, idx[1]],
+                                            par_dist[:, idx[2]])
+            pp2 = np.nanpercentile(peak_energy, [16, 50, 84], axis=0)
+            value.append(pp2[1])
+            error1.append(pp2[2] - pp2[1])
+            error2.append(pp2[1] - pp2[0])
+        else:
+            for p in model.parameters:
+                if "e_peak" in p.name:
+                    value.append(p.value)
+                    error1.append(p.error)
+                    error2.append(p.error)
+
+    return np.array(value), np.array(error1), np.array(error2)
+
+
+SOURCE_ROOT = find_project_root()
+result_file = SOURCE_ROOT / "results.json"
+
+with open(result_file, "r") as f:
     example_data = json.load(f)
 
 grb_list = ["080916C", "110721A", "110731A", "150210A"]
@@ -46,41 +77,15 @@ start_150210, end_150210, diff_150210, midpoint_150210 = grb150210a.intervals.ex
     return_include=("diff", "midpoint")
 )
 
-
-def extract_peak_energy(best_model: ModelSet) -> Tuple[np.ndarray, np.ndarray]:
-    """
-    Extracts the peak energy values and their associated errors from a given set of models.
-
-    :param best_model: Set of models from which peak energy values are extracted
-    :type best_model: ModelSet
-    :return: A tuple containing two numpy arrays - the extracted peak energy values and their respective errors
-    :rtype: Tuple[np.ndarray, np.ndarray]
-    """
-    value, error = [], []
-    for model in best_model:
-        for p in model.parameters:
-            if "e_break" in p.name:
-                sbpl_idx = sbpl_e_peak_indices[model.name.lower()]
-                pars = [ufloat(i.value, i.error) for i in model.parameters[sbpl_idx[0]: sbpl_idx[1]]]
-                e_peak = break_e_to_e_peak(pars[2], pars[5], pars[3])
-                value.append(e_peak.n)
-                error.append(e_peak.s)
-            if "e_peak" in p.name:
-                value.append(p.value)
-                error.append(p.error)
-
-    return np.array(value), np.array(error)
-
-
-ep_value_080916c, ep_error_080916c = extract_peak_energy(grb080916c_best)
-ep_value_110721a, ep_error_110721a = extract_peak_energy(grb110721a_best)
-ep_value_110731a, ep_error_110731a = extract_peak_energy(grb110731a_best)
-ep_value_150210a, ep_error_150210a = extract_peak_energy(grb150210a_best)
+ep_value_080916c, ep_error1_080916c, ep_error2_080916c = extract_peak_energy(grb080916c_best)
+ep_value_110721a, ep_error1_110721a, ep_error2_110721a = extract_peak_energy(grb110721a_best)
+ep_value_110731a, ep_error1_110731a, ep_error2_110731a = extract_peak_energy(grb110731a_best)
+ep_value_150210a, ep_error1_150210a, ep_error2_150210a = extract_peak_energy(grb150210a_best)
 
 _, ax = plt.subplots(2, 1, figsize=(5.5, 6))
 plot_per_episode(
     values=ep_value_080916c,
-    errors=ep_error_080916c,
+    errors=[ep_error1_080916c, ep_error2_080916c],
     m_name=grb_list[0],
     start=start_080916,
     end=end_080916,
@@ -90,7 +95,7 @@ plot_per_episode(
 )
 plot_per_episode(
     values=ep_value_110721a,
-    errors=ep_error_110721a,
+    errors=[ep_error1_110721a, ep_error2_110721a],
     m_name=grb_list[1],
     start=start_110721,
     end=end_110721,
@@ -114,7 +119,7 @@ plt.close()
 _, ax = plt.subplots(2, 1, figsize=(5.5, 6))
 plot_per_episode(
     values=ep_value_110731a,
-    errors=ep_error_110731a,
+    errors=[ep_error2_110731a, ep_error1_110731a],
     m_name=grb_list[2],
     start=start_110731,
     end=end_110731,
@@ -124,7 +129,7 @@ plot_per_episode(
 )
 plot_per_episode(
     values=ep_value_150210a,
-    errors=ep_error_150210a,
+    errors=[ep_error1_150210a, ep_error2_150210a],
     m_name=grb_list[3],
     start=start_150210,
     end=end_150210,
@@ -144,3 +149,20 @@ plt.tight_layout()
 # plt.show()
 [plt.savefig(f"./peak_energy__best__110731a_150210a.{i}", dpi=600) for i in ["png", "pdf"]]
 plt.close()
+
+######################################################################################################################
+# SAVE THE VALUES
+######################################################################################################################
+
+
+list_of_values = [ep_value_080916c, ep_value_110721a, ep_value_110731a, ep_value_150210a]
+list_of_errors1 = [ep_error1_080916c, ep_error1_110721a, ep_error1_110731a, ep_error1_150210a]
+list_of_errors2 = [ep_error2_080916c, ep_error2_110721a, ep_error2_110731a, ep_error2_150210a]
+list_of_names = [[i.name for i in j] for j in [grb080916c_best, grb110721a_best, grb110731a_best, grb150210a_best]]
+
+save_value_error_as_parquet(grb_list_long,
+                            list_of_values,
+                            [list_of_errors1, list_of_errors2],
+                            list_of_names,
+                            "peak_energy.parquet",
+                            asym_errs=True)

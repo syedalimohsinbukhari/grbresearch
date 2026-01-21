@@ -2,6 +2,8 @@
 
 import json
 import os
+from itertools import chain
+from pathlib import Path
 from typing import Dict, Optional
 
 import matplotlib.pyplot as plt
@@ -108,7 +110,8 @@ def filter_covariance(cov_matrix, param_names):
     return filtered_cov, filtered_names, keep_idx
 
 
-def plot_covariance_corner(means, cov_matrix, param_names, seed: Optional[int] = None, rng: Optional[np.random.Generator] = None):
+def plot_covariance_corner(means, cov_matrix, param_names, seed: Optional[int] = None,
+                           rng: Optional[np.random.Generator] = None):
     """
     Corner-style plot with histograms on the diagonal and covariance ellipses off-diagonal.
 
@@ -360,11 +363,11 @@ def break_e_to_e_peak(index1_sbpl, index2_sbpl, break_energy_sbpl):
 
     Parameters
     ----------
-    index1_sbpl : float
+    index1_sbpl
         Low-energy spectral index.
-    index2_sbpl : float
+    index2_sbpl
         High-energy spectral index.
-    break_energy_sbpl : float
+    break_energy_sbpl
         Break energy of the smoothly broken power law.
 
     Returns
@@ -377,49 +380,39 @@ def break_e_to_e_peak(index1_sbpl, index2_sbpl, break_energy_sbpl):
 
 
 def plot_per_episode(values, errors, m_name, start, end, difference, midpoints, axes):
-    """
-    Plots data points and error bars per episode on a given set of axes.
+    errors = np.asarray(errors)
 
-    This function generates a visualization useful for examining the evolution of values across episodes with defined error margins.
-    The function distinguishes data points based on a given condition, using different colors for highlighting particular segments.
-
-    Parameters:
-    values: list[float]
-        A list of numerical values to be plotted corresponding to each episode.
-
-    errors: list[float]
-        A list of error margins for each value. Each value will have its associated error plotted as either an error bar
-        or a filled area.
-
-    m_name: str
-        Identifier or label for the plot, typically describing the data series being visualized.
-
-    start: list[float]
-        A list containing the initial data segment values for all episodes. The first entry is used for reference.
-
-    end: list[float]
-        A list containing the ending data segment values for episodes. The first entry is used for reference.
-
-    difference: list[float]
-        A list of x-axis differences (or associated uncertainties) for each point in the midpoints list. Used as x error
-        magnitudes.
-
-    midpoints: list[float]
-        A list of midpoints on the x-axis for each episode where the values, with associated errors, are plotted.
-
-    axes: matplotlib.axes.Axes
-        A matplotlib axes object where the plot will be drawn.
-    """
     axes.plot([], [], ls="none", marker=None, label=f"GRB{m_name}")
     axes.plot([start[0], end[0]], [values[0], values[0]], c="k", ls="--", lw=2)
-    axes.fill_between(x=[start[0], end[0]], y1=values[0] - errors[0], y2=values[0] + errors[0], color="k", alpha=0.15)
-    for i, value in enumerate(midpoints[1:]):
+
+    if errors.ndim == 1:
+        y_low = values[0] - errors[0]
+        y_high = values[0] + errors[0]
+    else:
+        y_low = values[0] - errors[0, 0]
+        y_high = values[0] + errors[1, 0]
+
+    axes.fill_between(
+        x=[start[0], end[0]],
+        y1=y_low,
+        y2=y_high,
+        color="k",
+        alpha=0.15,
+    )
+
+    # --- Episode points ---
+    for i, x in enumerate(midpoints[1:], start=1):
+        if errors.ndim == 1:
+            y_err = errors[i]
+        else:
+            y_err = errors[:, i:i + 1]  # (2, 1), symmetric or asymmetric
+
         axes.errorbar(
-            value,
-            values[i + 1],
-            xerr=difference[i + 1],
-            yerr=errors[i + 1],
-            color="b" if np.logical_or(start[i + 1] < start[0], end[i + 1] > end[0] + 0.064) else "g",
+            x,
+            values[i],
+            xerr=difference[i],
+            yerr=y_err,
+            color="b" if (start[i] < start[0] or end[i] > end[0] + 0.064) else "g",
             marker=".",
             ms=10,
             capsize=5,
@@ -565,3 +558,26 @@ def analyze_model_hierarchy(is_good: Dict) -> Dict[str, ModelStatus]:
                 results[model_name] = ModelStatus.REJECTED.value
 
     return results
+
+
+def save_value_error_as_parquet(grb_names, list_of_values, list_of_errors, list_of_names, filename, asym_errs=False):
+    if asym_errs:
+        if not isinstance(list_of_errors, tuple) or len(list_of_errors) != 2:
+            raise ValueError("list_of_errors must be a tuple of two lists when asym_errs is True")
+        if not all(isinstance(err, list) for err in list_of_errors):
+            raise ValueError("list_of_errors must contain only lists")
+        temp_ = [np.column_stack((i, j, k)) for i, j, k in zip(list_of_values, list_of_errors[0], list_of_errors[1])]
+        df = pd.DataFrame(np.vstack([*temp_]), columns=["value", "error_low", "error_high"])
+    else:
+        temp_ = [np.column_stack((i, j)) for i, j in zip(list_of_values, list_of_errors)]
+        df = pd.DataFrame(np.vstack([*temp_]), columns=["value", "error"])
+
+    df["grb_name"] = np.repeat(grb_names, [len(i) for i in list_of_values])
+    df["best_model_name"] = list(chain.from_iterable(list_of_names))
+
+    if asym_errs:
+        df = df[['grb_name', 'best_model_name', 'value', 'error_low', 'error_high']]
+    else:
+        df = df[['grb_name', 'best_model_name', 'value', 'error']]
+
+    df.to_parquet(Path.cwd() / filename, index=False)
