@@ -22,7 +22,8 @@ n_seed = 12345
 plt.figure(figsize=(7, 6))
 amati_relationship_dirirsia2019(x_lim=(100, 3e4), y_lim=(1e51, 2e54), num_points=n_grid)
 
-plot_grbs_over_amati_relationship(grb_list_long[:-1], grb_best[:-1], z, marker, n_grid, n_sample, n_seed)
+plot_grbs_over_amati_relationship(grb_names=grb_list_long[:-1], best_model_list=grb_best[:-1], redshift_list=z,
+                                  marker_list=marker, n_grid=n_grid, n_sample=n_sample, seed_number=n_seed)
 [plot_unknown_redshift_grb(i, grb_list_long[-1], n_grid=n_grid, n_sample=n_sample, seed_number=n_seed) for i in grb_best[-1]]
 plt.grid(which='both', ls='--', lw=0.5, color='k', alpha=0.15)
 plt.legend()

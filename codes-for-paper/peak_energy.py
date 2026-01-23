@@ -26,9 +26,8 @@ def extract_peak_energy(best_model: ModelSet) -> Tuple[np.ndarray, np.ndarray, n
                                                                            size=5_000,
                                                                            rng=rng)
             idx = (5, 8, 6) if model.name == 'SBPL_PL' else (2, 5, 3)
-            peak_energy = break_e_to_e_peak(par_dist[:, idx[0]],
-                                            par_dist[:, idx[1]],
-                                            par_dist[:, idx[2]])
+            peak_energy = break_e_to_e_peak(index1_sbpl=par_dist[:, idx[0]], index2_sbpl=par_dist[:, idx[1]],
+                                            break_energy_sbpl=par_dist[:, idx[2]])
             pp2 = np.nanpercentile(peak_energy, [16, 50, 84], axis=0)
             value.append(pp2[1])
             error1.append(pp2[2] - pp2[1])

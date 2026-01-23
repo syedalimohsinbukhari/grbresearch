@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 from multiprocessing import cpu_count, Pool
-from typing import List, Tuple, Optional
+from typing import List, Optional, Tuple
 
 import numpy as np
 from astropy.cosmology import FlatLambdaCDM
@@ -258,7 +258,7 @@ def mcmc_spectra_sampler(
 
     if samples is None:
         rng_instance = get_rng(seed=seed, rng=rng)
-        samples = rng_instance.multivariate_normal(m_vals, covar_, n_samples)
+        samples = rng_instance.multivariate_normal(mean=m_vals, cov=covar_, size=n_samples)
 
     if n_workers is None:
         n_workers = cpu_count()
@@ -268,7 +268,7 @@ def mcmc_spectra_sampler(
     ]
 
     with Pool(n_workers) as pool:
-        results = list(tqdm(pool.imap(legacy_build_mp, args_list), total=n_samples))
+        results = list(tqdm(iterable=pool.imap(func=legacy_build_mp, iterable=args_list), total=n_samples))
 
     return results
 
@@ -292,7 +292,7 @@ def credible_interval_partition(samples: np.ndarray) -> Tuple[np.ndarray, np.nda
     s = samples.T
     part = np.nanpercentile(s, [16, 50, 80], axis=1)
 
-    return np.asarray(part[1], float).T, np.asarray(part[0], float).T, np.asarray(part[2], float).T
+    return np.asarray(part[1], dtype=float).T, np.asarray(part[0], dtype=float).T, np.asarray(part[2], dtype=float).T
 
 
 def mcmc_e_iso_sampler(
@@ -307,8 +307,8 @@ def mcmc_e_iso_sampler(
         h0: float = 70.0,
         omega_m: float = 0.315,
         method=1,
-        seed_number=1234,
         samples=None,
+        seed_number=1234,
         rng: Optional[np.random.Generator] = None,
 ) -> np.ndarray:
     """
@@ -338,10 +338,10 @@ def mcmc_e_iso_sampler(
         Matter density parameter (default: 0.315).
     method : int, optional
         Method to use for calculation (default: 1).
-    seed_number : int, optional
-        Random seed for reproducibility (default: 1234). Ignored if rng is provided.
     samples : np.ndarray, optional
         Pre-generated samples. If None, samples will be generated.
+    seed_number : int, optional
+        Random seed for reproducibility (default: 1234). Ignored if rng is provided.
     rng : np.random.Generator, optional
         Random number generator instance for reproducibility.
 
@@ -358,13 +358,17 @@ def mcmc_e_iso_sampler(
     # ph / cm^2 / s / keV (n_samples, n_grid)
     bolometric_samples = np.asarray(
         mcmc_spectra_sampler(
-            model, "energy", e_range=(bol_min, bol_max), n_samples=n_samples, n_grid=n_grid, samples=samples, rng=rng_instance
+            model=model, model_type="energy", e_range=(bol_min, bol_max), n_samples=n_samples, n_grid=n_grid,
+            samples=samples, rng=rng_instance
         )
     )
     if method == 1:
         energy_detector = np.logspace(start=det_min, stop=det_max, num=n_grid)
         detector_samples = np.asarray(
-            mcmc_spectra_sampler(model, "energy", e_range=(det_min, det_max), n_samples=n_samples, n_grid=n_grid, rng=rng_instance)
+            mcmc_spectra_sampler(
+                model=model, model_type="energy", e_range=(det_min, det_max), n_samples=n_samples, n_grid=n_grid,
+                rng=rng_instance
+            )
         )
         # keV / cm^2: vectorized integration over axis=1
         detector_fluence = (
@@ -427,6 +431,34 @@ def plot_best_models(best_models, n_rows=2, n_cols=None, grb_name=None, fig_size
 
 
 def plot_all_models(best_models, grb_name, n_rows=2, n_cols=None, fig_size=(12, 8)):
+    """
+    Generates a grid of plots displaying spectral energy distributions for a collection of models.
+
+    This function takes a set of best-fit models for gamma-ray bursts (GRBs), creates energy flux
+    distributions for each model using Monte Carlo sampling, and visualizes the results on a grid of
+    log-log plots. Each plot corresponds to one GRB, displaying its associated models and intervals.
+    Special consideration is given to cases with a "CPL" component in the models, where specific limits
+    are applied to the y-axis.
+
+    Parameters
+    ----------
+    best_models : list of lists
+        A nested list where each sublist contains spectral models for a specific GRB.
+        Each model within a sublist should contain spectral information and interval data.
+
+    grb_name : list of str
+        List of gamma-ray burst names corresponding to the entries in `best_models`.
+
+    n_rows : int, optional
+        Number of rows in the plot grid. Default is 2.
+
+    n_cols : int, optional
+        Number of columns in the plot grid.
+        If None (default), it is automatically determined based on the number of GRBs and `n_rows`.
+
+    fig_size : tuple of float, optional
+        The size of the entire figure in inches. Default is (12, 8).
+    """
     n_grid = 500
     n_samples = 1000
     x = np.logspace(1, 7, n_grid)
@@ -602,18 +634,12 @@ def plot_grbs_over_amati_relationship(
 
                 mvd_n_samples = {k: v[idx] for k, v in mvd_filtered.items()}
 
-                vals = break_e_to_e_peak(mvd_n_samples["index1_sbpl"], mvd_n_samples["index2_sbpl"],
-                                         mvd_n_samples["e_break_sbpl"])
-                e_iso = mcmc_e_iso_sampler(
-                    m,
-                    redshift_list[index],
-                    n_samples=n_sample,
-                    n_grid=n_grid,
-                    method=2,
-                    samples=np.array(list(mvd_n_samples.values())).T,
-                    seed_number=seed_number + index2,
-                    rng=rng,
-                )
+                vals = break_e_to_e_peak(index1_sbpl=mvd_n_samples["index1_sbpl"],
+                                         index2_sbpl=mvd_n_samples["index2_sbpl"],
+                                         break_energy_sbpl=mvd_n_samples["e_break_sbpl"])
+                e_iso = mcmc_e_iso_sampler(m, redshift_list[index], n_samples=n_sample, n_grid=n_grid, method=2,
+                                           samples=np.array(list(mvd_n_samples.values())).T,
+                                           seed_number=seed_number + index2, rng=rng)
             else:
                 name_split = m_name.lower().split("_")
                 if len(name_split) > 1:
@@ -626,16 +652,9 @@ def plot_grbs_over_amati_relationship(
                     mvd[v] = vals[:, i]
                 vals = mvd[f"e_peak_{name_split.lower()}"]
 
-                e_iso = mcmc_e_iso_sampler(
-                    m,
-                    redshift_list[index],
-                    n_samples=n_sample,
-                    n_grid=n_grid,
-                    method=2,
-                    samples=np.array(list(mvd.values())).T,
-                    seed_number=seed_number + index2,
-                    rng=rng,
-                )
+                e_iso = mcmc_e_iso_sampler(m, redshift_list[index], n_samples=n_sample, n_grid=n_grid, method=2,
+                                           samples=np.array(list(mvd.values())).T, seed_number=seed_number + index2,
+                                           rng=rng)
 
             e_peak_i = vals * (1 + redshift_list[index])
 
@@ -681,5 +700,6 @@ def plot_unknown_redshift_grb(
     """Plot the unknown redshift GRB."""
     temp_best = [[best_model]] * len(z_values)
     grb_name = [grb_name]
-    plot_grbs_over_amati_relationship(grb_name, temp_best, z_values, ["D"] * len(z_values), n_grid, n_sample,
-                                      seed_number, unknown_redshift=True)
+    plot_grbs_over_amati_relationship(grb_names=grb_name, best_model_list=temp_best, redshift_list=z_values,
+                                      marker_list=["D"] * len(z_values), n_grid=n_grid, n_sample=n_sample,
+                                      seed_number=seed_number, unknown_redshift=True)
