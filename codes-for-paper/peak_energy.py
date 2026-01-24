@@ -21,13 +21,14 @@ rng = np.random.default_rng(42)
 def extract_peak_energy(best_model: ModelSet) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     value, error1, error2 = [], [], []
     for model in best_model:
-        if 'SBPL' in model.name:
-            par_dist = ParameterSet(model.parameters).get_populated_values(model.covariance_matrix_value,
-                                                                           size=5_000,
-                                                                           rng=rng)
-            idx = (5, 8, 6) if model.name == 'SBPL_PL' else (2, 5, 3)
-            peak_energy = break_e_to_e_peak(index1_sbpl=par_dist[:, idx[0]], index2_sbpl=par_dist[:, idx[1]],
-                                            break_energy_sbpl=par_dist[:, idx[2]])
+        if "SBPL" in model.name:
+            par_dist = ParameterSet(model.parameters).get_populated_values(
+                cov_matrix=model.covariance_matrix_value, size=5_000, rng=rng
+            )
+            idx = (5, 8, 6) if model.name == "SBPL_PL" else (2, 5, 3)
+            peak_energy = break_e_to_e_peak(
+                index1_sbpl=par_dist[:, idx[0]], index2_sbpl=par_dist[:, idx[1]], break_energy_sbpl=par_dist[:, idx[2]]
+            )
             pp2 = np.nanpercentile(peak_energy, [16, 50, 84], axis=0)
             value.append(pp2[1])
             error1.append(pp2[2] - pp2[1])
@@ -159,9 +160,11 @@ list_of_errors1 = [ep_error1_080916c, ep_error1_110721a, ep_error1_110731a, ep_e
 list_of_errors2 = [ep_error2_080916c, ep_error2_110721a, ep_error2_110731a, ep_error2_150210a]
 list_of_names = [[i.name for i in j] for j in [grb080916c_best, grb110721a_best, grb110731a_best, grb150210a_best]]
 
-save_value_error_as_parquet(grb_list_long,
-                            list_of_values,
-                            [list_of_errors1, list_of_errors2],
-                            list_of_names,
-                            "peak_energy.parquet",
-                            asym_errs=True)
+save_value_error_as_parquet(
+    grb_names=grb_list_long,
+    list_of_values=list_of_values,
+    list_of_errors=[list_of_errors1, list_of_errors2],
+    list_of_names=list_of_names,
+    filename="peak_energy.parquet",
+    asym_errs=True,
+)

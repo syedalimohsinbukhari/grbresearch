@@ -153,8 +153,10 @@ list_of_values = [ep_value_080916c, ep_value_110721a, ep_value_110731a, ep_value
 list_of_errors = [ep_error_080916c, ep_error_110721a, ep_error_110731a, ep_error_150210a]
 list_of_names = [[i.name for i in j] for j in [grb080916c_best, grb110721a_best, grb110731a_best, grb150210a_best]]
 
-save_value_error_as_parquet(grb_list_long,
-                            list_of_values,
-                            list_of_errors,
-                            list_of_names,
-                            "low_index.parquet")
+save_value_error_as_parquet(
+    grb_names=grb_list_long,
+    list_of_values=list_of_values,
+    list_of_errors=list_of_errors,
+    list_of_names=list_of_names,
+    filename="low_index.parquet",
+)

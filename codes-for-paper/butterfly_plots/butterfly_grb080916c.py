@@ -9,7 +9,7 @@ from src.grb_research.grb_constants import short_to_long
 SOURCE_ROOT = find_project_root()
 result_file = SOURCE_ROOT / "results.json"
 
-grb_name = '080916C'
+grb_name = "080916C"
 
 with open(result_file, "r") as f:
     grb080916c_data = json.load(f)[short_to_long[grb_name]]
