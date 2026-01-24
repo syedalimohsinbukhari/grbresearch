@@ -390,6 +390,32 @@ def mcmc_e_iso_sampler(
 
 
 def plot_best_models(best_models, n_rows=2, n_cols=None, grb_name=None, fig_size=(15, 4)):
+    """
+    Plots the energy flux of the best-fitting models for gamma-ray burst (GRB) intervals.
+
+    This function creates subplots to display the results of spectral fits for a set of best models
+    applied to a GRB dataset. It computes the median and credible interval from MCMC samples for
+    each model and visualizes them with log-log plots. Each subplot corresponds to a specific
+    model or time interval.
+
+    Parameters
+    ----------
+    best_models : list
+        A list of best-fitting spectral models, where each model contains
+        attributes such as interval type and name.
+    n_rows : int, optional
+        Number of rows in the subplot grid. Default is 2.
+    n_cols : int, optional
+        Number of columns in the subplot grid. If None, it will be determined dynamically.
+    grb_name : str, optional
+        Name of the GRB for labeling and saving output files. Default is None.
+    fig_size : tuple of float, optional
+        Figure size for the plot, specified as (width, height). Default is (15, 4).
+
+    Returns
+    -------
+    None
+    """
     n_grid = 500
     n_samples = 1000
     x = np.logspace(1, 7, n_grid)
