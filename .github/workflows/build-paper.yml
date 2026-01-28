@@ -6,11 +6,17 @@ on:
       - main
       - copilot/setup-research-paper-with-showyourwork
     paths:
-      - 'paper/**'
+      - 'src/tex/**'
+      - 'src/scripts/**'
+      - 'showyourwork.yml'
+      - 'environment.yml'
       - '.github/workflows/build-paper.yml'
   pull_request:
     paths:
-      - 'paper/**'
+      - 'src/tex/**'
+      - 'src/scripts/**'
+      - 'showyourwork.yml'
+      - 'environment.yml'
       - '.github/workflows/build-paper.yml'
   workflow_dispatch:
 
@@ -28,7 +34,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: '3.11'
           
       - name: Install showyourwork
         run: |
@@ -36,18 +42,17 @@ jobs:
           
       - name: Build paper
         run: |
-          cd paper
           showyourwork build
           
       - name: Upload PDF artifact
         uses: actions/upload-artifact@v4
         with:
           name: paper-pdf
-          path: paper/ms.pdf
+          path: ms.pdf
           
       - name: Upload build report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: build-report
-          path: paper/report.html
+          path: report.html

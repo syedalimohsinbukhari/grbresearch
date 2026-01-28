@@ -6,13 +6,9 @@ import the GRB analysis modules and generate publication-quality figures.
 """
 import matplotlib.pyplot as plt
 import numpy as np
-from pathlib import Path
 
 # Import the paths module for consistent file locations
-import sys
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-
-from paper.src.scripts.paths import figures
+from paths import figures
 
 # Simple example: Create a demonstration plot
 # In practice, this would use the actual GRB data and analysis from src/grb_research/

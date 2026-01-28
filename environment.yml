@@ -1,7 +1,7 @@
 dependencies:
   - conda-forge::numpy<2
   - conda-forge::pip
-  - conda-forge::python=3.12
+  - conda-forge::python=3.11
   - pip:
       - matplotlib~=3.9.4
       - uncertainties~=3.2.3
