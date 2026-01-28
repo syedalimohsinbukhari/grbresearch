@@ -41,7 +41,7 @@ jobs:
           
       - name: Install showyourwork
         run: |
-          pip install showyourwork
+          pip install showyourwork "pulp<2.8.0"
           
       - name: Build paper
         run: |
