@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      # Temporary: remove the line below after merging this PR
       - copilot/setup-research-paper-with-showyourwork
     paths:
       - 'src/tex/**'

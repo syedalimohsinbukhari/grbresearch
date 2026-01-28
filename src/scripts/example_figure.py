@@ -26,9 +26,11 @@ ax.set_title('Example: Temporal Evolution of $E_{\\rm peak}$', fontsize=14)
 ax.legend(fontsize=10)
 ax.grid(True, alpha=0.3)
 
-# Save the figure
+# Save to figures directory
 plt.tight_layout()
-plt.savefig(figures / "example_epeak_evolution.pdf", dpi=300, bbox_inches='tight')
+output_path = figures / "example_epeak_evolution.pdf"
+output_path.parent.mkdir(parents=True, exist_ok=True)  # Ensure directory exists
+plt.savefig(output_path, dpi=300, bbox_inches='tight')
 plt.close()
 
 print("Example figure generated successfully!")

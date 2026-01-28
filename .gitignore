@@ -219,6 +219,7 @@ __marimo__/
 /report.html
 /arxiv.tar.gz
 /dag.pdf
-src/tex/figures/*
-!src/tex/figures/.gitkeep
+src/tex/figures/*.pdf
+src/tex/figures/*.png
+src/tex/output/*
 *.synctex.gz

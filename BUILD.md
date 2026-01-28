@@ -44,4 +44,4 @@ If you encounter issues with Python 3.12:
 - The error is typically `AttributeError: module 'asyncio' has no attribute 'coroutine'`
 - This is a known issue with snakemake 7.15.2 and Python 3.12
 
-The GitHub Actions workflow uses Python 3.12 but with proper conda environment management, which avoids these issues.
+The BUILD.md documentation states that the GitHub Actions workflow uses Python 3.12, but the actual workflow file (.github/workflows/build-paper.yml) specifies Python 3.11. This is correct - the workflow uses Python 3.11 to ensure compatibility.
