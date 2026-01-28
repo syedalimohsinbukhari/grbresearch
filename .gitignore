@@ -211,3 +211,13 @@ __marimo__/
 /**/*.dat
 /**/lat.fits
 /GRBResearch/
+
+# Showyourwork and Snakemake
+**/.snakemake
+**/.showyourwork*
+paper/*.pdf
+paper/report.html
+paper/arxiv.tar.gz
+paper/src/tex/figures/*
+!paper/src/tex/figures/.gitkeep
+*.synctex.gz
