@@ -1,8 +1,10 @@
 numpy<2
-matplotlib~=3.9.4
-uncertainties~=3.2.3
-pandas~=2.2.3
-seaborn~=0.13.2
-astropy~=5.3.4
-scipy~=1.12.0
-tqdm~=4.67.1
+matplotlib
+uncertainties
+pandas
+seaborn
+astropy
+scipy
+tqdm
+showyourwork
+pulp<2.8.0

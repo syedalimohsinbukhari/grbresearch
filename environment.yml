@@ -1,13 +1,13 @@
 dependencies:
-  - conda-forge::numpy<2
-  - conda-forge::pip
-  - conda-forge::python=3.11
-  - pip:
-      - matplotlib
-      - uncertainties
-      - pandas
-      - seaborn
-      - astropy
-      - scipy
-      - tqdm
-      - pulp<2.8.0
+    - conda-forge::numpy<2
+    - conda-forge::pip
+    -   pip:
+            - matplotlib
+            - uncertainties
+            - pandas
+            - seaborn
+            - astropy
+            - scipy
+            - tqdm
+            - showyourwork
+            - pulp<2.8.0
