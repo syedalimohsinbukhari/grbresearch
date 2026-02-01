@@ -137,7 +137,7 @@ class GRBCatalog:
         return GRBCatalog(grb_data_)
 
     def get_grb(self, name: str) -> Optional[GRB]:
-        """Get the GRB from catalog by name."""
+        """Get the GRB from the catalog by name."""
         return self._grb_list.get(name)
 
 

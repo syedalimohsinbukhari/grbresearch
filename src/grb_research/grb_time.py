@@ -21,6 +21,7 @@ class EpisodeTypes(Enum):
     EX0 = "EX0"
     EX1 = "EX1"
     TR = "TR"
+    SP = "SP"
     UNKNOWN = "UNKNOWN"
 
     def __str__(self):
@@ -44,11 +45,12 @@ class TimeInterval:
     _T90 = re.compile(r"T90\s+(-?\d+(?:\.\d+)?)_(-?\d+(?:\.\d+)?)")
     _EX = re.compile(r"(EX[01])\s+(-?\d+(?:\.\d+)?)_(-?\d+(?:\.\d+)?)")
     _TR = re.compile(r"TR(\d+)\s+(-?\d+(?:\.\d+)?)_(-?\d+(?:\.\d+)?)")
+    _SP = re.compile(r"SP(\d+)\s+(-?\d+(?:\.\d+)?)_(-?\d+(?:\.\d+)?)")
 
     def __post_init__(self):
-        if self.kind is EpisodeTypes.TR:
+        if self.kind is EpisodeTypes.TR or self.kind is EpisodeTypes.SP:
             if self.index is None:
-                raise ValueError("TR interval requires an index")
+                raise ValueError(f"{self.kind.value} interval requires an index")
         else:
             if self.index is not None:
                 raise ValueError(f"{self.kind.value} interval cannot have an index")
@@ -72,6 +74,9 @@ class TimeInterval:
         if m := cls._TR.match(s):
             return cls(EpisodeTypes.TR, float(m[2]), float(m[3]), int(m[1]))
 
+        if m := cls._SP.match(s):
+            return cls(EpisodeTypes.SP, float(m[2]), float(m[3]), int(m[1]))
+
         return cls(kind=EpisodeTypes.UNKNOWN)
 
     def to_string(self) -> str:
@@ -88,6 +93,8 @@ class TimeInterval:
             return f"{self.kind.value} {start_str}_{end_str}"
         elif self.is_tr:
             return f"TR{self.index} {start_str}_{end_str}"
+        elif self.is_sp:
+            return f"SP{self.index} {start_str}_{end_str}"
         else:
             return "UNKNOWN"
 
@@ -107,6 +114,11 @@ class TimeInterval:
     def is_tr(self) -> bool:
         """Is a TR episode?"""
         return self.kind is EpisodeTypes.TR
+
+    @property
+    def is_sp(self) -> bool:
+        """Is a special episode?"""
+        return self.kind is EpisodeTypes.SP
 
     @property
     def duration(self) -> Optional[float]:
@@ -207,7 +219,7 @@ class TimeIntervalSet:
         return None
 
     def extract_interval_arrays(
-        self, *, return_include: tuple[str, ...] = (), exclude_ex: bool = False
+            self, *, return_include: tuple[str, ...] = (), exclude_ex: bool = False
     ) -> Tuple[np.ndarray, ...]:
         """
         Extract start and end times as numpy arrays.

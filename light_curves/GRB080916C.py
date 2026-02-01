@@ -45,7 +45,8 @@ for ax_i in ax:
 ax[2].set_ylim(bottom=-1150, top=2350)
 f.subplots_adjust(hspace=0.030)
 
-[plt.savefig(f"GRB{source_name}_lightcurve.{i}", dpi=600) for i in ["png", "pdf"]]
-plt.close()
+plt.show()
+# [plt.savefig(f"GRB{source_name}_lightcurve.{i}", dpi=600) for i in ["png", "pdf"]]
+# plt.close()
 
 os.chdir(cwd)

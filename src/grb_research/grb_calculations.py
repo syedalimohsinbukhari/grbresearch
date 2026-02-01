@@ -431,7 +431,8 @@ def plot_best_models(best_models, n_rows=2, n_cols=None, grb_name=None, fig_size
         color = (
             "k"
             if v.interval.kind == EpisodeTypes.T90
-            else "b" if v.interval.kind in [EpisodeTypes.EX0, EpisodeTypes.EX1] else "r"
+            else "b" if v.interval.kind in [EpisodeTypes.EX0, EpisodeTypes.EX1]
+            else "g" if v.interval.kind == EpisodeTypes.SP else "r"
         )
         print(f"processing {v.name}")
         samples = mcmc_spectra_sampler(v, n_samples=n_samples, n_grid=n_grid)
@@ -515,7 +516,7 @@ def plot_all_models(best_models, grb_name, n_rows=2, n_cols=None, fig_size=(12, 
                 ax[i].loglog(x, med * x**2, "k--", label=f"{w.interval.kind}")
                 ax[i].fill_between(x, low * x**2, high * x**2, color="k", alpha=0.2)
             else:
-                sub = f"{w.interval.kind}{w.interval.index}" if w.interval.kind == EpisodeTypes.TR else w.interval.kind
+                sub = f"{w.interval.kind}{w.interval.index}" if w.interval.kind in [EpisodeTypes.TR, EpisodeTypes.SP] else w.interval.kind
                 ax[i].loglog(x, med * x**2, "--", label=f"{sub}")
                 ax[i].fill_between(x, low * x**2, high * x**2, alpha=0.2)
 

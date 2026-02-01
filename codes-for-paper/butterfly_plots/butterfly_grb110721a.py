@@ -21,4 +21,4 @@ is_ex = sum([i.interval.is_ex for i in grb110721a_best])
 if is_ex == 2:
     grb110721a_best[-1], grb110721a_best[-2] = grb110721a_best[-2], grb110721a_best[-1]
 
-plot_best_models(grb110721a_best, 2, 2, grb_name, (8, 6))
+plot_best_models(grb110721a_best, 2, 4, grb_name, (15, 6))
