@@ -91,7 +91,7 @@ plot_per_episode(
     end=end_080916,
     difference=diff_080916,
     midpoints=midpoint_080916,
-    axes=ax[0],
+    axes=ax[0], special_counter=[i.interval.is_sp for i in grb080916c_best]
 )
 plot_per_episode(
     values=ep_value_110721a,
@@ -101,7 +101,7 @@ plot_per_episode(
     end=end_110721,
     difference=diff_110721,
     midpoints=midpoint_110721,
-    axes=ax[1],
+    axes=ax[1], special_counter=[i.interval.is_sp for i in grb110721a_best]
 )
 
 [i.grid(True, which="both", alpha=0.5, ls="--") for i in ax]
@@ -125,7 +125,7 @@ plot_per_episode(
     end=end_110731,
     difference=diff_110731,
     midpoints=midpoint_110731,
-    axes=ax[0],
+    axes=ax[0], special_counter=[i.interval.is_sp for i in grb110731a_best]
 )
 plot_per_episode(
     values=ep_value_150210a,
@@ -135,7 +135,7 @@ plot_per_episode(
     end=end_150210,
     difference=diff_150210,
     midpoints=midpoint_150210,
-    axes=ax[1],
+    axes=ax[1], special_counter=[i.interval.is_sp for i in grb150210a_best]
 )
 
 [i.grid(True, which="both", alpha=0.5, ls="--") for i in ax]
@@ -163,7 +163,7 @@ list_of_names = [[i.name for i in j] for j in [grb080916c_best, grb110721a_best,
 save_value_error_as_parquet(
     grb_names=grb_list_long,
     list_of_values=list_of_values,
-    list_of_errors=[list_of_errors1, list_of_errors2],
+    list_of_errors=(list_of_errors1, list_of_errors2),
     list_of_names=list_of_names,
     filename="peak_energy.parquet",
     asym_errs=True,

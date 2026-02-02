@@ -694,7 +694,8 @@ def plot_grbs_over_amati_relationship(
             col = (
                 "r"
                 if m.interval.kind == EpisodeTypes.T90
-                else "b" if m.interval.kind in [EpisodeTypes.EX0, EpisodeTypes.EX1] else "g"
+                else "b" if m.interval.kind in [EpisodeTypes.EX0, EpisodeTypes.EX1]
+                else "k" if m.interval.kind is EpisodeTypes.SP else "g"
             )
 
             plt.errorbar(

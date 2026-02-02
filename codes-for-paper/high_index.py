@@ -2,8 +2,8 @@
 
 from typing import Tuple
 
-import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib import pyplot as plt
 
 from src.grb_research import find_project_root
 from src.grb_research.grb_core import prepare_grbs
@@ -95,6 +95,7 @@ plot_per_episode(
     difference=diff_080916,
     midpoints=midpoint_080916,
     axes=ax[0],
+    special_counter=[i.interval.is_sp for i in grb_best[0]]
 )
 plot_per_episode(
     values=ep_value_110721a,
@@ -105,6 +106,7 @@ plot_per_episode(
     difference=diff_110721,
     midpoints=midpoint_110721,
     axes=ax[1],
+    special_counter=[i.interval.is_sp for i in grb_best[1]]
 )
 
 [i.grid(True, which="both", alpha=0.5, ls="--") for i in ax]
@@ -128,6 +130,7 @@ plot_per_episode(
     difference=diff_110731,
     midpoints=midpoint_110731,
     axes=ax[0],
+    special_counter=[i.interval.is_sp for i in grb_best[2]]
 )
 plot_per_episode(
     values=ep_value_150210a,
@@ -138,6 +141,7 @@ plot_per_episode(
     difference=diff_150210,
     midpoints=midpoint_150210,
     axes=ax[1],
+    special_counter=[i.interval.is_sp for i in grb_best[3]]
 )
 
 [i.grid(True, which="both", alpha=0.5, ls="--") for i in ax]

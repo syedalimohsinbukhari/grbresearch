@@ -85,7 +85,7 @@ plot_per_episode(
     end=end_080916,
     difference=diff_080916,
     midpoints=midpoint_080916,
-    axes=ax[0],
+    axes=ax[0], special_counter=[i.interval.is_sp for i in grb080916c_best]
 )
 plot_per_episode(
     values=ep_value_110721a,
@@ -95,7 +95,7 @@ plot_per_episode(
     end=end_110721,
     difference=diff_110721,
     midpoints=midpoint_110721,
-    axes=ax[1],
+    axes=ax[1], special_counter=[i.interval.is_sp for i in grb110721a_best]
 )
 
 [i.grid(True, which="both", alpha=0.5, ls="--") for i in ax]
@@ -119,7 +119,7 @@ plot_per_episode(
     end=end_110731,
     difference=diff_110731,
     midpoints=midpoint_110731,
-    axes=ax[0],
+    axes=ax[0], special_counter=[i.interval.is_sp for i in grb110731a_best]
 )
 plot_per_episode(
     values=ep_value_150210a,
@@ -129,7 +129,7 @@ plot_per_episode(
     end=end_150210,
     difference=diff_150210,
     midpoints=midpoint_150210,
-    axes=ax[1],
+    axes=ax[1], special_counter=[i.interval.is_sp for i in grb150210a_best]
 )
 
 [i.grid(True, which="both", alpha=0.5, ls="--") for i in ax]

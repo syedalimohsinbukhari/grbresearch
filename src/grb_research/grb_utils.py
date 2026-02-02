@@ -379,7 +379,7 @@ def break_e_to_e_peak(index1_sbpl, index2_sbpl, break_energy_sbpl):
     return break_energy_sbpl * 10**(0.3 * np.arctanh(f1))
 
 
-def plot_per_episode(values, errors, m_name, start, end, difference, midpoints, axes):
+def plot_per_episode(values, errors, m_name, start, end, difference, midpoints, axes, special_counter=None):
     errors = np.asarray(errors)
 
     axes.plot([], [], ls="none", marker=None, label=f"GRB{m_name}")
@@ -412,7 +412,8 @@ def plot_per_episode(values, errors, m_name, start, end, difference, midpoints, 
             values[i],
             xerr=difference[i],
             yerr=y_err,
-            color="b" if (start[i] < start[0] or end[i] > end[0] + 0.064) else "g",
+            color="b" if (start[i] < start[0] or end[i] > end[0] + 0.064) else "g"
+            if special_counter[i] else "r",
             marker=".",
             ms=10,
             capsize=5,
