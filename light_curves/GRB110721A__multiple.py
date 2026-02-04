@@ -42,8 +42,8 @@ for ax_i in ax:
             ax_i.axvline(end, color=color, ls="--")
         ax_i.axvspan(start, end, color=color, alpha=0.1)
 
-plt.show()
-# [plt.savefig(f"GRB{source_name}_lightcurve__BRK.{i}", dpi=600) for i in ["png", "pdf"]]
-# plt.close()
+# plt.show()
+[plt.savefig(f"GRB{source_name}_lightcurve__BRK.{i}", dpi=600) for i in ["png", "pdf"]]
+plt.close()
 
 os.chdir(cwd)

@@ -204,7 +204,7 @@ def _param_error_limit(model, pname, v, par_constraint, loose):
     return par_constraint * abs(v), f"default({par_constraint})"
 
 
-def model_passes_error_criteria(path, par_constraint=0.4, loose_criteria=True):
+def model_passes_error_criteria(path, par_constraint=0.4, loose_criteria=False):
     model = get_model_name_from_path(path)
     try:
         schema = build_composite_schema(model)
