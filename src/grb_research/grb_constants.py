@@ -8,6 +8,8 @@ __all__ = [
     "kev_to_erg",
     "model_n_pars",
     "short_to_long",
+    "MODEL_ORDER",
+    "LATEX_MODEL_NAMES",
 ]
 
 from .grb_enums import GRBModelsCombinations as gmC
@@ -82,4 +84,24 @@ MODEL_PARAMETERS = {
     gmC.SBPL_BB: sbpl_par + bb_par,
     gmC.SBPL_PL: pl_par_second + sbpl_par,
     gmC.SBPL_PL_BB: pl_par_second + sbpl_par + bb_par,
+}
+MODEL_ORDER = ['PL', 'PL_BB',
+               'SBPL', 'SBPL_PL', 'SBPL_BB', 'SBPL_PL_BB',
+               'BAND', 'BAND_PL', 'BAND_BB', 'BAND_PL_BB',
+               'CPL', 'CPL_PL', 'CPL_BB', 'CPL_PL_BB']
+LATEX_MODEL_NAMES = {
+    'PL': r'\pl',
+    'PL_BB': r'\plbb',
+    'SBPL': r'\sbpl',
+    'SBPL_PL': r'\sbplpl',
+    'SBPL_BB': r'\sbplbb',
+    'SBPL_PL_BB': r'\sbplplbb',
+    'BAND': r'\band',
+    'BAND_PL': r'\bandpl',
+    'BAND_BB': r'\bandbb',
+    'BAND_PL_BB': r'\bandplbb',
+    'CPL': r'\cpl',
+    'CPL_PL': r'\cplpl',
+    'CPL_BB': r'\cplbb',
+    'CPL_PL_BB': r'\cplplbb'
 }

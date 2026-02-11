@@ -1,7 +1,8 @@
 """Created on Dec 26 14:40:22 2025"""
 import json
+from collections import defaultdict
 from dataclasses import dataclass
-from typing import Dict, Iterable, Optional, Union
+from typing import Dict, Iterable, List, Optional, Union
 
 from .grb_constants import short_to_long
 from .grb_enums import GoodnessOfFit
@@ -96,10 +97,39 @@ class GRB:
 
         return ModelSet(all_models) if len(all_models) > 1 else all_models[0]
 
+    def get_model_count(self, separate=False, interval_type=None):
+        int_mask = [i for i in self.intervals if i.kind is interval_type] if interval_type else self.intervals
+
+        if separate:
+            m_count_safe, m_count_unsafe = {}, {}
+            for interval_ in int_mask:
+                for m in interval_.models:
+                    if m.status is GoodnessOfFit.SAFE:
+                        if m.name not in m_count_safe:
+                            m_count_safe[m.name] = 1
+                        else:
+                            m_count_safe[m.name] += 1
+                    if m.status is GoodnessOfFit.UNSAFE:
+                        if m.name not in m_count_unsafe:
+                            m_count_unsafe[m.name] = 1
+                        else:
+                            m_count_unsafe[m.name] += 1
+            return {'SAFE': dict(m_count_safe), 'UNSAFE': dict(m_count_unsafe)}
+        else:
+            m_count = {}
+            for interval_ in int_mask:
+                for m in interval_.models:
+                    if m.name not in m_count:
+                        m_count[m.name] = 1
+                    else:
+                        m_count[m.name] += 1
+
+            return m_count
+
 
 @dataclass
 class GRBCatalog:
-    grb_list: Iterable[GRB]
+    grb_list: List[GRB]
 
     def __post_init__(self):
         self._grb_list: Dict[str, GRB] = {grb.name: grb for grb in self.grb_list}

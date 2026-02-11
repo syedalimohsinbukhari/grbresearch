@@ -33,7 +33,7 @@ def make_lightcurves(
     b1 = np.sum(a=b1, axis=0)
 
     print(f"Reading the data for {low2} keV to {high2} keV energy range")
-    data_nai_2 = [lightcurve_data(dat_file=f"{i}.dat", energy_low=50, energy_high=900) for i in nai_detector_list]
+    data_nai_2 = [lightcurve_data(dat_file=f"{i}.dat", energy_low=low2, energy_high=high2) for i in nai_detector_list]
 
     _, r2, b2 = np.stack(arrays=np.array(data_nai_2), axis=1)
 

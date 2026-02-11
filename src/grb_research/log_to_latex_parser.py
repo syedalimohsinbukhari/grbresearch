@@ -8,32 +8,16 @@ import re
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
+from .grb_constants import LATEX_MODEL_NAMES, MODEL_ORDER
+
+
+# LaTeX model name mapping
+
 
 class LogParser:
     """Parser for GRB spectral analysis log files."""
 
     # Model order for LaTeX table rows
-    MODEL_ORDER = ['PL', 'PL_BB', 'SBPL', 'SBPL_PL', 'SBPL_BB', 'SBPL_PL_BB',
-                   'BAND', 'BAND_PL', 'BAND_BB', 'BAND_PL_BB',
-                   'CPL', 'CPL_PL', 'CPL_BB', 'CPL_PL_BB']
-
-    # LaTeX model name mapping
-    LATEX_MODEL_NAMES = {
-        'PL': r'\pl',
-        'PL_BB': r'\plbb',
-        'SBPL': r'\sbpl',
-        'SBPL_PL': r'\sbplpl',
-        'SBPL_BB': r'\sbplbb',
-        'SBPL_PL_BB': r'\sbplplbb',
-        'BAND': r'\band',
-        'BAND_PL': r'\bandpl',
-        'BAND_BB': r'\bandbb',
-        'BAND_PL_BB': r'\bandplbb',
-        'CPL': r'\cpl',
-        'CPL_PL': r'\cplpl',
-        'CPL_BB': r'\cplbb',
-        'CPL_PL_BB': r'\cplplbb'
-    }
 
     def __init__(self, log_file_path: str):
         """Initialize parser with log file path.
@@ -429,7 +413,7 @@ class LaTeXTableGenerator:
             f"     \\multicolumn{{13}}{{l}}{{\\textbf{{{episode['episode_name']}: \\sirangeDuration{{{start:.3f}}}{{{end:.3f}}}}}}}\\\\")
 
         # Model rows in the specified order
-        for model in LogParser.MODEL_ORDER:
+        for model in MODEL_ORDER:
             if model in episode['model_parameters']:
                 params = episode['model_parameters'][model]
                 row = self._generate_model_row(model, params)
@@ -458,7 +442,7 @@ class LaTeXTableGenerator:
         cols = ['\\tabledash'] * 13
 
         # Column 0: Model name
-        cols[0] = f"     {LogParser.LATEX_MODEL_NAMES[model]}"
+        cols[0] = f"     {LATEX_MODEL_NAMES[model]}"
 
         # Determine which columns to fill based on the model type
         if model in ['PL', 'PL_BB']:
