@@ -1,4 +1,9 @@
-"""Created on Jan 07 14:42:35 2026"""
+"""Created on Jan 07 14:42:35 2026
+
+NOTE: Most constants in this file are AUTO-GENERATED FROM ENUMS.
+See grb_enums.py for the source of truth for model metadata.
+This file maintains backward compatibility with existing code.
+"""
 
 __all__ = [
     "GRB_COLORS",
@@ -10,32 +15,25 @@ __all__ = [
     "short_to_long",
     "MODEL_ORDER",
     "LATEX_MODEL_NAMES",
+    "ALLOWED_MODELS",
+    "SINGLE_MODEL_FREE_PARAMS",
+    "SINGLE_MODEL_ORDER",
+    "COMPONENT_FREE_PARAMS",
+    "BASE_PARAM_SCHEMAS",
+    "COMPONENT_PARAM_SCHEMAS",
+    "MODEL_GROUPS",
 ]
 
-from .grb_enums import GRBModelsCombinations as gmC
+from .grb_enums import GRBModelsCombinations as gmC, ModelGroupType
 
 OK_THRESHOLD = 0.4
 NOK_THRESHOLD = 1.0
 
 kev_to_erg = 1.6021766208e-09
 
-GRB_COLORS = {
-    gmC.PL: "blue",
-    gmC.PL_BB: "blue",
-    gmC.CPL: "orange",
-    gmC.CPL_PL: "orange",
-    gmC.CPL_BB: "orange",
-    gmC.CPL_PL_BB: "orange",
-    gmC.BAND: "green",
-    gmC.BAND_PL: "green",
-    gmC.BAND_BB: "green",
-    gmC.BAND_PL_BB: "green",
-    gmC.SBPL: "red",
-    gmC.SBPL_PL: "red",
-    gmC.SBPL_BB: "red",
-    gmC.SBPL_PL_BB: "red",
-    gmC.BB: "purple",
-}
+# ==================== AUTO-GENERATED FROM ENUMS - DO NOT EDIT DIRECTLY ====================
+
+GRB_COLORS = {m: m.color for m in gmC}
 
 short_to_long = {
     "150210A": "GRB150210935",
@@ -44,64 +42,59 @@ short_to_long = {
     "080916C": "GRB080916009",
 }
 
-model_n_pars = {
-    gmC.PL: 3,
-    gmC.BB: 2,
-    gmC.CPL: 4,
-    gmC.PL_BB: 5,
-    gmC.CPL_PL: 7,
-    gmC.CPL_BB: 6,
-    gmC.CPL_PL_BB: 9,
-    gmC.BAND: 4,
-    gmC.BAND_PL: 7,
-    gmC.BAND_BB: 6,
-    gmC.BAND_PL_BB: 9,
-    gmC.SBPL: 6,
-    gmC.SBPL_PL: 9,
-    gmC.SBPL_BB: 8,
-    gmC.SBPL_PL_BB: 11,
-}
+# AUTO-GENERATED FROM ENUMS - DO NOT EDIT DIRECTLY
+model_n_pars = {m: m.total_params for m in gmC}
 
-pl_par = ["amp_pl", "e_piv_pl", "index1_pl"]
-pl_par_second = ["amp_pl", "e_piv_pl", "add_index_pl"]
-cpl_par = ["amp_cpl", "e_peak_cpl", "index1_cpl", "e_piv_cpl"]
-band_par = ["amp_band", "e_peak_band", "index1_band", "index2_band"]
-sbpl_par = ["amp_sbpl", "e_piv_sbpl", "index1_sbpl", "e_break_sbpl", "delta_sbpl", "index2_sbpl"]
-bb_par = ["amp_bb", "kt_bb"]
+# AUTO-GENERATED FROM ENUMS - DO NOT EDIT DIRECTLY
+MODEL_PARAMETERS = {m: m.base_parameters for m in gmC}
 
-MODEL_PARAMETERS = {
-    gmC.PL: pl_par,
-    gmC.PL_BB: pl_par + bb_par,
-    gmC.BAND: band_par,
-    gmC.BAND_PL: pl_par_second + band_par,
-    gmC.BAND_BB: band_par + bb_par,
-    gmC.BAND_PL_BB: pl_par_second + band_par + bb_par,
-    gmC.CPL: cpl_par,
-    gmC.CPL_PL: pl_par_second + cpl_par,
-    gmC.CPL_BB: cpl_par + bb_par,
-    gmC.CPL_PL_BB: pl_par_second + cpl_par + bb_par,
-    gmC.SBPL: sbpl_par,
-    gmC.SBPL_BB: sbpl_par + bb_par,
-    gmC.SBPL_PL: pl_par_second + sbpl_par,
-    gmC.SBPL_PL_BB: pl_par_second + sbpl_par + bb_par,
-}
+# Keep original order for backward compatibility
 MODEL_ORDER = ['PL', 'PL_BB',
                'SBPL', 'SBPL_PL', 'SBPL_BB', 'SBPL_PL_BB',
                'BAND', 'BAND_PL', 'BAND_BB', 'BAND_PL_BB',
                'CPL', 'CPL_PL', 'CPL_BB', 'CPL_PL_BB']
-LATEX_MODEL_NAMES = {
-    'PL': r'\pl',
-    'PL_BB': r'\plbb',
-    'SBPL': r'\sbpl',
-    'SBPL_PL': r'\sbplpl',
-    'SBPL_BB': r'\sbplbb',
-    'SBPL_PL_BB': r'\sbplplbb',
-    'BAND': r'\band',
-    'BAND_PL': r'\bandpl',
-    'BAND_BB': r'\bandbb',
-    'BAND_PL_BB': r'\bandplbb',
-    'CPL': r'\cpl',
-    'CPL_PL': r'\cplpl',
-    'CPL_BB': r'\cplbb',
-    'CPL_PL_BB': r'\cplplbb'
+
+# AUTO-GENERATED FROM ENUMS - DO NOT EDIT DIRECTLY
+LATEX_MODEL_NAMES = {m.name_upper: m.latex_name for m in gmC}
+
+# ==================== Model Selection Configuration ====================
+# AUTO-GENERATED FROM ENUMS - DO NOT EDIT DIRECTLY
+
+ALLOWED_MODELS = {m.name_upper for m in gmC if m.is_allowed}
+
+# Single models only (PL, CPL, BAND, SBPL)
+SINGLE_MODEL_FREE_PARAMS = {
+    m.name_upper: m.free_params for m in gmC
+    if m in [gmC.PL, gmC.CPL, gmC.BAND, gmC.SBPL]
 }
+
+SINGLE_MODEL_ORDER = {
+    m.name_upper: m.complexity_order for m in gmC
+    if m in [gmC.PL, gmC.CPL, gmC.BAND, gmC.SBPL]
+}
+
+# Component free parameters (PL and BB when used as components)
+COMPONENT_FREE_PARAMS = {"PL": 2, "BB": 2}
+
+# ==================== Parameter Schemas for FITS Reading ====================
+# AUTO-GENERATED FROM ENUMS - DO NOT EDIT DIRECTLY
+
+# Convert ParameterDef to tuples for backward compatibility
+BASE_PARAM_SCHEMAS = {
+    m.name_upper: [(p.name, p.is_fixed, p.has_bounds) for p in m.base_schema]
+    for m in gmC if m.base_schema and m in [gmC.PL, gmC.CPL, gmC.BAND, gmC.SBPL]
+}
+
+COMPONENT_PARAM_SCHEMAS = {
+    "PL": [(p.name, p.is_fixed, p.has_bounds) for p in gmC.PL.component_schema],
+    "BB": [(p.name, p.is_fixed, p.has_bounds) for p in gmC.BB.base_schema],
+}
+
+# ==================== Model Groups for GOOD Selection ====================
+# AUTO-GENERATED FROM ENUMS - DO NOT EDIT DIRECTLY
+
+MODEL_GROUPS = {
+    group.value: group.model_names
+    for group in ModelGroupType
+}
+

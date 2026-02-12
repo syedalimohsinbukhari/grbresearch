@@ -25,7 +25,7 @@ for index, value in enumerate(grb.grb_list):
     safe = dict_["SAFE"]
     unsafe = dict_["UNSAFE"]
 
-    # Create data for bar chart
+    # Create data for the bar chart
     safe_counts = [safe.get(model, 0) for model in MODEL_ORDER]
     unsafe_counts = [unsafe.get(model, 0) for model in MODEL_ORDER]
 

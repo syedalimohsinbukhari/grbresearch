@@ -420,6 +420,153 @@ def plot_per_episode(values, errors, m_name, start, end, difference, midpoints, 
         )
 
 
+def _categorize_models_by_extension(base_name, base_containing_models):
+    """Categorize models by number of extension components.
+
+    Parameters
+    ----------
+    base_name : str
+        Name of the base model.
+    base_containing_models : dict
+        Dictionary of models that contain the base model.
+
+    Returns
+    -------
+    tuple
+        (single_extension, double_extension) dictionaries.
+    """
+    single_extension = {}
+    double_extension = {}
+
+    for model_name, value in base_containing_models.items():
+        additional_components = model_name.count("_") - base_name.count("_")
+
+        if additional_components == 1:
+            single_extension[model_name] = value
+        elif additional_components == 2:
+            double_extension[model_name] = value
+
+    return single_extension, double_extension
+
+
+def _evaluate_single_extension_models(base_value, single_extensions):
+    """Evaluate single extension models against base model.
+
+    Parameters
+    ----------
+    base_value : float
+        C-stat value of base model.
+    single_extensions : dict
+        Dictionary of single extension models and their c-stat values.
+
+    Returns
+    -------
+    dict
+        Dictionary mapping model names to status values.
+    """
+    results = {}
+    for model_name, value in single_extensions.items():
+        diff = base_value - value
+        if diff > 25:
+            results[model_name] = ModelStatus.ACCEPTED.value
+        else:
+            results[model_name] = ModelStatus.REJECTED.value
+    return results
+
+
+def _evaluate_double_extension_models(base_name, base_value, double_extensions, single_results, base_containing_models):
+    """Evaluate double extension models using hierarchy rules.
+
+    Parameters
+    ----------
+    base_name : str
+        Name of the base model.
+    base_value : float
+        C-stat value of base model.
+    double_extensions : dict
+        Dictionary of double extension models and their c-stat values.
+    single_results : dict
+        Results from single extension evaluation.
+    base_containing_models : dict
+        All models containing the base model.
+
+    Returns
+    -------
+    dict
+        Dictionary mapping model names to status values.
+    """
+    results = {}
+
+    for model_name, value in double_extensions.items():
+        # Extract the two extensions
+        suffix = model_name.replace(base_name + "_", "")
+        extensions = suffix.split("_")
+
+        # Find corresponding single extension models
+        relevant_singles = []
+        for ext in extensions:
+            single_name = f"{base_name}_{ext}"
+            if single_name in base_containing_models:
+                relevant_singles.append(single_name)
+
+        if len(relevant_singles) == 2:
+            # Check if any single extension was accepted
+            single1_status = single_results.get(relevant_singles[0], ModelStatus.REJECTED.value)
+            single2_status = single_results.get(relevant_singles[1], ModelStatus.REJECTED.value)
+
+            if single1_status == ModelStatus.ACCEPTED.value or single2_status == ModelStatus.ACCEPTED.value:
+                # Compare against best accepted single (threshold: 25)
+                best_single_value = float("inf")
+                for single_name in relevant_singles:
+                    if single_results.get(single_name) == ModelStatus.ACCEPTED.value:
+                        best_single_value = min(best_single_value, base_containing_models[single_name])
+
+                if best_single_value - value > 25:
+                    results[model_name] = ModelStatus.ACCEPTED.value
+                else:
+                    results[model_name] = ModelStatus.REJECTED.value
+            else:
+                # Neither single accepted, compare against BASE (threshold: 50)
+                if base_value - value > 50:
+                    results[model_name] = ModelStatus.ACCEPTED.value
+                else:
+                    results[model_name] = ModelStatus.REJECTED.value
+        else:
+            # Not a clear combination, use default comparison
+            if base_value - value > 50:
+                results[model_name] = ModelStatus.ACCEPTED.value
+            else:
+                results[model_name] = ModelStatus.REJECTED.value
+
+    return results
+
+
+def _determine_base_status(base_name, all_results, single_extensions):
+    """Determine the status of the base model.
+
+    Parameters
+    ----------
+    base_name : str
+        Name of the base model.
+    all_results : dict
+        All model evaluation results.
+    single_extensions : dict
+        Single extension models.
+
+    Returns
+    -------
+    int
+        Status value for base model.
+    """
+    # Check if any model was accepted
+    any_accepted = any(status == ModelStatus.ACCEPTED.value for status in all_results.values())
+
+    if any_accepted:
+        return ModelStatus.UNNECESSARY.value
+    else:
+        return ModelStatus.ACCEPTED.value
+
+
 def analyze_model_hierarchy(is_good: Dict) -> Dict[str, ModelStatus]:
     """
     Analyze model hierarchy with custom flags based on comparison rules.
@@ -431,18 +578,16 @@ def analyze_model_hierarchy(is_good: Dict) -> Dict[str, ModelStatus]:
        - >50 if both BASE_XX and BASE_YY are REJECTED
        - >25 from best BASE_XX/BASE_YY if either is ACCEPTED
     """
-
     # Extract BASE information
     base_name, base_value = is_good["BASE"]
 
     # Initialize result dictionary
     results = {}
 
-    # Track which models contain BASE
+    # Separate models that contain BASE from those that don't
     base_containing_models = {}
     other_models = {}
 
-    # Separate models that contain BASE from those that don't
     for key, (model_name, value) in is_good.items():
         if key == "BASE":
             continue
@@ -452,7 +597,7 @@ def analyze_model_hierarchy(is_good: Dict) -> Dict[str, ModelStatus]:
         else:
             other_models[model_name] = value
 
-    # Initialize results for non-BASE containing models
+    # Mark non-BASE containing models as INVALID
     for model_name in other_models:
         results[model_name] = ModelStatus.INVALID.value
 
@@ -461,95 +606,25 @@ def analyze_model_hierarchy(is_good: Dict) -> Dict[str, ModelStatus]:
         results[base_name] = ModelStatus.ACCEPTED.value
         return results
 
-    # Step 1: Evaluate single-extension models (BASE_XX)
-    single_extension = {}
-    double_extension = {}
+    # Categorize models by extension count
+    single_extension, double_extension = _categorize_models_by_extension(base_name, base_containing_models)
 
-    for model_name, value in base_containing_models.items():
-        # Count additional components (assuming underscore separation)
-        additional_components = model_name.count("_") - base_name.count("_")
+    # Evaluate single extension models (BASE_XX)
+    single_results = _evaluate_single_extension_models(base_value, single_extension)
+    results.update(single_results)
 
-        if additional_components == 1:
-            single_extension[model_name] = value
-        elif additional_components == 2:
-            double_extension[model_name] = value
+    # Evaluate double extension models (BASE_XX_YY)
+    double_results = _evaluate_double_extension_models(
+        base_name, base_value, double_extension, single_results, base_containing_models
+    )
+    results.update(double_results)
 
-    # Evaluate single extension models
-    accepted_single = {}
-    for model_name, value in single_extension.items():
-        diff = base_value - value
-        if diff > 25:
-            results[model_name] = ModelStatus.ACCEPTED.value
-            accepted_single[model_name] = value
-        else:
-            results[model_name] = ModelStatus.REJECTED.value
+    # Determine BASE status
+    results[base_name] = _determine_base_status(base_name, results, single_extension)
 
-    # Step 2: Evaluate double extension models (BASE_XX_YY)
-    base_accepted = True  # Assume BASE is accepted initially
-
-    for model_name, value in double_extension.items():
-        # Determine if this is a combined model (contains two extensions)
-        # Extract the two extensions
-        suffix = model_name.replace(base_name + "_", "")
-        extensions = suffix.split("_")
-
-        # Find corresponding single extension models
-        relevant_singles = []
-        for ext in extensions:
-            single_name = f"{base_name}_{ext}"
-            if single_name in single_extension:
-                relevant_singles.append(single_name)
-
-        if len(relevant_singles) == 2:
-            # This is a combination of two single extensions
-            single1_status = results.get(relevant_singles[0], ModelStatus.REJECTED.value)
-            single2_status = results.get(relevant_singles[1], ModelStatus.REJECTED.value)
-
-            if single1_status == ModelStatus.ACCEPTED.value or single2_status == ModelStatus.ACCEPTED.value:
-                # At least one single extension was accepted
-                # Compare against the best accepted single
-                best_single_value = float("inf")
-                for single_name in relevant_singles:
-                    if results.get(single_name) == ModelStatus.ACCEPTED.value:
-                        best_single_value = min(best_single_value, base_containing_models[single_name])
-
-                if best_single_value - value > 25:
-                    results[model_name] = ModelStatus.ACCEPTED.value
-                    base_accepted = False  # BASE is beaten
-                else:
-                    results[model_name] = ModelStatus.REJECTED.value
-            else:
-                # Neither single extension was accepted
-                # Compare directly against BASE
-                if base_value - value > 50:
-                    results[model_name] = ModelStatus.ACCEPTED.value
-                    base_accepted = False  # BASE is beaten
-                else:
-                    results[model_name] = ModelStatus.REJECTED.value
-        else:
-            # Not a clear combination, use default comparison
-            if base_value - value > 50:
-                results[model_name] = ModelStatus.ACCEPTED.value
-                base_accepted = False
-            else:
-                results[model_name] = ModelStatus.REJECTED.value
-
-    # Step 3: Handle BASE status
-    if not base_accepted:
-        results[base_name] = ModelStatus.UNNECESSARY.value
-    else:
-        # Check if any single extension was accepted
-        any_accepted = any(results.get(model) == ModelStatus.ACCEPTED.value for model in single_extension.keys())
-
-        if any_accepted:
-            results[base_name] = ModelStatus.UNNECESSARY.value
-        else:
-            results[base_name] = ModelStatus.ACCEPTED.value
-
-    # Add remaining base-containing models that weren't processed
+    # Handle any remaining models not yet processed
     for model_name, value in base_containing_models.items():
         if model_name not in results:
-            # Default comparison for other models
             additional_components = model_name.count("_") - base_name.count("_")
             threshold = 50 if additional_components >= 2 else 25
 

@@ -1,191 +1,247 @@
 """Created on Sep 20 15:07:35 2025"""
 
 import os
-from typing import Dict, Iterable, List
+from typing import Dict, List, Union
 
 import numpy as np
-from astropy.io import fits
 
-from .grb_constants import MODEL_PARAMETERS
-from .grb_enums import GRBModelsCombinations as gmC
+from .grb_constants import (
+    ALLOWED_MODELS,
+    MODEL_GROUPS,
+    MODEL_PARAMETERS,
+    SINGLE_MODEL_FREE_PARAMS,
+    SINGLE_MODEL_ORDER,
+)
+from .grb_enums import (
+    GRBModelsCombinations as gmC,
+    GRBModelsCombinations,
+    normalize_model,
+)
+from .grb_fits_io import (
+    build_composite_schema,
+    collect_model_cstat,
+    get_extra_values,
+    get_model_name_from_path,
+    read_cstat_from_fit,
+    read_param_values_errors,
+)
 from .grb_utils import analyze_model_hierarchy
 
-BASE_PARAM_SCHEMAS = {
-    "PL": [("amplitude", False, False), ("e_pivot", True, False), ("index1", False, False)],
-    "CPL": [
-        ("amplitude", False, False),
-        ("peak_energy", False, False),
-        ("index1", False, False),
-        ("e_pivot", True, False),
-    ],
-    "BAND": [
-        ("amplitude", False, False),
-        ("peak_energy", False, False),
-        ("index1", False, False),
-        ("index2", False, False),
-    ],
-    "SBPL": [
-        ("amplitude", False, False),
-        ("e_pivot", True, False),
-        ("index1", False, False),
-        ("break_energy", False, False),
-        ("delta", True, False),
-        ("index2", False, False),
-    ],
-}
-
-COMPONENT_PARAM_SCHEMAS = {
-    "PL": [("amplitude_pl", False, False), ("e_pivot_pl", True, False), ("index2_pl", False, False)],
-    "BB": [("amplitude_bb", False, False), ("kt_temperature", False, False)],
-}
-
-ALLOWED_MODELS = {
-    "PL",
-    "CPL",
-    "BAND",
-    "SBPL",
-    "PL_BB",
-    "CPL_BB",
-    "CPL_PL",
-    "CPL_PL_BB",
-    "BAND_BB",
-    "BAND_PL",
-    "BAND_PL_BB",
-    "SBPL_BB",
-    "SBPL_PL",
-    "SBPL_PL_BB",
-}
-
-SINGLE_MODEL_FREE_PARAMS = {"PL": 2, "CPL": 3, "BAND": 4, "SBPL": 4}
-SINGLE_MODEL_ORDER = {"PL": 0, "CPL": 1, "BAND": 2, "SBPL": 2}
-COMPONENT_FREE_PARAMS = {"PL": 2, "BB": 2}
+# Re-export for backward compatibility
+__all__ = [
+    "ALLOWED_MODELS",
+    "build_composite_schema",
+    "collect_model_cstat",
+    "compare_models",
+    "compare_single_models",
+    "compute_free_params",
+    "compute_good_models",
+    "filter_models_by_error",
+    "get_extra_values",
+    "get_model_name_from_path",
+    "list_par_err",
+    "list_safe_models",
+    "model_passes_error_criteria",
+    "pick_best_in_group",
+    "pick_best_model",
+    "pick_best_single_model",
+    "read_cstat_from_fit",
+    "read_param_values_errors",
+]
 
 
 # ----------------- Utilities -----------------
 
 
-def build_composite_schema(model_name: str):
-    parts = model_name.upper().split("_")
-    base = parts[0]
-    if base not in BASE_PARAM_SCHEMAS:
-        raise ValueError(f"Unknown base model: {model_name}")
-    schema = []
-    if base == "PL":
-        schema.extend(BASE_PARAM_SCHEMAS["PL"])
-    elif "PL" in parts[1:]:
-        schema.extend(COMPONENT_PARAM_SCHEMAS["PL"])
-    if base != "PL":
-        schema.extend(BASE_PARAM_SCHEMAS[base])
-    if "BB" in parts[1:]:
-        schema.extend(COMPONENT_PARAM_SCHEMAS["BB"])
-    return schema
 
-
-def compute_free_params(model_name: str) -> int:
-    parts = model_name.upper().split("_")
-    base, comps = parts[0], parts[1:]
-    total = SINGLE_MODEL_FREE_PARAMS.get(base, 0)
-    for comp in comps:
-        total += COMPONENT_FREE_PARAMS.get(comp, 0)
-    return total
-
-
-def complexity_key(model_name: str):
-    base = model_name.upper().split("_")[0]
-    return SINGLE_MODEL_ORDER.get(base, 99), compute_free_params(model_name)
-
-
-# ----------------- FITS Access -----------------
-
-
-def get_model_name_from_path(path: str) -> str:
-    return os.path.splitext(os.path.basename(path))[0].upper()
-
-
-def read_cstat_from_fit(path: str, give_covariance=False):
-    with fits.open(path) as ff:
-        dof = ff[2].data["CHSQDOF"][0]
-        cstat = float(ff[2].data["REDCHSQ"][0][1] * dof)
-        if not give_covariance:
-            return cstat, dof
-        cov = ff[2].data["COVARMAT"][0]
-        return cstat, dof, cov
-
-
-def collect_model_cstat(paths: Iterable[str]) -> Dict[str, List[float]]:
-    result = {}
-    for p in paths:
-        model = get_model_name_from_path(p)
-        cstat, dof = read_cstat_from_fit(p)
-        result[model] = [cstat, dof]
-    return result
-
-
-def read_param_values_errors(path: str, n_parameters=None):
-    """
-    Read parameter values and their corresponding errors from a FITS file.
+def compute_free_params(model_name: Union[str, GRBModelsCombinations]) -> int:
+    """Compute the number of free parameters for a model.
 
     Parameters
     ----------
-    path : str
-        Path to the FITS file to be read.
-    n_parameters : int, optional
-        Number of parameters to extract. If ``None`` (default), the number is
-        inferred from the composite schema derived from the model name in the
-        FITS file name.
+    model_name : Union[str, GRBModelsCombinations]
+        Model name as string or enum.
 
     Returns
     -------
-    tuple of (numpy.ndarray, numpy.ndarray)
-        A tuple ``(values, errors)`` where both are 1-D ``numpy.ndarray`` objects
-        of length ``n_parameters``.
-
-    Raises
-    ------
-    ValueError
-        If the model name cannot be mapped to a known schema when ``n_parameters`` is not provided.
-    OSError
-        If the FITS file cannot be opened.
+    int
+        Number of free parameters.
     """
-    model = get_model_name_from_path(path)
-    if n_parameters is None:
-        schema = build_composite_schema(model)
-        n_parameters = len(schema)
-    with fits.open(path) as ff:
-        vals = [ff[2].data[f"PARAM{i}"][0][0] for i in range(n_parameters)]
-        errs = [ff[2].data[f"PARAM{i}"][0][1] for i in range(n_parameters)]
-        return np.array(object=vals, dtype=float), np.array(object=errs, dtype=float)
+    model = normalize_model(model_name)
+    return model.free_params
+
+
+def complexity_key(model_name: Union[str, GRBModelsCombinations]):
+    """Get complexity sorting key for a model.
+
+    Returns tuple of (base_model_order, total_free_params).
+
+    Parameters
+    ----------
+    model_name : Union[str, GRBModelsCombinations]
+        Model name as string or enum.
+
+    Returns
+    -------
+    tuple
+        (complexity_order, free_params) for sorting.
+    """
+    model = normalize_model(model_name)
+    return model.complexity_order, model.free_params
+
+
+# ----------------- Comparison Helpers -----------------
+
+
+def _handle_nan_comparison(a: GRBModelsCombinations, b: GRBModelsCombinations, a_nan: bool, b_nan: bool) -> str:
+    """Handle model comparison when one or both have NaN c-stat values.
+
+    Parameters
+    ----------
+    a, b : GRBModelsCombinations
+        Models to compare.
+    a_nan, b_nan : bool
+        Whether each model has NaN c-stat.
+
+    Returns
+    -------
+    str
+        Name of the better model (uppercase).
+    """
+    if a_nan and not b_nan:
+        return b.name_upper
+    if b_nan and not a_nan:
+        return a.name_upper
+    # Both NaN - choose simpler
+    return min([a, b], key=lambda m: m.complexity_order).name_upper
+
+
+def _compare_equal_complexity(a: GRBModelsCombinations, b: GRBModelsCombinations,
+                              a_cstat: float, b_cstat: float) -> str:
+    """Compare models with equal number of free parameters.
+
+    Parameters
+    ----------
+    a, b : GRBModelsCombinations
+        Models to compare.
+    a_cstat, b_cstat : float
+        C-statistic values.
+
+    Returns
+    -------
+    str
+        Name of the better model (uppercase).
+    """
+    if a_cstat == b_cstat:
+        return min([a, b], key=lambda m: (m.complexity_order, m.free_params)).name_upper
+    return a.name_upper if a_cstat < b_cstat else b.name_upper
+
+
+def _compare_different_complexity(a: GRBModelsCombinations, b: GRBModelsCombinations,
+                                  a_free: int, b_free: int,
+                                  a_cstat: float, b_cstat: float) -> str:
+    """Compare models with different complexity using improvement threshold.
+
+    Parameters
+    ----------
+    a, b : GRBModelsCombinations
+        Models to compare.
+    a_free, b_free : int
+        Number of free parameters.
+    a_cstat, b_cstat : float
+        C-statistic values.
+
+    Returns
+    -------
+    str
+        Name of the better model (uppercase).
+    """
+    if a_free < b_free:
+        simple, simple_c, simple_f = a, a_cstat, a_free
+        complex_, complex_c, complex_f = b, b_cstat, b_free
+    else:
+        simple, simple_c, simple_f = b, b_cstat, b_free
+        complex_, complex_c, complex_f = a, a_cstat, a_free
+
+    required = 9 * (complex_f - simple_f)
+    improvement = simple_c - complex_c
+    return complex_.name_upper if improvement >= required else simple.name_upper
 
 
 # ----------------- Comparison -----------------
 
 
-def compare_models(a_model, a_cstat, b_model, b_cstat, single_only=False):
-    a, b = a_model.upper(), b_model.upper()
-    if single_only and (a not in SINGLE_MODEL_FREE_PARAMS or b not in SINGLE_MODEL_FREE_PARAMS):
+def compare_models(a_model: Union[str, GRBModelsCombinations], a_cstat: float,
+                  b_model: Union[str, GRBModelsCombinations], b_cstat: float,
+                  single_only: bool = False) -> str:
+    """Compare two models and return the better one based on c-stat and complexity.
+
+    Parameters
+    ----------
+    a_model : Union[str, GRBModelsCombinations]
+        Name of first model (string or enum).
+    a_cstat : float
+        C-statistic of first model.
+    b_model : Union[str, GRBModelsCombinations]
+        Name of second model (string or enum).
+    b_cstat : float
+        C-statistic of second model.
+    single_only : bool, optional
+        If True, only allow comparison of single models (PL/CPL/BAND/SBPL).
+
+    Returns
+    -------
+    str
+        Name of the better model (uppercase string).
+
+    Examples
+    --------
+    >>> compare_models('CPL', 100.0, 'BAND', 95.0)
+    'CPL'
+    >>> compare_models(GRBModelsCombinations.CPL, 100.0, GRBModelsCombinations.BAND, 80.0)
+    'BAND'
+    """
+    # Convert to enums for internal processing
+    a = normalize_model(a_model)
+    b = normalize_model(b_model)
+
+    # Validate single_only constraint
+    single_models = {GRBModelsCombinations.PL, GRBModelsCombinations.CPL,
+                    GRBModelsCombinations.BAND, GRBModelsCombinations.SBPL}
+    if single_only and (a not in single_models or b not in single_models):
         raise ValueError("Single-model comparison requires PL/CPL/BAND/SBPL")
-    a_free, b_free = compute_free_params(a), compute_free_params(b)
+
+    a_free, b_free = a.free_params, b.free_params
     a_nan, b_nan = np.isnan(a_cstat), np.isnan(b_cstat)
+
+    # Handle NaN cases
     if a_nan or b_nan:
-        if a_nan and not b_nan:
-            return b
-        if b_nan and not a_nan:
-            return a
-        return min([a, b], key=lambda m: SINGLE_MODEL_ORDER.get(m.split("_")[0], 99))
+        return _handle_nan_comparison(a, b, a_nan, b_nan)
+
+    # Handle equal complexity
     if a_free == b_free:
-        if a_cstat == b_cstat:
-            return min([a, b], key=complexity_key)
-        return a if a_cstat < b_cstat else b
-    simple, simple_c, simple_f, complex_, complex_c, complex_f = (
-        (a, a_cstat, a_free, b, b_cstat, b_free) if a_free < b_free else (b, b_cstat, b_free, a, a_cstat, a_free)
-    )
-    required = 9 * (complex_f - simple_f)
-    improvement = simple_c - complex_c
-    return complex_ if improvement >= required else simple
+        return _compare_equal_complexity(a, b, a_cstat, b_cstat)
+
+    # Handle different complexity with improvement threshold
+    return _compare_different_complexity(a, b, a_free, b_free, a_cstat, b_cstat)
 
 
-def compare_single_models(a_model, a_cstat, b_model, b_cstat):
-    """Compare only single models (PL, CPL, BAND, SBPL)."""
+def compare_single_models(a_model: Union[str, GRBModelsCombinations], a_cstat: float,
+                         b_model: Union[str, GRBModelsCombinations], b_cstat: float) -> str:
+    """Compare only single models (PL, CPL, BAND, SBPL).
+
+    Parameters
+    ----------
+    a_model, b_model : Union[str, GRBModelsCombinations]
+        Model names or enums (must be single models).
+    a_cstat, b_cstat : float
+        C-statistic values.
+
+    Returns
+    -------
+    str
+        Name of the better model (uppercase string).
+    """
     return compare_models(a_model=a_model, a_cstat=a_cstat, b_model=b_model, b_cstat=b_cstat, single_only=True)
 
 
@@ -280,37 +336,170 @@ def list_safe_models(folder_path, **kwargs):
 
 
 def compute_good_models(c_stats, folder_path, **kwargs):
+    """Compute GOOD models from SAFE models for each model group.
+
+    Parameters
+    ----------
+    c_stats : dict
+        Dictionary of model names to c-stat values.
+    folder_path : str
+        Path to folder containing .fit files.
+    **kwargs
+        Additional arguments for error criteria.
+
+    Returns
+    -------
+    dict
+        Dictionary mapping group names to (model_name, cstat) tuples.
+    """
     good = {}
     base = filter_models_by_error(
-        c_stats=c_stats, folder_path=folder_path, candidates=["PL", "CPL", "BAND", "SBPL"], **kwargs
+        c_stats=c_stats, folder_path=folder_path, candidates=MODEL_GROUPS["BASE"], **kwargs
     )
     if base:
         good["BASE"] = pick_best_single_model(base)
-    for group, candidates in {
-        "+BB": ["PL_BB", "CPL_BB", "BAND_BB", "SBPL_BB"],
-        "+PL": ["CPL_PL", "BAND_PL", "SBPL_PL"],
-        "+PL+BB": ["CPL_PL_BB", "BAND_PL_BB", "SBPL_PL_BB"],
-    }.items():
+
+    for group_name in ["BB", "PL", "PLBB"]:
         try:
-            good[group.strip("+")] = pick_best_model(
-                c_stats=c_stats, candidates=candidates, group_name=group, folder_path=folder_path, **kwargs
+            good[group_name] = pick_best_model(
+                c_stats=c_stats,
+                candidates=MODEL_GROUPS[group_name],
+                group_name=f"+{group_name}",
+                folder_path=folder_path,
+                **kwargs
             )
         except Exception:
             pass
     return good
 
 
-def get_extra_values(path):
-    ff = fits.open(path)
-    try:
-        ff2 = ff[2].data
-        ph_flx, ph_fln = ff2["PHTFLUX"][0], ff2["PHTFLNC"][0]
-        en_flx, en_fln = ff2["NRGFLUX"][0], ff2["NRGFLNC"][0]
-        cov_ = ff2["COVARMAT"][0]
-    finally:
-        ff.close()
+# ----------------- Parameter Error Listing Helpers -----------------
 
-    return ph_flx, ph_fln, en_flx, en_fln, cov_
+
+def _extract_model_data(fit_path, schema_len):
+    """Extract all model data from a FITS file.
+
+    Returns
+    -------
+    tuple
+        (schema, vals, errs, flux_data, cstat, dof, cov_matrix)
+    """
+    schema = build_composite_schema(os.path.splitext(os.path.basename(fit_path))[0])
+    vals, errs = read_param_values_errors(path=fit_path, n_parameters=schema_len)
+
+    (
+        (ph_flx_v, ph_flx_e),
+        (ph_fluence_v, ph_fluence_e),
+        (en_flx_v, en_flx_e),
+        (en_fluence_v, en_fluence_e),
+        cov_matrix,
+    ) = get_extra_values(path=fit_path)
+
+    c_stat, dof = read_cstat_from_fit(path=fit_path)
+
+    flux_data = {
+        "names": ["c-stat/dof", "photon_flux", "photon_fluence", "energy_flux", "energy_fluence"],
+        "values": [c_stat, ph_flx_v, ph_fluence_v, en_flx_v, en_fluence_v],
+        "errors": [dof, ph_flx_e, ph_fluence_e, en_flx_e, en_fluence_e],
+    }
+
+    return schema, vals, errs, flux_data, c_stat, dof, cov_matrix
+
+
+def _determine_model_status(model_name, hierarchy_result, default_status):
+    """Determine the status of a model (SAFE/UNSAFE/BEST).
+
+    Parameters
+    ----------
+    model_name : str
+        Name of the model.
+    hierarchy_result : dict
+        Result from analyze_model_hierarchy.
+    default_status : str
+        Default status (SAFE or UNSAFE).
+
+    Returns
+    -------
+    str
+        Model status.
+    """
+    if model_name in hierarchy_result and hierarchy_result[model_name] == 1:
+        return "BEST"
+    return default_status
+
+
+def _store_model_results(result_dict, grb, ep_ext, ep, model, status, vals, errs, cstat, dof, cov, model_params):
+    """Store model results in the result dictionary.
+
+    Parameters
+    ----------
+    result_dict : dict
+        Dictionary to store results.
+    grb : str
+        GRB name.
+    ep_ext : str
+        Episode extension label.
+    ep : str
+        Episode identifier.
+    model : str
+        Model name.
+    status : str
+        Model status.
+    vals : numpy.ndarray
+        Parameter values.
+    errs : numpy.ndarray
+        Parameter errors.
+    cstat : float
+        C-statistic value.
+    dof : float
+        Degrees of freedom.
+    cov : numpy.ndarray
+        Covariance matrix.
+    model_params : list
+        List of parameter names.
+    """
+    model_dict = result_dict.setdefault(grb, {}).setdefault(f"{ep_ext} {ep}", {}).setdefault(model, {})
+    model_dict["_status"] = status
+
+    # Store parameters
+    for param_name, v, e in zip(model_params, vals, errs):
+        model_dict[param_name] = [v, e]
+
+    model_dict["c-stat/dof"] = [cstat, dof]
+    model_dict["covariance_matrix"] = cov
+
+
+def _print_parameter_details(status_str, model, schema, vals, errs, flux_data):
+    """Print parameter details to console.
+
+    Parameters
+    ----------
+    status_str : str
+        Status string (SAFE/UNSAFE/BEST).
+    model : str
+        Model name.
+    schema : list
+        Parameter schema.
+    vals : numpy.ndarray
+        Parameter values.
+    errs : numpy.ndarray
+        Parameter errors.
+    flux_data : dict
+        Dictionary with flux/fluence data.
+    """
+    print(f"[{status_str}] {model} parameter details:")
+
+    # Print model parameters
+    for (par_name, _, _), v, e in zip(schema, vals, errs):
+        pct = (abs(e) / abs(v) * 100) if v != 0 else float("inf")
+        print(f"   {par_name:15s} = {v:.20f}({e:.20f}) , {pct:.3g} %")
+
+    # Print flux/fluence data
+    for par_name, v, e in zip(flux_data["names"], flux_data["values"], flux_data["errors"]):
+        acc = "4" if par_name == "c-stat/dof" else "20"
+        sep1 = "/" if par_name == "c-stat/dof" else "("
+        sep2 = "" if par_name == "c-stat/dof" else ")"
+        print(f"   {par_name:15s} = {v:.{acc}f}{sep1}{e:.{acc}f}{sep2}")
 
 
 def list_par_err(cwd_, fit_type, string=1, is_good=None, result_dict=None, ep_ext="T90") -> Dict:
@@ -339,62 +528,42 @@ def list_par_err(cwd_, fit_type, string=1, is_good=None, result_dict=None, ep_ex
     if result_dict is None:
         result_dict = {}
 
-    result = {}
-
+    # Analyze model hierarchy if GOOD models provided
+    hierarchy_result = {}
     if is_good:
-        result = analyze_model_hierarchy(is_good)
+        hierarchy_result = analyze_model_hierarchy(is_good)
 
+    # Extract GRB and episode info from path
     grb = cwd_.split("/")[-2]
     ep = cwd_.split("/")[-1].split("__")[1].replace("m", "-")
+    status_str = "SAFE" if string == 1 else "UNSAFE"
 
-    s_ = "SAFE" if string == 1 else "UNSAFE"
-
-    for m in fit_type:
-        fit_path = os.path.join(cwd_, f"{m}.fit")
+    # Process each model
+    for model in fit_type:
+        fit_path = os.path.join(cwd_, f"{model}.fit")
         if not os.path.exists(fit_path):
             continue
+
         try:
-            schema = build_composite_schema(m)
-            vals, errs = read_param_values_errors(path=fit_path, n_parameters=len(schema))
-            (
-                (ph_flx_v, ph_flx_e),
-                (ph_fluence_v, ph_fluence_e),
-                (en_flx_v, en_flx_e),
-                (en_fluence_v, en_fluence_e),
-                cov_matrix,
-            ) = get_extra_values(path=fit_path)
+            # Extract all model data
+            schema, vals, errs, flux_data, c_stat, dof, cov_matrix = _extract_model_data(
+                fit_path, len(build_composite_schema(model))
+            )
 
-            c_stat, dof = read_cstat_from_fit(path=fit_path)
+            # Determine model status
+            model_status = _determine_model_status(model, hierarchy_result, status_str)
 
-            p_name2 = ["c-stat/dof", "photon_flux", "photon_fluence", "energy_flux", "energy_fluence"]
-            vals2 = [c_stat, ph_flx_v, ph_fluence_v, en_flx_v, en_fluence_v]
-            errs2 = [dof, ph_flx_e, ph_fluence_e, en_flx_e, en_fluence_e]
+            # Store results
+            _store_model_results(
+                result_dict, grb, ep_ext, ep, model, model_status,
+                vals, errs, c_stat, dof, cov_matrix,
+                MODEL_PARAMETERS[gmC(model.lower())]
+            )
 
-            model_dict = result_dict.setdefault(grb, {}).setdefault(f"{ep_ext} {ep}", {}).setdefault(m, {})
-            model_dict["_status"] = s_
-            if m in list(result.keys()):
-                if result[m] == 1:
-                    model_dict["_status"] = "BEST"
-
-            # store parameters
-            for m2, v, e in zip(MODEL_PARAMETERS[gmC(m.lower())], vals, errs):
-                model_dict[m2] = [v, e]
-
-            model_dict["c-stat/dof"] = [c_stat, dof]
-            model_dict["covariance_matrix"] = cov_matrix
-
-            # print log
-            print(f"[{s_}] {m} parameter details:")
-            for (par_name, _, _), v, e in zip(schema, vals, errs):
-                pct = (abs(e) / abs(v) * 100) if v != 0 else float("inf")
-                print(f"   {par_name:15s} = {v:.20f}({e:.20f}) , {pct:.3g} %")
-            for par_name, v, e in zip(p_name2, vals2, errs2):
-                acc = "4" if par_name == "c-stat/dof" else "20"
-                sep1 = "/" if par_name == "c-stat/dof" else "("
-                sep2 = "" if par_name == "c-stat/dof" else ")"
-                print(f"   {par_name:15s} = {v:.{acc}f}{sep1}{e:.{acc}f}{sep2}")
+            # Print details
+            _print_parameter_details(status_str, model, schema, vals, errs, flux_data)
 
         except Exception as e:
-            print(f"[{string}] {m}: failed to read params ({e})")
+            print(f"[{string}] {model}: failed to read params ({e})")
 
     return result_dict
