@@ -12,7 +12,8 @@ import pandas as pd
 import seaborn
 from matplotlib.patches import Ellipse
 
-from .grb_constants import model_n_pars, MODEL_PARAMETERS, NOK_THRESHOLD, OK_THRESHOLD
+from .grb_constants import (MODEL_PARAMETERS, NOK_THRESHOLD, OK_THRESHOLD,
+                            model_n_pars)
 from .grb_enums import GRBModelsCombinations, ModelStatus
 
 m_style = seaborn.color_palette("deep6")
@@ -110,8 +111,9 @@ def filter_covariance(cov_matrix, param_names):
     return filtered_cov, filtered_names, keep_idx
 
 
-def plot_covariance_corner(means, cov_matrix, param_names, seed: Optional[int] = None,
-                           rng: Optional[np.random.Generator] = None):
+def plot_covariance_corner(
+    means, cov_matrix, param_names, seed: Optional[int] = None, rng: Optional[np.random.Generator] = None
+):
     """
     Corner-style plot with histograms on the diagonal and covariance ellipses off-diagonal.
 
@@ -263,18 +265,18 @@ def query_data(data, grb_name: str, m_name: str, status: str = "both", epoch: st
 
 
 def two_scatter(
-        start_list,
-        end_list,
-        val1,
-        val2,
-        err1,
-        err2,
-        ti_fmt="s",
-        ti_color="r",
-        tr_fmt="o",
-        x_time=False,
-        plot_axis=None,
-        remove_extra=False,
+    start_list,
+    end_list,
+    val1,
+    val2,
+    err1,
+    err2,
+    ti_fmt="s",
+    ti_color="r",
+    tr_fmt="o",
+    x_time=False,
+    plot_axis=None,
+    remove_extra=False,
 ):
     """Create a scatter plot comparing two sets of values with error bars."""
     for index, (v1, v2, e1, e2) in enumerate(zip(val1, val2, err1, err2)):
@@ -376,7 +378,7 @@ def break_e_to_e_peak(index1_sbpl, index2_sbpl, break_energy_sbpl):
         Peak energy corresponding to the input break energy.
     """
     f1 = (index1_sbpl + index2_sbpl + 4) / (index1_sbpl - index2_sbpl)
-    return break_energy_sbpl * 10**(0.3 * np.arctanh(f1))
+    return break_energy_sbpl * 10 ** (0.3 * np.arctanh(f1))
 
 
 def plot_per_episode(values, errors, m_name, start, end, difference, midpoints, axes, special_counter=None):
@@ -392,28 +394,21 @@ def plot_per_episode(values, errors, m_name, start, end, difference, midpoints, 
         y_low = values[0] - errors[0, 0]
         y_high = values[0] + errors[1, 0]
 
-    axes.fill_between(
-        x=[start[0], end[0]],
-        y1=y_low,
-        y2=y_high,
-        color="k",
-        alpha=0.15,
-    )
+    axes.fill_between(x=[start[0], end[0]], y1=y_low, y2=y_high, color="k", alpha=0.15)
 
     # --- Episode points ---
     for i, x in enumerate(midpoints[1:], start=1):
         if errors.ndim == 1:
             y_err = errors[i]
         else:
-            y_err = errors[:, i:i + 1]  # (2, 1), symmetric or asymmetric
+            y_err = errors[:, i : i + 1]  # (2, 1), symmetric or asymmetric
 
         axes.errorbar(
             x,
             values[i],
             xerr=difference[i],
             yerr=y_err,
-            color="b" if (start[i] < start[0] or end[i] > end[0] + 0.064) else "g"
-            if special_counter[i] else "r",
+            color="b" if (start[i] < start[0] or end[i] > end[0] + 0.064) else "g" if special_counter[i] else "r",
             marker=".",
             ms=10,
             capsize=5,
@@ -652,8 +647,8 @@ def save_value_error_as_parquet(grb_names, list_of_values, list_of_errors, list_
     df["best_model_name"] = list(chain.from_iterable(list_of_names))
 
     if asym_errs:
-        df = df[['grb_name', 'best_model_name', 'value', 'error_low', 'error_high']]
+        df = df[["grb_name", "best_model_name", "value", "error_low", "error_high"]]
     else:
-        df = df[['grb_name', 'best_model_name', 'value', 'error']]
+        df = df[["grb_name", "best_model_name", "value", "error"]]
 
     df.to_parquet(Path.cwd() / filename, index=False)

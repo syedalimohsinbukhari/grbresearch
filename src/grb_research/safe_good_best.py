@@ -5,26 +5,14 @@ from typing import Dict, List, Union
 
 import numpy as np
 
-from .grb_constants import (
-    ALLOWED_MODELS,
-    MODEL_GROUPS,
-    MODEL_PARAMETERS,
-    SINGLE_MODEL_FREE_PARAMS,
-    SINGLE_MODEL_ORDER,
-)
-from .grb_enums import (
-    GRBModelsCombinations as gmC,
-    GRBModelsCombinations,
-    normalize_model,
-)
-from .grb_fits_io import (
-    build_composite_schema,
-    collect_model_cstat,
-    get_extra_values,
-    get_model_name_from_path,
-    read_cstat_from_fit,
-    read_param_values_errors,
-)
+from .grb_constants import (ALLOWED_MODELS, MODEL_GROUPS, MODEL_PARAMETERS,
+                            SINGLE_MODEL_FREE_PARAMS, SINGLE_MODEL_ORDER)
+from .grb_enums import GRBModelsCombinations
+from .grb_enums import GRBModelsCombinations as gmC
+from .grb_enums import normalize_model
+from .grb_fits_io import (build_composite_schema, collect_model_cstat,
+                          get_extra_values, get_model_name_from_path,
+                          read_cstat_from_fit, read_param_values_errors)
 from .grb_utils import analyze_model_hierarchy
 
 # Re-export for backward compatibility
@@ -51,7 +39,6 @@ __all__ = [
 
 
 # ----------------- Utilities -----------------
-
 
 
 def compute_free_params(model_name: Union[str, GRBModelsCombinations]) -> int:
@@ -116,8 +103,9 @@ def _handle_nan_comparison(a: GRBModelsCombinations, b: GRBModelsCombinations, a
     return min([a, b], key=lambda m: m.complexity_order).name_upper
 
 
-def _compare_equal_complexity(a: GRBModelsCombinations, b: GRBModelsCombinations,
-                              a_cstat: float, b_cstat: float) -> str:
+def _compare_equal_complexity(
+    a: GRBModelsCombinations, b: GRBModelsCombinations, a_cstat: float, b_cstat: float
+) -> str:
     """Compare models with equal number of free parameters.
 
     Parameters
@@ -137,9 +125,9 @@ def _compare_equal_complexity(a: GRBModelsCombinations, b: GRBModelsCombinations
     return a.name_upper if a_cstat < b_cstat else b.name_upper
 
 
-def _compare_different_complexity(a: GRBModelsCombinations, b: GRBModelsCombinations,
-                                  a_free: int, b_free: int,
-                                  a_cstat: float, b_cstat: float) -> str:
+def _compare_different_complexity(
+    a: GRBModelsCombinations, b: GRBModelsCombinations, a_free: int, b_free: int, a_cstat: float, b_cstat: float
+) -> str:
     """Compare models with different complexity using improvement threshold.
 
     Parameters
@@ -171,9 +159,13 @@ def _compare_different_complexity(a: GRBModelsCombinations, b: GRBModelsCombinat
 # ----------------- Comparison -----------------
 
 
-def compare_models(a_model: Union[str, GRBModelsCombinations], a_cstat: float,
-                  b_model: Union[str, GRBModelsCombinations], b_cstat: float,
-                  single_only: bool = False) -> str:
+def compare_models(
+    a_model: Union[str, GRBModelsCombinations],
+    a_cstat: float,
+    b_model: Union[str, GRBModelsCombinations],
+    b_cstat: float,
+    single_only: bool = False,
+) -> str:
     """Compare two models and return the better one based on c-stat and complexity.
 
     Parameters
@@ -206,8 +198,12 @@ def compare_models(a_model: Union[str, GRBModelsCombinations], a_cstat: float,
     b = normalize_model(b_model)
 
     # Validate single_only constraint
-    single_models = {GRBModelsCombinations.PL, GRBModelsCombinations.CPL,
-                    GRBModelsCombinations.BAND, GRBModelsCombinations.SBPL}
+    single_models = {
+        GRBModelsCombinations.PL,
+        GRBModelsCombinations.CPL,
+        GRBModelsCombinations.BAND,
+        GRBModelsCombinations.SBPL,
+    }
     if single_only and (a not in single_models or b not in single_models):
         raise ValueError("Single-model comparison requires PL/CPL/BAND/SBPL")
 
@@ -226,8 +222,12 @@ def compare_models(a_model: Union[str, GRBModelsCombinations], a_cstat: float,
     return _compare_different_complexity(a, b, a_free, b_free, a_cstat, b_cstat)
 
 
-def compare_single_models(a_model: Union[str, GRBModelsCombinations], a_cstat: float,
-                         b_model: Union[str, GRBModelsCombinations], b_cstat: float) -> str:
+def compare_single_models(
+    a_model: Union[str, GRBModelsCombinations],
+    a_cstat: float,
+    b_model: Union[str, GRBModelsCombinations],
+    b_cstat: float,
+) -> str:
     """Compare only single models (PL, CPL, BAND, SBPL).
 
     Parameters
@@ -286,8 +286,8 @@ def filter_models_by_error(c_stats, folder_path, candidates, **kwargs):
         m: c_stats[m]
         for m in candidates
         if m in c_stats
-           and os.path.exists(os.path.join(folder_path, f"{m}.fit"))
-           and model_passes_error_criteria(path=os.path.join(folder_path, f"{m}.fit"), **kwargs)
+        and os.path.exists(os.path.join(folder_path, f"{m}.fit"))
+        and model_passes_error_criteria(path=os.path.join(folder_path, f"{m}.fit"), **kwargs)
     }
 
 
@@ -331,7 +331,7 @@ def list_safe_models(folder_path, **kwargs):
         m
         for m in ALLOWED_MODELS
         if os.path.exists(os.path.join(folder_path, f"{m}.fit"))
-           and model_passes_error_criteria(os.path.join(folder_path, f"{m}.fit"), **kwargs)
+        and model_passes_error_criteria(os.path.join(folder_path, f"{m}.fit"), **kwargs)
     }
 
 
@@ -353,9 +353,7 @@ def compute_good_models(c_stats, folder_path, **kwargs):
         Dictionary mapping group names to (model_name, cstat) tuples.
     """
     good = {}
-    base = filter_models_by_error(
-        c_stats=c_stats, folder_path=folder_path, candidates=MODEL_GROUPS["BASE"], **kwargs
-    )
+    base = filter_models_by_error(c_stats=c_stats, folder_path=folder_path, candidates=MODEL_GROUPS["BASE"], **kwargs)
     if base:
         good["BASE"] = pick_best_single_model(base)
 
@@ -366,7 +364,7 @@ def compute_good_models(c_stats, folder_path, **kwargs):
                 candidates=MODEL_GROUPS[group_name],
                 group_name=f"+{group_name}",
                 folder_path=folder_path,
-                **kwargs
+                **kwargs,
             )
         except Exception:
             pass
@@ -555,9 +553,18 @@ def list_par_err(cwd_, fit_type, string=1, is_good=None, result_dict=None, ep_ex
 
             # Store results
             _store_model_results(
-                result_dict, grb, ep_ext, ep, model, model_status,
-                vals, errs, c_stat, dof, cov_matrix,
-                MODEL_PARAMETERS[gmC(model.lower())]
+                result_dict,
+                grb,
+                ep_ext,
+                ep,
+                model,
+                model_status,
+                vals,
+                errs,
+                c_stat,
+                dof,
+                cov_matrix,
+                MODEL_PARAMETERS[gmC(model.lower())],
             )
 
             # Print details

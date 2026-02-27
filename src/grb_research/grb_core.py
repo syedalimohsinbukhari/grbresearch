@@ -1,6 +1,6 @@
 """Created on Dec 26 14:40:22 2025"""
+
 import json
-from collections import defaultdict
 from dataclasses import dataclass
 from typing import Dict, Iterable, List, Optional, Union
 
@@ -114,7 +114,7 @@ class GRB:
                             m_count_unsafe[m.name] = 1
                         else:
                             m_count_unsafe[m.name] += 1
-            return {'SAFE': dict(m_count_safe), 'UNSAFE': dict(m_count_unsafe)}
+            return {"SAFE": dict(m_count_safe), "UNSAFE": dict(m_count_unsafe)}
         else:
             m_count = {}
             for interval_ in int_mask:

@@ -10,7 +10,6 @@ from typing import Dict, List, Optional, Tuple
 
 from .grb_constants import LATEX_MODEL_NAMES, MODEL_ORDER
 
-
 # LaTeX model name mapping
 
 
@@ -33,7 +32,7 @@ class LogParser:
 
     def _read_log_file(self) -> str:
         """Read the entire log file content."""
-        with open(self.log_file_path, 'r') as f:
+        with open(self.log_file_path, "r") as f:
             return f.read()
 
     def parse(self) -> List[Dict]:
@@ -45,7 +44,7 @@ class LogParser:
             List of episode dictionaries containing parsed data.
         """
         # Split by RUN blocks
-        run_blocks = re.split(r'\[RUN\] Started at \d+_\d+ on directory (.+?)\n', self.log_content)
+        run_blocks = re.split(r"\[RUN\] Started at \d+_\d+ on directory (.+?)\n", self.log_content)
 
         # Process blocks (skip first empty element)
         for i in range(1, len(run_blocks), 2):
@@ -76,14 +75,14 @@ class LogParser:
         """
         # Extract GRB name and episode info from directory path
         # Example: /path/to/GRB110721200/Ep0__0.000_21.824
-        path_parts = directory_path.split('/')
+        path_parts = directory_path.split("/")
         grb_name = None
         episode_dir = None
 
         for part in path_parts:
-            if part.startswith('GRB'):
+            if part.startswith("GRB"):
                 grb_name = part
-            elif part.startswith('Ep'):
+            elif part.startswith("Ep"):
                 episode_dir = part
 
         if not grb_name or not episode_dir:
@@ -112,11 +111,11 @@ class LogParser:
                 model_parameters[model] = params
 
         return {
-            'grb_name': grb_name,
-            'episode_name': episode_name,
-            'time_range': time_range,
-            'safe_models': safe_models,
-            'model_parameters': model_parameters,
+            "grb_name": grb_name,
+            "episode_name": episode_name,
+            "time_range": time_range,
+            "safe_models": safe_models,
+            "model_parameters": model_parameters,
         }
 
     def _parse_episode_info(self, episode_dir: str) -> Tuple[str, Tuple[float, float]]:
@@ -134,7 +133,7 @@ class LogParser:
         """
         # Extract episode identifier and time range
         # Format: EpX__start_end, EpXA__start_end, or EpXA__m0.384_1.344 (m prefix for negative)
-        match = re.match(r'Ep(\d+)([A-Z]?)__m?([\d.]+)_([\d.]+)', episode_dir)
+        match = re.match(r"Ep(\d+)([A-Z]?)__m?([\d.]+)_([\d.]+)", episode_dir)
         if not match:
             return "Unknown", (0.0, 0.0)
 
@@ -144,17 +143,17 @@ class LogParser:
         end_time = float(match.group(4))
 
         # Handle negative start time (prefixed with 'm' instead of '-')
-        if '__m' in episode_dir:
+        if "__m" in episode_dir:
             start_time = -float(start_time_str)
         else:
             start_time = float(start_time_str)
 
         # Determine episode name based on rules
-        if ep_num == '0':
+        if ep_num == "0":
             episode_name = "Time integrated"
-        elif ep_suffix in ['A', 'B']:
+        elif ep_suffix in ["A", "B"]:
             episode_name = f"Episode EX--{ep_suffix}"
-        elif ep_suffix in ['X', 'Y', 'Z']:
+        elif ep_suffix in ["X", "Y", "Z"]:
             # X, Y, Z are sub-episodes, treat as regular episodes
             roman = self._to_roman(int(ep_num))
             episode_name = f"Episode {roman}{ep_suffix}"
@@ -167,16 +166,14 @@ class LogParser:
 
     def _to_roman(self, num: int) -> str:
         """Convert integer to Roman numeral."""
-        val_to_roman = [
-            (10, 'X'), (9, 'IX'), (5, 'V'), (4, 'IV'), (1, 'I')
-        ]
+        val_to_roman = [(10, "X"), (9, "IX"), (5, "V"), (4, "IV"), (1, "I")]
         result = []
         for value, numeral in val_to_roman:
             count = num // value
             if count:
                 result.append(numeral * count)
                 num -= value * count
-        return ''.join(result)
+        return "".join(result)
 
     def _extract_safe_models(self, block_content: str) -> List[str]:
         """Extract the list of SAFE models from the block content.
@@ -197,7 +194,7 @@ class LogParser:
 
         # Extract model names and clean them
         models_str = match.group(1)
-        models = [m.strip().strip("'\"") for m in models_str.split(',')]
+        models = [m.strip().strip("'\"") for m in models_str.split(",")]
         return models
 
     def _extract_unsafe_models(self, block_content: str) -> List[str]:
@@ -219,7 +216,7 @@ class LogParser:
 
         # Extract model names and clean them
         models_str = match.group(1)
-        models = [m.strip().strip("'\"") for m in models_str.split(',')]
+        models = [m.strip().strip("'\"") for m in models_str.split(",")]
         return models
 
     def _extract_model_parameters(self, block_content: str, model: str, is_safe: bool = True) -> Optional[Dict]:
@@ -250,7 +247,7 @@ class LogParser:
         param_section = match.group(1)
 
         # Check if section is empty (no actual parameters)
-        if not param_section.strip() or param_section.strip() == '':
+        if not param_section.strip() or param_section.strip() == "":
             return None
 
         parameters = {}
@@ -258,26 +255,20 @@ class LogParser:
         # Extract each parameter line
         # Format: "   parameter_name = value(error) , percentage %"
         if is_safe:
-            param_lines = re.findall(
-                r'\s+(\w+)\s+=\s+([\d.e+-]+)\(([\d.e+-]+)\)',
-                param_section
-            )
+            param_lines = re.findall(r"\s+(\w+)\s+=\s+([\d.e+-]+)\(([\d.e+-]+)\)", param_section)
             for param_name, value, error in param_lines:
                 parameters[param_name] = (float(value), float(error), None)
         else:
             # For UNSAFE models, also capture error percentage (including scientific notation like "1.79e+04 %")
-            param_lines = re.findall(
-                r'\s+(\w+)\s+=\s+([\d.e+-]+)\(([\d.e+-]+)\)\s*,\s*([\d.e+-]+)\s*%',
-                param_section
-            )
+            param_lines = re.findall(r"\s+(\w+)\s+=\s+([\d.e+-]+)\(([\d.e+-]+)\)\s*,\s*([\d.e+-]+)\s*%", param_section)
             for param_name, value, error, error_pct in param_lines:
                 parameters[param_name] = (float(value), float(error), float(error_pct))
 
         # Special handling for c-stat/dof (format: cstat/dof)
-        cstat_match = re.search(r'c-stat/dof\s+=\s+([\d.]+)/([\d.]+)', param_section)
+        cstat_match = re.search(r"c-stat/dof\s+=\s+([\d.]+)/([\d.]+)", param_section)
         if cstat_match:
-            parameters['cstat'] = float(cstat_match.group(1))
-            parameters['dof'] = float(cstat_match.group(2))
+            parameters["cstat"] = float(cstat_match.group(1))
+            parameters["dof"] = float(cstat_match.group(2))
 
         return parameters if parameters else None
 
@@ -298,7 +289,7 @@ class LogParser:
         """
         for param_name, param_data in parameters.items():
             # Skip non-parameter entries (cstat, dof)
-            if param_name in ['cstat', 'dof']:
+            if param_name in ["cstat", "dof"]:
                 continue
 
             # Check if error percentage exists and is within threshold
@@ -342,14 +333,19 @@ class LaTeXTableGenerator:
         # lines.append(" \\renewcommand{\\arraystretch}{1.175}")
         lines.append(" \\caption{")
         lines.append(
-            f"         Fitted parameters for time-integrated and time-resolved spectral analysis of {self.grb_name}.")
+            f"         Fitted parameters for time-integrated and time-resolved spectral analysis of {self.grb_name}."
+        )
         lines.append("         The values in parenthesis are the uncertainty in the measured parameter.")
         lines.append("         The BEST models are highlighted with a light gray strip.")
-        lines.append("         The marked parameters in red indicate the values that are just beyond the error " + \
-                     "criteria limit.")
+        lines.append(
+            "         The marked parameters in red indicate the values that are just beyond the error "
+            + "criteria limit."
+        )
         lines.append("         The percentage above threshold is indicated in superscript for reference.")
-        lines.append("         The models not included here either did not converge, or produced errors much higher" + \
-                     " than the threshold criteria.")
+        lines.append(
+            "         The models not included here either did not converge, or produced errors much higher"
+            + " than the threshold criteria."
+        )
         lines.append("     }")
         lines.append(f" \\label{{tab:{self.grb_name}-large}}")
         lines.append(" \\resizebox{\\textwidth}{!}{")
@@ -390,7 +386,7 @@ class LaTeXTableGenerator:
         lines.append("}")
         lines.append("\\end{table*}")
 
-        return '\n'.join(lines)
+        return "\n".join(lines)
 
     def _generate_episode_section(self, episode: Dict) -> List[str]:
         """Generate LaTeX lines for a single episode section.
@@ -408,14 +404,15 @@ class LaTeXTableGenerator:
         lines = []
 
         # Episode header
-        start, end = episode['time_range']
+        start, end = episode["time_range"]
         lines.append(
-            f"     \\multicolumn{{13}}{{l}}{{\\textbf{{{episode['episode_name']}: \\sirangeDuration{{{start:.3f}}}{{{end:.3f}}}}}}}\\\\")
+            f"     \\multicolumn{{13}}{{l}}{{\\textbf{{{episode['episode_name']}: \\sirangeDuration{{{start:.3f}}}{{{end:.3f}}}}}}}\\\\"
+        )
 
         # Model rows in the specified order
         for model in MODEL_ORDER:
-            if model in episode['model_parameters']:
-                params = episode['model_parameters'][model]
+            if model in episode["model_parameters"]:
+                params = episode["model_parameters"][model]
                 row = self._generate_model_row(model, params)
                 lines.append(row)
 
@@ -439,49 +436,49 @@ class LaTeXTableGenerator:
             LaTeX table row string.
         """
         # Initialize all columns with tabledash
-        cols = ['\\tabledash'] * 13
+        cols = ["\\tabledash"] * 13
 
         # Column 0: Model name
         cols[0] = f"     {LATEX_MODEL_NAMES[model]}"
 
         # Determine which columns to fill based on the model type
-        if model in ['PL', 'PL_BB']:
+        if model in ["PL", "PL_BB"]:
             # PL models use columns 7-8 (PL section)
-            if 'amplitude' in params:
-                cols[6] = self._format_amplitude(params['amplitude'])
-            if 'index1' in params:
-                cols[7] = self._format_value(params['index1'])
+            if "amplitude" in params:
+                cols[6] = self._format_amplitude(params["amplitude"])
+            if "index1" in params:
+                cols[7] = self._format_value(params["index1"])
         else:
             # SBPL/BAND/CPL models use columns 2-5 (main section)
-            if 'amplitude' in params:
-                cols[1] = self._format_amplitude(params['amplitude'])
-            if 'index1' in params:
-                cols[2] = self._format_value(params['index1'])
-            if 'index2' in params:
-                cols[3] = self._format_value(params['index2'])
-            if 'peak_energy' in params:
-                cols[4] = self._format_value(params['peak_energy'])
-            elif 'break_energy' in params:
-                cols[4] = self._format_value(params['break_energy'])
+            if "amplitude" in params:
+                cols[1] = self._format_amplitude(params["amplitude"])
+            if "index1" in params:
+                cols[2] = self._format_value(params["index1"])
+            if "index2" in params:
+                cols[3] = self._format_value(params["index2"])
+            if "peak_energy" in params:
+                cols[4] = self._format_value(params["peak_energy"])
+            elif "break_energy" in params:
+                cols[4] = self._format_value(params["break_energy"])
 
         # BB models (any model ending with _BB) use columns 10-11
-        if model.endswith('_BB'):
-            if 'amplitude_bb' in params:
-                cols[9] = self._format_bb_amplitude(params['amplitude_bb'])
-            if 'kt_temperature' in params:
-                cols[10] = self._format_value(params['kt_temperature'])
+        if model.endswith("_BB"):
+            if "amplitude_bb" in params:
+                cols[9] = self._format_bb_amplitude(params["amplitude_bb"])
+            if "kt_temperature" in params:
+                cols[10] = self._format_value(params["kt_temperature"])
 
         # Column 13: C-Stat/DOF
-        if 'cstat' in params and 'dof' in params:
+        if "cstat" in params and "dof" in params:
             cols[12] = f"{params['cstat']:.4f}/{params['dof']:.0f}"
 
         # Columns 5, 8, 11 are always empty separators
-        cols[5] = ''
-        cols[8] = ''
-        cols[11] = ''
+        cols[5] = ""
+        cols[8] = ""
+        cols[11] = ""
 
         # Join with ' & ' and add a line ending
-        return ' & '.join(cols) + ' \\\\'
+        return " & ".join(cols) + " \\\\"
 
     def _format_amplitude(self, value_error: Tuple[float, ...]) -> str:
         """Format amplitude value for main components (6 decimal places).
@@ -618,9 +615,9 @@ def parse_log_and_generate_table(log_file_path: str, output_file_path: str, grb_
     # Extract GRB name if not provided
     if grb_name is None:
         # Convert GRB110721200 to GRB110721A format
-        raw_name = episodes[0]['grb_name']
+        raw_name = episodes[0]["grb_name"]
         # Extract just the date part and add 'A' suffix
-        match = re.match(r'GRB(\d{6})', raw_name)
+        match = re.match(r"GRB(\d{6})", raw_name)
         if match:
             grb_name = f"GRB{match.group(1)}A"
         else:
@@ -631,7 +628,7 @@ def parse_log_and_generate_table(log_file_path: str, output_file_path: str, grb_
     table_content = generator.generate_table()
 
     # Write to file
-    with open(output_file_path, 'w') as f:
+    with open(output_file_path, "w") as f:
         f.write(table_content)
 
     print(f"LaTeX table generated successfully: {output_file_path}")

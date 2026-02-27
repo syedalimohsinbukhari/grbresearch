@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 import numpy as np
-from numpy.linalg import cholesky, inv, LinAlgError
+from numpy.linalg import LinAlgError, cholesky, inv
 
 
 # make the class as dataclass
@@ -26,12 +26,14 @@ class ParameterSet:
         else:
             return self.parameters[key]
 
-    def get_populated_values(self,
-                             cov_matrix,
-                             parameter_name=None,
-                             size=10_000,
-                             seed: Optional[int] = None,
-                             rng: Optional[np.random.Generator] = None):
+    def get_populated_values(
+        self,
+        cov_matrix,
+        parameter_name=None,
+        size=10_000,
+        seed: Optional[int] = None,
+        rng: Optional[np.random.Generator] = None,
+    ):
         """
         Returns a multivariate normal sample from the parameter set with a given covariance matrix.
 

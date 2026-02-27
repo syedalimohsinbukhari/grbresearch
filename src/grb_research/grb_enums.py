@@ -26,7 +26,6 @@ from enum import Enum
 from functools import wraps
 from typing import Dict, List, Optional, Union
 
-
 # ==================== Dataclasses for Model Metadata ====================
 
 
@@ -43,6 +42,7 @@ class ParameterDef:
     has_bounds : bool
         Whether this parameter has bounds constraints.
     """
+
     name: str
     is_fixed: bool
     has_bounds: bool
@@ -77,6 +77,7 @@ class ModelMetadata:
     is_allowed : bool
         Whether this model is in ALLOWED_MODELS set.
     """
+
     color: str
     total_params: int
     free_params: int
@@ -274,7 +275,6 @@ MODEL_METADATA: Dict[GRBModelsCombinations, ModelMetadata] = {
         is_standalone=True,
         is_allowed=True,
     ),
-
     # BB - Black Body (component only)
     GRBModelsCombinations.BB: ModelMetadata(
         color="purple",
@@ -284,18 +284,11 @@ MODEL_METADATA: Dict[GRBModelsCombinations, ModelMetadata] = {
         latex_name=r"\bb",
         base_parameters=["amp_bb", "kt_bb"],
         component_parameters=["amp_bb", "kt_bb"],
-        base_schema=[
-            ParameterDef("amplitude_bb", False, False),
-            ParameterDef("kt_temperature", False, False),
-        ],
-        component_schema=[
-            ParameterDef("amplitude_bb", False, False),
-            ParameterDef("kt_temperature", False, False),
-        ],
+        base_schema=[ParameterDef("amplitude_bb", False, False), ParameterDef("kt_temperature", False, False)],
+        component_schema=[ParameterDef("amplitude_bb", False, False), ParameterDef("kt_temperature", False, False)],
         is_standalone=False,
         is_allowed=False,
     ),
-
     # PL_BB - Power Law + Black Body
     GRBModelsCombinations.PL_BB: ModelMetadata(
         color="blue",
@@ -310,7 +303,6 @@ MODEL_METADATA: Dict[GRBModelsCombinations, ModelMetadata] = {
         is_standalone=True,
         is_allowed=True,
     ),
-
     # CPL - Cutoff Power Law
     GRBModelsCombinations.CPL: ModelMetadata(
         color="orange",
@@ -330,7 +322,6 @@ MODEL_METADATA: Dict[GRBModelsCombinations, ModelMetadata] = {
         is_standalone=True,
         is_allowed=True,
     ),
-
     # CPL_PL
     GRBModelsCombinations.CPL_PL: ModelMetadata(
         color="orange",
@@ -345,7 +336,6 @@ MODEL_METADATA: Dict[GRBModelsCombinations, ModelMetadata] = {
         is_standalone=True,
         is_allowed=True,
     ),
-
     # CPL_BB
     GRBModelsCombinations.CPL_BB: ModelMetadata(
         color="orange",
@@ -360,7 +350,6 @@ MODEL_METADATA: Dict[GRBModelsCombinations, ModelMetadata] = {
         is_standalone=True,
         is_allowed=True,
     ),
-
     # CPL_PL_BB
     GRBModelsCombinations.CPL_PL_BB: ModelMetadata(
         color="orange",
@@ -368,14 +357,23 @@ MODEL_METADATA: Dict[GRBModelsCombinations, ModelMetadata] = {
         free_params=7,
         complexity_order=99,
         latex_name=r"\cplplbb",
-        base_parameters=["amp_pl", "e_piv_pl", "add_index_pl", "amp_cpl", "e_peak_cpl", "index1_cpl", "e_piv_cpl", "amp_bb", "kt_bb"],
+        base_parameters=[
+            "amp_pl",
+            "e_piv_pl",
+            "add_index_pl",
+            "amp_cpl",
+            "e_peak_cpl",
+            "index1_cpl",
+            "e_piv_cpl",
+            "amp_bb",
+            "kt_bb",
+        ],
         component_parameters=None,
         base_schema=[],
         component_schema=None,
         is_standalone=True,
         is_allowed=True,
     ),
-
     # BAND
     GRBModelsCombinations.BAND: ModelMetadata(
         color="green",
@@ -395,7 +393,6 @@ MODEL_METADATA: Dict[GRBModelsCombinations, ModelMetadata] = {
         is_standalone=True,
         is_allowed=True,
     ),
-
     # BAND_PL
     GRBModelsCombinations.BAND_PL: ModelMetadata(
         color="green",
@@ -410,7 +407,6 @@ MODEL_METADATA: Dict[GRBModelsCombinations, ModelMetadata] = {
         is_standalone=True,
         is_allowed=True,
     ),
-
     # BAND_BB
     GRBModelsCombinations.BAND_BB: ModelMetadata(
         color="green",
@@ -425,7 +421,6 @@ MODEL_METADATA: Dict[GRBModelsCombinations, ModelMetadata] = {
         is_standalone=True,
         is_allowed=True,
     ),
-
     # BAND_PL_BB
     GRBModelsCombinations.BAND_PL_BB: ModelMetadata(
         color="green",
@@ -433,14 +428,23 @@ MODEL_METADATA: Dict[GRBModelsCombinations, ModelMetadata] = {
         free_params=8,
         complexity_order=99,
         latex_name=r"\bandplbb",
-        base_parameters=["amp_pl", "e_piv_pl", "add_index_pl", "amp_band", "e_peak_band", "index1_band", "index2_band", "amp_bb", "kt_bb"],
+        base_parameters=[
+            "amp_pl",
+            "e_piv_pl",
+            "add_index_pl",
+            "amp_band",
+            "e_peak_band",
+            "index1_band",
+            "index2_band",
+            "amp_bb",
+            "kt_bb",
+        ],
         component_parameters=None,
         base_schema=[],
         component_schema=None,
         is_standalone=True,
         is_allowed=True,
     ),
-
     # SBPL - Smoothly Broken Power Law
     GRBModelsCombinations.SBPL: ModelMetadata(
         color="red",
@@ -462,7 +466,6 @@ MODEL_METADATA: Dict[GRBModelsCombinations, ModelMetadata] = {
         is_standalone=True,
         is_allowed=True,
     ),
-
     # SBPL_PL
     GRBModelsCombinations.SBPL_PL: ModelMetadata(
         color="red",
@@ -470,14 +473,23 @@ MODEL_METADATA: Dict[GRBModelsCombinations, ModelMetadata] = {
         free_params=6,
         complexity_order=99,
         latex_name=r"\sbplpl",
-        base_parameters=["amp_pl", "e_piv_pl", "add_index_pl", "amp_sbpl", "e_piv_sbpl", "index1_sbpl", "e_break_sbpl", "delta_sbpl", "index2_sbpl"],
+        base_parameters=[
+            "amp_pl",
+            "e_piv_pl",
+            "add_index_pl",
+            "amp_sbpl",
+            "e_piv_sbpl",
+            "index1_sbpl",
+            "e_break_sbpl",
+            "delta_sbpl",
+            "index2_sbpl",
+        ],
         component_parameters=None,
         base_schema=[],
         component_schema=None,
         is_standalone=True,
         is_allowed=True,
     ),
-
     # SBPL_BB
     GRBModelsCombinations.SBPL_BB: ModelMetadata(
         color="red",
@@ -485,14 +497,22 @@ MODEL_METADATA: Dict[GRBModelsCombinations, ModelMetadata] = {
         free_params=6,
         complexity_order=99,
         latex_name=r"\sbplbb",
-        base_parameters=["amp_sbpl", "e_piv_sbpl", "index1_sbpl", "e_break_sbpl", "delta_sbpl", "index2_sbpl", "amp_bb", "kt_bb"],
+        base_parameters=[
+            "amp_sbpl",
+            "e_piv_sbpl",
+            "index1_sbpl",
+            "e_break_sbpl",
+            "delta_sbpl",
+            "index2_sbpl",
+            "amp_bb",
+            "kt_bb",
+        ],
         component_parameters=None,
         base_schema=[],
         component_schema=None,
         is_standalone=True,
         is_allowed=True,
     ),
-
     # SBPL_PL_BB
     GRBModelsCombinations.SBPL_PL_BB: ModelMetadata(
         color="red",
@@ -500,7 +520,19 @@ MODEL_METADATA: Dict[GRBModelsCombinations, ModelMetadata] = {
         free_params=8,
         complexity_order=99,
         latex_name=r"\sbplplbb",
-        base_parameters=["amp_pl", "e_piv_pl", "add_index_pl", "amp_sbpl", "e_piv_sbpl", "index1_sbpl", "e_break_sbpl", "delta_sbpl", "index2_sbpl", "amp_bb", "kt_bb"],
+        base_parameters=[
+            "amp_pl",
+            "e_piv_pl",
+            "add_index_pl",
+            "amp_sbpl",
+            "e_piv_sbpl",
+            "index1_sbpl",
+            "e_break_sbpl",
+            "delta_sbpl",
+            "index2_sbpl",
+            "amp_bb",
+            "kt_bb",
+        ],
         component_parameters=None,
         base_schema=[],
         component_schema=None,
@@ -570,11 +602,7 @@ _MODEL_GROUP_MAPPINGS: Dict[ModelGroupType, List[GRBModelsCombinations]] = {
         GRBModelsCombinations.BAND_BB,
         GRBModelsCombinations.SBPL_BB,
     ],
-    ModelGroupType.PL: [
-        GRBModelsCombinations.CPL_PL,
-        GRBModelsCombinations.BAND_PL,
-        GRBModelsCombinations.SBPL_PL,
-    ],
+    ModelGroupType.PL: [GRBModelsCombinations.CPL_PL, GRBModelsCombinations.BAND_PL, GRBModelsCombinations.SBPL_PL],
     ModelGroupType.PLBB: [
         GRBModelsCombinations.CPL_PL_BB,
         GRBModelsCombinations.BAND_PL_BB,
@@ -703,11 +731,13 @@ def accepts_string_or_enum(*param_names):
     ...     # model_a and model_b are now guaranteed to be enums
     ...     return model_a.free_params < model_b.free_params
     """
+
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
             # Get function signature
             import inspect
+
             sig = inspect.signature(func)
             bound = sig.bind(*args, **kwargs)
             bound.apply_defaults()
@@ -720,7 +750,7 @@ def accepts_string_or_enum(*param_names):
                         bound.arguments[param_name] = str_to_model(value)
 
             return func(*bound.args, **bound.kwargs)
+
         return wrapper
+
     return decorator
-
-

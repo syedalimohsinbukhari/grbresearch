@@ -24,7 +24,8 @@ __all__ = [
     "MODEL_GROUPS",
 ]
 
-from .grb_enums import GRBModelsCombinations as gmC, ModelGroupType
+from .grb_enums import GRBModelsCombinations as gmC
+from .grb_enums import ModelGroupType
 
 OK_THRESHOLD = 0.4
 NOK_THRESHOLD = 1.0
@@ -49,10 +50,22 @@ model_n_pars = {m: m.total_params for m in gmC}
 MODEL_PARAMETERS = {m: m.base_parameters for m in gmC}
 
 # Keep original order for backward compatibility
-MODEL_ORDER = ['PL', 'PL_BB',
-               'SBPL', 'SBPL_PL', 'SBPL_BB', 'SBPL_PL_BB',
-               'BAND', 'BAND_PL', 'BAND_BB', 'BAND_PL_BB',
-               'CPL', 'CPL_PL', 'CPL_BB', 'CPL_PL_BB']
+MODEL_ORDER = [
+    "PL",
+    "PL_BB",
+    "SBPL",
+    "SBPL_PL",
+    "SBPL_BB",
+    "SBPL_PL_BB",
+    "BAND",
+    "BAND_PL",
+    "BAND_BB",
+    "BAND_PL_BB",
+    "CPL",
+    "CPL_PL",
+    "CPL_BB",
+    "CPL_PL_BB",
+]
 
 # AUTO-GENERATED FROM ENUMS - DO NOT EDIT DIRECTLY
 LATEX_MODEL_NAMES = {m.name_upper: m.latex_name for m in gmC}
@@ -63,15 +76,9 @@ LATEX_MODEL_NAMES = {m.name_upper: m.latex_name for m in gmC}
 ALLOWED_MODELS = {m.name_upper for m in gmC if m.is_allowed}
 
 # Single models only (PL, CPL, BAND, SBPL)
-SINGLE_MODEL_FREE_PARAMS = {
-    m.name_upper: m.free_params for m in gmC
-    if m in [gmC.PL, gmC.CPL, gmC.BAND, gmC.SBPL]
-}
+SINGLE_MODEL_FREE_PARAMS = {m.name_upper: m.free_params for m in gmC if m in [gmC.PL, gmC.CPL, gmC.BAND, gmC.SBPL]}
 
-SINGLE_MODEL_ORDER = {
-    m.name_upper: m.complexity_order for m in gmC
-    if m in [gmC.PL, gmC.CPL, gmC.BAND, gmC.SBPL]
-}
+SINGLE_MODEL_ORDER = {m.name_upper: m.complexity_order for m in gmC if m in [gmC.PL, gmC.CPL, gmC.BAND, gmC.SBPL]}
 
 # Component free parameters (PL and BB when used as components)
 COMPONENT_FREE_PARAMS = {"PL": 2, "BB": 2}
@@ -82,7 +89,8 @@ COMPONENT_FREE_PARAMS = {"PL": 2, "BB": 2}
 # Convert ParameterDef to tuples for backward compatibility
 BASE_PARAM_SCHEMAS = {
     m.name_upper: [(p.name, p.is_fixed, p.has_bounds) for p in m.base_schema]
-    for m in gmC if m.base_schema and m in [gmC.PL, gmC.CPL, gmC.BAND, gmC.SBPL]
+    for m in gmC
+    if m.base_schema and m in [gmC.PL, gmC.CPL, gmC.BAND, gmC.SBPL]
 }
 
 COMPONENT_PARAM_SCHEMAS = {
@@ -93,8 +101,4 @@ COMPONENT_PARAM_SCHEMAS = {
 # ==================== Model Groups for GOOD Selection ====================
 # AUTO-GENERATED FROM ENUMS - DO NOT EDIT DIRECTLY
 
-MODEL_GROUPS = {
-    group.value: group.model_names
-    for group in ModelGroupType
-}
-
+MODEL_GROUPS = {group.value: group.model_names for group in ModelGroupType}

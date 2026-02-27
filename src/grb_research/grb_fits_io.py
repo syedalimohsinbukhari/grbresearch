@@ -192,4 +192,3 @@ def get_extra_values(path):
         ff.close()
 
     return ph_flx, ph_fln, en_flx, en_fln, cov_
-

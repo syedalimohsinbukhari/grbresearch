@@ -4,10 +4,8 @@ import matplotlib.pyplot as plt
 
 from src.grb_research import find_project_root
 from src.grb_research.grb_calculations import (
-    amati_relationship_dirirsia2019,
-    plot_grbs_over_amati_relationship,
-    plot_unknown_redshift_grb,
-)
+    amati_relationship_dirirsia2019, plot_grbs_over_amati_relationship,
+    plot_unknown_redshift_grb)
 from src.grb_research.grb_core import prepare_grbs
 
 SOURCE_ROOT = find_project_root()

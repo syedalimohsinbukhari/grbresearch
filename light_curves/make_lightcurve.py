@@ -8,20 +8,20 @@ from light_curves import lightcurve_data
 
 
 def make_lightcurves(
-        src_name,
-        met_time,
-        start,
-        stop,
-        nai_detector_list,
-        bgo_detector_list,
-        lat_gtrspgen,
-        low1=10,
-        high1=50,
-        low2=50,
-        high2=900,
-        low3=250,
-        high3=40_000,
-        no_lat=False
+    src_name,
+    met_time,
+    start,
+    stop,
+    nai_detector_list,
+    bgo_detector_list,
+    lat_gtrspgen,
+    low1=10,
+    high1=50,
+    low2=50,
+    high2=900,
+    low3=250,
+    high3=40_000,
+    no_lat=False,
 ):
     print(f"Reading the data for {low1} keV to {high1} keV energy range")
     data_nai_1 = [lightcurve_data(dat_file=f"{i}.dat", energy_low=low1, energy_high=high1) for i in nai_detector_list]

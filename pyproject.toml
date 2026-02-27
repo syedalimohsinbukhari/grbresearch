@@ -1,0 +1,15 @@
+[project]
+name = "grbresearchwork"
+version = "0.1.0"
+description = "GRB Research Work"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy",
+    "matplotlib",
+    "uncertainties",
+    "pandas",
+    "seaborn",
+    "astropy",
+    "scipy",
+    "tqdm"
+]

@@ -1,7 +1,7 @@
 """Created on Jan 07 15:37:00 2026"""
 
 from dataclasses import dataclass
-from multiprocessing import cpu_count, Pool
+from multiprocessing import Pool, cpu_count
 from typing import List, Optional, Tuple
 
 import numpy as np
@@ -211,15 +211,15 @@ def legacy_build_mp(pars):
 
 
 def mcmc_spectra_sampler(
-        model: Model,
-        model_type="counts",
-        e_range=(1, 7),
-        n_samples: int = 10_000,
-        n_grid: int = 10_000,
-        n_workers: int = None,
-        samples=None,
-        seed: Optional[int] = None,
-        rng: Optional[np.random.Generator] = None,
+    model: Model,
+    model_type="counts",
+    e_range=(1, 7),
+    n_samples: int = 10_000,
+    n_grid: int = 10_000,
+    n_workers: int = None,
+    samples=None,
+    seed: Optional[int] = None,
+    rng: Optional[np.random.Generator] = None,
 ):
     """
     Parallel MCMC sampler for spectral model parameter estimation.
@@ -296,20 +296,20 @@ def credible_interval_partition(samples: np.ndarray) -> Tuple[np.ndarray, np.nda
 
 
 def mcmc_e_iso_sampler(
-        model: Model,
-        z: float = 1.0,
-        n_samples: int = 100,
-        n_grid: int = 100,
-        det_min: float = 1.0,
-        det_max: float = 7.0,
-        bol_min: float = 0,
-        bol_max: float = 4.0,
-        h0: float = 70.0,
-        omega_m: float = 0.315,
-        method=1,
-        samples=None,
-        seed_number=1234,
-        rng: Optional[np.random.Generator] = None,
+    model: Model,
+    z: float = 1.0,
+    n_samples: int = 100,
+    n_grid: int = 100,
+    det_min: float = 1.0,
+    det_max: float = 7.0,
+    bol_min: float = 0,
+    bol_max: float = 4.0,
+    h0: float = 70.0,
+    omega_m: float = 0.315,
+    method=1,
+    samples=None,
+    seed_number=1234,
+    rng: Optional[np.random.Generator] = None,
 ) -> np.ndarray:
     """
     Draw MCMC samples and compute isotropic-equivalent energy (E_iso).
@@ -358,21 +358,30 @@ def mcmc_e_iso_sampler(
     # ph / cm^2 / s / keV (n_samples, n_grid)
     bolometric_samples = np.asarray(
         mcmc_spectra_sampler(
-            model=model, model_type="energy", e_range=(bol_min, bol_max), n_samples=n_samples, n_grid=n_grid,
-            samples=samples, rng=rng_instance
+            model=model,
+            model_type="energy",
+            e_range=(bol_min, bol_max),
+            n_samples=n_samples,
+            n_grid=n_grid,
+            samples=samples,
+            rng=rng_instance,
         )
     )
     if method == 1:
         energy_detector = np.logspace(start=det_min, stop=det_max, num=n_grid)
         detector_samples = np.asarray(
             mcmc_spectra_sampler(
-                model=model, model_type="energy", e_range=(det_min, det_max), n_samples=n_samples, n_grid=n_grid,
-                rng=rng_instance
+                model=model,
+                model_type="energy",
+                e_range=(det_min, det_max),
+                n_samples=n_samples,
+                n_grid=n_grid,
+                rng=rng_instance,
             )
         )
         # keV / cm^2: vectorized integration over axis=1
         detector_fluence = (
-                simpson(y=detector_samples * energy_detector, x=energy_detector, axis=1) * model.interval.duration
+            simpson(y=detector_samples * energy_detector, x=energy_detector, axis=1) * model.interval.duration
         )
 
         numerator = simpson(y=bolometric_samples * e_observed, x=e_observed, axis=1)
@@ -431,8 +440,11 @@ def plot_best_models(best_models, n_rows=2, n_cols=None, grb_name=None, fig_size
         color = (
             "k"
             if v.interval.kind == EpisodeTypes.T90
-            else "b" if v.interval.kind in [EpisodeTypes.EX0, EpisodeTypes.EX1]
-            else "g" if v.interval.kind == EpisodeTypes.SP else "r"
+            else (
+                "b"
+                if v.interval.kind in [EpisodeTypes.EX0, EpisodeTypes.EX1]
+                else "g" if v.interval.kind == EpisodeTypes.SP else "r"
+            )
         )
         print(f"processing {v.name}")
         samples = mcmc_spectra_sampler(v, n_samples=n_samples, n_grid=n_grid)
@@ -516,7 +528,11 @@ def plot_all_models(best_models, grb_name, n_rows=2, n_cols=None, fig_size=(12, 
                 ax[i].loglog(x, med * x**2, "k--", label=f"{w.interval.kind}")
                 ax[i].fill_between(x, low * x**2, high * x**2, color="k", alpha=0.2)
             else:
-                sub = f"{w.interval.kind}{w.interval.index}" if w.interval.kind in [EpisodeTypes.TR, EpisodeTypes.SP] else w.interval.kind
+                sub = (
+                    f"{w.interval.kind}{w.interval.index}"
+                    if w.interval.kind in [EpisodeTypes.TR, EpisodeTypes.SP]
+                    else w.interval.kind
+                )
                 ax[i].loglog(x, med * x**2, "--", label=f"{sub}")
                 ax[i].fill_between(x, low * x**2, high * x**2, alpha=0.2)
 
@@ -542,18 +558,18 @@ def plot_all_models(best_models, grb_name, n_rows=2, n_cols=None, fig_size=(12, 
 
 
 def amati_relationship_dirirsia2019(
-        e_iso_norm=1e52,
-        e_i_peak_norm=950.0,
-        log_k=1.67,
-        sigma_log_k=0.16,
-        m=1.16,
-        sigma_m=0.37,
-        sigma_ext=0.47,
-        sigmas=(1, 2, 3),
-        x_lim=(10, 1e5),
-        y_lim=(1e50, 1e55),
-        num_points=1_000,
-        use_average=False
+    e_iso_norm=1e52,
+    e_i_peak_norm=950.0,
+    log_k=1.67,
+    sigma_log_k=0.16,
+    m=1.16,
+    sigma_m=0.37,
+    sigma_ext=0.47,
+    sigmas=(1, 2, 3),
+    x_lim=(10, 1e5),
+    y_lim=(1e50, 1e55),
+    num_points=1_000,
+    use_average=False,
 ):
     """Plot the Amati relation with confidence bands."""
 
@@ -594,18 +610,18 @@ def amati_relationship_dirirsia2019(
 
 
 def plot_grbs_over_amati_relationship(
-        grb_names: List[str],
-        best_model_list,
-        redshift_list: List[float],
-        marker_list: List[str],
-        n_grid: int = 10_000,
-        n_sample: int = 10_000,
-        seed_number: int = 0,
-        unknown_redshift: bool = False,
+    grb_names: List[str],
+    best_model_list,
+    redshift_list: List[float],
+    marker_list: List[str],
+    n_grid: int = 10_000,
+    n_sample: int = 10_000,
+    seed_number: int = 0,
+    unknown_redshift: bool = False,
 ) -> None:
     """
     Plot GRBs on the Amati plane.
-    
+
     Parameters
     ----------
     grb_names : List[str]
@@ -624,7 +640,7 @@ def plot_grbs_over_amati_relationship(
         Random seed number for reproducibility. Default is 0.
     unknown_redshift : bool, optional
         If True, GRBs with unknown redshift are plotted with reduced opacity. Default is False.
-    
+
     Notes
     -----
     The function evaluates E_peak and E_iso (with uncertainties) for each model using MCMC sampling.
@@ -661,12 +677,21 @@ def plot_grbs_over_amati_relationship(
 
                 mvd_n_samples = {k: v[idx] for k, v in mvd_filtered.items()}
 
-                vals = break_e_to_e_peak(index1_sbpl=mvd_n_samples["index1_sbpl"],
-                                         index2_sbpl=mvd_n_samples["index2_sbpl"],
-                                         break_energy_sbpl=mvd_n_samples["e_break_sbpl"])
-                e_iso = mcmc_e_iso_sampler(m, redshift_list[index], n_samples=n_sample, n_grid=n_grid, method=2,
-                                           samples=np.array(list(mvd_n_samples.values())).T,
-                                           seed_number=seed_number + index2, rng=rng)
+                vals = break_e_to_e_peak(
+                    index1_sbpl=mvd_n_samples["index1_sbpl"],
+                    index2_sbpl=mvd_n_samples["index2_sbpl"],
+                    break_energy_sbpl=mvd_n_samples["e_break_sbpl"],
+                )
+                e_iso = mcmc_e_iso_sampler(
+                    m,
+                    redshift_list[index],
+                    n_samples=n_sample,
+                    n_grid=n_grid,
+                    method=2,
+                    samples=np.array(list(mvd_n_samples.values())).T,
+                    seed_number=seed_number + index2,
+                    rng=rng,
+                )
             else:
                 name_split = m_name.lower().split("_")
                 if len(name_split) > 1:
@@ -679,9 +704,16 @@ def plot_grbs_over_amati_relationship(
                     mvd[v] = vals[:, i]
                 vals = mvd[f"e_peak_{name_split.lower()}"]
 
-                e_iso = mcmc_e_iso_sampler(m, redshift_list[index], n_samples=n_sample, n_grid=n_grid, method=2,
-                                           samples=np.array(list(mvd.values())).T, seed_number=seed_number + index2,
-                                           rng=rng)
+                e_iso = mcmc_e_iso_sampler(
+                    m,
+                    redshift_list[index],
+                    n_samples=n_sample,
+                    n_grid=n_grid,
+                    method=2,
+                    samples=np.array(list(mvd.values())).T,
+                    seed_number=seed_number + index2,
+                    rng=rng,
+                )
 
             e_peak_i = vals * (1 + redshift_list[index])
 
@@ -694,8 +726,11 @@ def plot_grbs_over_amati_relationship(
             col = (
                 "r"
                 if m.interval.kind == EpisodeTypes.T90
-                else "b" if m.interval.kind in [EpisodeTypes.EX0, EpisodeTypes.EX1]
-                else "k" if m.interval.kind is EpisodeTypes.SP else "g"
+                else (
+                    "b"
+                    if m.interval.kind in [EpisodeTypes.EX0, EpisodeTypes.EX1]
+                    else "k" if m.interval.kind is EpisodeTypes.SP else "g"
+                )
             )
 
             plt.errorbar(
@@ -723,11 +758,18 @@ def plot_grbs_over_amati_relationship(
 
 
 def plot_unknown_redshift_grb(
-        best_model, grb_name, z_values=(1, 2, 3, 4, 5, 6, 7), n_grid=10_0000, n_sample=10_000, seed_number=0
+    best_model, grb_name, z_values=(1, 2, 3, 4, 5, 6, 7), n_grid=10_0000, n_sample=10_000, seed_number=0
 ):
     """Plot the unknown redshift GRB."""
     temp_best = [[best_model]] * len(z_values)
     grb_name = [grb_name]
-    plot_grbs_over_amati_relationship(grb_names=grb_name, best_model_list=temp_best, redshift_list=z_values,
-                                      marker_list=["D"] * len(z_values), n_grid=n_grid, n_sample=n_sample,
-                                      seed_number=seed_number, unknown_redshift=True)
+    plot_grbs_over_amati_relationship(
+        grb_names=grb_name,
+        best_model_list=temp_best,
+        redshift_list=z_values,
+        marker_list=["D"] * len(z_values),
+        n_grid=n_grid,
+        n_sample=n_sample,
+        seed_number=seed_number,
+        unknown_redshift=True,
+    )

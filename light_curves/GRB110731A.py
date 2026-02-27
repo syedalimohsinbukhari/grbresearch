@@ -2,9 +2,8 @@
 
 import os
 
-from matplotlib import pyplot as plt
-
 from make_lightcurve import make_lightcurves
+from matplotlib import pyplot as plt
 
 source_name = "110731A"
 t_05 = 0.064

@@ -9,7 +9,8 @@ from .grb_atomic import Parameter
 from .grb_constants import kev_to_erg, model_n_pars
 from .grb_enums import GRBModelsCombinations as gmC
 from .grb_model import Model
-from .grb_seds import band_function, black_body, cutoff_powerlaw, powerlaw, smoothly_broken_power_law
+from .grb_seds import (band_function, black_body, cutoff_powerlaw, powerlaw,
+                       smoothly_broken_power_law)
 
 MODEL_MAP = {
     gmC.PL_BB: (gmC.PL, gmC.BB),

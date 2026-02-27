@@ -2,7 +2,7 @@
 
 import json
 
-from src.grb_research import find_project_root, GRB, ModelSet
+from src.grb_research import GRB, ModelSet, find_project_root
 from src.grb_research.grb_calculations import plot_best_models
 from src.grb_research.grb_constants import short_to_long
 
