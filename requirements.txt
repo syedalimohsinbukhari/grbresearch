@@ -6,3 +6,4 @@ seaborn
 astropy
 scipy
 tqdm
+black

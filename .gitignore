@@ -211,3 +211,4 @@ __marimo__/
 /**/*.dat
 /**/lat.fits
 /GRBResearch/
+uv.lock
