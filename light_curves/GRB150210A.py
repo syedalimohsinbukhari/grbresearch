@@ -32,7 +32,7 @@ f, ax = make_lightcurves(
     lat_gtrspgen=f"{cwd}/{path_}/{fit}",
 )
 
-times = [0.064, 0.832, 2.176, 3.328, 17.344, 31.36]
+times = [0.064, 0.832, 2.112, 3.008, 17.344, 31.36]
 colors = ["r", "g", "gold", "b", "maroon", "cyan"]
 
 for ax_i in ax:
@@ -41,6 +41,7 @@ for ax_i in ax:
             ax_i.axvline(end, color=colors[index + 1], ls="--")
         ax_i.axvspan(start, end, color=color, alpha=0.1)
 
+# plt.show()
 [plt.savefig(f"GRB{source_name}_lightcurve.{i}", dpi=600) for i in ["png", "pdf"]]
 plt.close()
 

@@ -5,14 +5,18 @@ from typing import Dict, List, Union
 
 import numpy as np
 
-from .grb_constants import (ALLOWED_MODELS, MODEL_GROUPS, MODEL_PARAMETERS,
-                            SINGLE_MODEL_FREE_PARAMS, SINGLE_MODEL_ORDER)
+from .grb_constants import ALLOWED_MODELS, MODEL_GROUPS, MODEL_PARAMETERS, SINGLE_MODEL_FREE_PARAMS, SINGLE_MODEL_ORDER
 from .grb_enums import GRBModelsCombinations
 from .grb_enums import GRBModelsCombinations as gmC
 from .grb_enums import normalize_model
-from .grb_fits_io import (build_composite_schema, collect_model_cstat,
-                          get_extra_values, get_model_name_from_path,
-                          read_cstat_from_fit, read_param_values_errors)
+from .grb_fits_io import (
+    build_composite_schema,
+    collect_model_cstat,
+    get_extra_values,
+    get_model_name_from_path,
+    read_cstat_from_fit,
+    read_param_values_errors,
+)
 from .grb_utils import analyze_model_hierarchy
 
 # Re-export for backward compatibility

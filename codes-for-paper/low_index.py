@@ -10,8 +10,7 @@ from src.grb_research import find_project_root
 from src.grb_research.grb_constants import short_to_long
 from src.grb_research.grb_core import GRBCatalog
 from src.grb_research.grb_model import ModelSet
-from src.grb_research.grb_utils import (plot_per_episode,
-                                        save_value_error_as_parquet)
+from src.grb_research.grb_utils import plot_per_episode, save_value_error_as_parquet
 
 fs = 12
 

@@ -12,8 +12,7 @@ import pandas as pd
 import seaborn
 from matplotlib.patches import Ellipse
 
-from .grb_constants import (MODEL_PARAMETERS, NOK_THRESHOLD, OK_THRESHOLD,
-                            model_n_pars)
+from .grb_constants import MODEL_PARAMETERS, NOK_THRESHOLD, OK_THRESHOLD, model_n_pars
 from .grb_enums import GRBModelsCombinations, ModelStatus
 
 m_style = seaborn.color_palette("deep6")

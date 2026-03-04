@@ -32,6 +32,8 @@ f, ax = make_lightcurves(
     lat_gtrspgen=f"{cwd}/{path_}/{fit}",
 )
 
+# the light curve division roughly follows
+# https://ui.adsabs.harvard.edu/abs/2009Sci...323.1688A/abstract
 times = [1.280, 4.864, 15.040, 55.296, 59.52, 64.256]
 colors = ["r", "g", "gold", "b", "maroon", "cyan"]
 
@@ -44,8 +46,8 @@ for ax_i in ax:
 ax[2].set_ylim(bottom=-1150, top=2350)
 f.subplots_adjust(hspace=0.030)
 
-plt.show()
-# [plt.savefig(f"GRB{source_name}_lightcurve.{i}", dpi=600) for i in ["png", "pdf"]]
-# plt.close()
+# plt.show()
+[plt.savefig(f"GRB{source_name}_lightcurve.{i}", dpi=600) for i in ["png", "pdf"]]
+plt.close()
 
 os.chdir(cwd)

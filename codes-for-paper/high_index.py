@@ -8,8 +8,7 @@ from matplotlib import pyplot as plt
 from src.grb_research import find_project_root
 from src.grb_research.grb_core import prepare_grbs
 from src.grb_research.grb_model import ModelSet
-from src.grb_research.grb_utils import (plot_per_episode,
-                                        save_value_error_as_parquet)
+from src.grb_research.grb_utils import plot_per_episode, save_value_error_as_parquet
 
 fs = 12
 
