@@ -54,7 +54,7 @@ with open(log_filename, "w", buffering=1) as log_file:
                     print(f"Best single model unavailable ({e})")
                 for label, group in {
                     "+BB": ["PL_BB", "CPL_BB", "BAND_BB", "SBPL_BB"],
-                    "+PL": ["CPL_PL", "BAND_PL", "SBPL_PL"],
+                    # "+PL": ["CPL_PL", "BAND_PL", "SBPL_PL"],
                     "+PL+BB": ["CPL_PL_BB", "BAND_PL_BB", "SBPL_PL_BB"],
                 }.items():
                     try:
@@ -65,15 +65,33 @@ with open(log_filename, "w", buffering=1) as log_file:
                     except Exception as e:
                         print(f"Best {label} model unavailable ({e})")
                 safe = list(sgb.list_safe_models(cwd))
-                good = sgb.compute_good_models(c_stats=mapping, folder_path=cwd)
-                unsafe = [m for m in mapping if m not in safe]
+                mapping_safe = {k: v for k, v in mapping.items() if k in safe}
+
+                _marginal = list(sgb.list_safe_models(cwd, par_constraint=0.5))
+                marginal = list(set(safe) ^ set(_marginal))
+                good = sgb.compute_good_models(c_stats=mapping_safe, folder_path=cwd)
+                if marginal:
+                    new_list = safe + marginal
+                    unsafe = [m for m in mapping if m not in new_list]
+                else:
+                    unsafe = [m for m in mapping if m not in safe]
+
                 good_names = [i[0] for i in list(good.values())]
                 safe.sort()
-                # good_names.sort()
                 unsafe.sort()
+
                 print(f"SAFE models: {sorted(safe)}")
-                sgb.list_par_err(cwd_=cwd, fit_type=safe, string=1, is_good=good, result_dict=res_safe, ep_ext=ep_ext)
+                sgb.list_par_err(cwd_=cwd, fit_type=list(mapping_safe.keys()),
+                                 string=1, is_good=good, result_dict=res_safe, ep_ext=ep_ext)
                 print(f"GOOD models: {good}")
+                if marginal:
+                    mapping_marginal = {k: v for k, v in mapping.items() if k in marginal}
+                    good_marginally = sgb.compute_good_models(c_stats=mapping_marginal, folder_path=cwd)
+                    marginal_names = [i[0] for i in list(good_marginally.values())]
+                    marginal.sort()
+                    print(f"MARGINALLY SAFE models: {sorted(marginal)}")
+                    sgb.list_par_err(cwd_=cwd, fit_type=list(mapping_marginal.keys()),
+                                     string=-1, is_good=good_marginally, result_dict=res_safe, ep_ext=ep_ext)
                 print(f"UNSAFE models: {sorted(unsafe)}")
                 sgb.list_par_err(cwd_=cwd, fit_type=unsafe, string=0, result_dict=res_unsafe, ep_ext=ep_ext)
                 print(f"[RUN] Finished at {datetime.now().strftime('%Y%m%d_%H%M%S')}")

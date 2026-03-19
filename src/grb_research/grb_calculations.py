@@ -290,7 +290,7 @@ def credible_interval_partition(samples: np.ndarray) -> Tuple[np.ndarray, np.nda
         containing the 50th, 16th, and 84th percentiles respectively.
     """
     s = samples.T
-    part = np.nanpercentile(s, [16, 50, 80], axis=1)
+    part = np.nanpercentile(s, [16, 50, 84], axis=1)
 
     return np.asarray(part[1], dtype=float).T, np.asarray(part[0], dtype=float).T, np.asarray(part[2], dtype=float).T
 

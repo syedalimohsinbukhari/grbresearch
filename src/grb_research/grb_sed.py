@@ -13,13 +13,13 @@ from .grb_seds import band_function, black_body, cutoff_powerlaw, powerlaw, smoo
 
 MODEL_MAP = {
     gmC.PL_BB: (gmC.PL, gmC.BB),
-    gmC.CPL_PL: (gmC.PL, gmC.CPL),
+    # gmC.CPL_PL: (gmC.PL, gmC.CPL),
     gmC.CPL_BB: (gmC.CPL, gmC.BB),
     gmC.CPL_PL_BB: (gmC.PL, gmC.CPL, gmC.BB),
-    gmC.BAND_PL: (gmC.PL, gmC.BAND),
+    # gmC.BAND_PL: (gmC.PL, gmC.BAND),
     gmC.BAND_BB: (gmC.BAND, gmC.BB),
     gmC.BAND_PL_BB: (gmC.PL, gmC.BAND, gmC.BB),
-    gmC.SBPL_PL: (gmC.PL, gmC.SBPL),
+    # gmC.SBPL_PL: (gmC.PL, gmC.SBPL),
     gmC.SBPL_BB: (gmC.SBPL, gmC.BB),
     gmC.SBPL_PL_BB: (gmC.PL, gmC.SBPL, gmC.BB),
 }

@@ -13,5 +13,7 @@ dependencies = [
     "astropy",
     "scipy",
     "tqdm",
-    "black"
+    "black",
+    "pyqt6>=6.10.2",
+    "plotez>=0.2.1",
 ]

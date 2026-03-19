@@ -10,6 +10,7 @@ from typing import Dict, List, Optional, Tuple
 
 from .grb_constants import LATEX_MODEL_NAMES, MODEL_ORDER
 
+
 # LaTeX model name mapping
 
 
@@ -46,7 +47,7 @@ class LogParser:
         # Split by RUN blocks
         run_blocks = re.split(r"\[RUN\] Started at \d+_\d+ on directory (.+?)\n", self.log_content)
 
-        # Process blocks (skip first empty element)
+        # Process blocks (skip the first empty element)
         for i in range(1, len(run_blocks), 2):
             if i + 1 < len(run_blocks):
                 directory_path = run_blocks[i].strip()
@@ -148,7 +149,7 @@ class LogParser:
         else:
             start_time = float(start_time_str)
 
-        # Determine episode name based on rules
+        # Determine an episode name based on rules
         if ep_num == "0":
             episode_name = "Time integrated"
         elif ep_suffix in ["A", "B"]:
@@ -156,7 +157,7 @@ class LogParser:
         elif ep_suffix in ["X", "Y", "Z"]:
             # X, Y, Z are sub-episodes, treat as regular episodes
             roman = self._to_roman(int(ep_num))
-            episode_name = f"Episode {roman}{ep_suffix}"
+            episode_name = f"Episode {roman}-{ep_suffix}"
         else:
             # Convert to Roman numerals for regular episodes
             roman = self._to_roman(int(ep_num))
@@ -165,7 +166,7 @@ class LogParser:
         return episode_name, (start_time, end_time)
 
     def _to_roman(self, num: int) -> str:
-        """Convert integer to Roman numeral."""
+        """Convert integer to a Roman numeral."""
         val_to_roman = [(10, "X"), (9, "IX"), (5, "V"), (4, "IV"), (1, "I")]
         result = []
         for value, numeral in val_to_roman:
@@ -210,7 +211,7 @@ class LogParser:
         List[str]
             List of UNSAFE model names.
         """
-        match = re.search(r"UNSAFE models: \[(.+?)\]", block_content)
+        match = re.search(r"(?:UNSAFE|MARGINALLY SAFE) models: \[(.+?)\]", block_content)
         if not match:
             return []
 
@@ -237,8 +238,8 @@ class LogParser:
             Dictionary of parameter names to (value, error, error_percentage) tuples, or None.
         """
         # Find the parameter details section for this model
-        model_type = "SAFE" if is_safe else "UNSAFE"
-        pattern = rf"\[{model_type}\] {model} parameter details:\n(.*?)(?=\[SAFE\]|\[UNSAFE\]|GOOD models:|$)"
+        model_type = r"(?:SAFE|BEST)" if is_safe else r"(?:UNSAFE|MARGINAL)"
+        pattern = rf"\[{model_type}\] {model} parameter details:\n(.*?)(?=\[SAFE\]|\[BEST\]|\[UNSAFE\]|\[MARGINAL\]|GOOD models:|$)"
         match = re.search(pattern, block_content, re.DOTALL)
 
         if not match:
@@ -246,7 +247,7 @@ class LogParser:
 
         param_section = match.group(1)
 
-        # Check if section is empty (no actual parameters)
+        # Check if the section is empty (no actual parameters)
         if not param_section.strip() or param_section.strip() == "":
             return None
 
@@ -292,7 +293,7 @@ class LogParser:
             if param_name in ["cstat", "dof"]:
                 continue
 
-            # Check if error percentage exists and is within threshold
+            # Check if the error percentage exists and is within the threshold
             if len(param_data) >= 3 and param_data[2] is not None:
                 if param_data[2] > threshold:
                     return False
@@ -442,7 +443,7 @@ class LaTeXTableGenerator:
         cols[0] = f"     {LATEX_MODEL_NAMES[model]}"
 
         # Determine which columns to fill based on the model type
-        if model in ["PL", "PL_BB"]:
+        if model in ['PL', 'PL_BB']:
             # PL models use columns 7-8 (PL section)
             if "amplitude" in params:
                 cols[6] = self._format_amplitude(params["amplitude"])
@@ -461,12 +462,14 @@ class LaTeXTableGenerator:
             elif "break_energy" in params:
                 cols[4] = self._format_value(params["break_energy"])
 
+        if model.endswith('_PL_BB'):
+            cols[6] = self._format_amplitude(params["amplitude_pl"])
+            cols[7] = self._format_value(params["index2_pl"])
+
         # BB models (any model ending with _BB) use columns 10-11
         if model.endswith("_BB"):
-            if "amplitude_bb" in params:
-                cols[9] = self._format_bb_amplitude(params["amplitude_bb"])
-            if "kt_temperature" in params:
-                cols[10] = self._format_value(params["kt_temperature"])
+            cols[9] = self._format_bb_amplitude(params["amplitude_bb"])
+            cols[10] = self._format_value(params["kt_temperature"])
 
         # Column 13: C-Stat/DOF
         if "cstat" in params and "dof" in params:
@@ -477,7 +480,7 @@ class LaTeXTableGenerator:
         cols[8] = ""
         cols[11] = ""
 
-        # Join with ' & ' and add a line ending
+        # Join with '&' and add a line ending
         return " & ".join(cols) + " \\\\"
 
     def _format_amplitude(self, value_error: Tuple[float, ...]) -> str:
@@ -627,7 +630,7 @@ def parse_log_and_generate_table(log_file_path: str, output_file_path: str, grb_
     generator = LaTeXTableGenerator(episodes, grb_name)
     table_content = generator.generate_table()
 
-    # Write to file
+    # Write to a file
     with open(output_file_path, "w") as f:
         f.write(table_content)
 

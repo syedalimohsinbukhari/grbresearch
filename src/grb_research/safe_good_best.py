@@ -130,7 +130,8 @@ def _compare_equal_complexity(
 
 
 def _compare_different_complexity(
-    a: GRBModelsCombinations, b: GRBModelsCombinations, a_free: int, b_free: int, a_cstat: float, b_cstat: float
+    a: GRBModelsCombinations, b: GRBModelsCombinations, a_free: int, b_free: int, a_cstat: float, b_cstat: float,
+        is_separate_group: int = 0
 ) -> str:
     """Compare models with different complexity using improvement threshold.
 
@@ -155,7 +156,7 @@ def _compare_different_complexity(
         simple, simple_c, simple_f = b, b_cstat, b_free
         complex_, complex_c, complex_f = a, a_cstat, a_free
 
-    required = 9 * (complex_f - simple_f)
+    required = 9 * (complex_f - simple_f) if is_separate_group == 0 else 25 if is_separate_group == 1 else 50
     improvement = simple_c - complex_c
     return complex_.name_upper if improvement >= required else simple.name_upper
 
@@ -169,13 +170,14 @@ def compare_models(
     b_model: Union[str, GRBModelsCombinations],
     b_cstat: float,
     single_only: bool = False,
+    is_separate_group: int = 0,
 ) -> str:
     """Compare two models and return the better one based on c-stat and complexity.
 
     Parameters
     ----------
     a_model : Union[str, GRBModelsCombinations]
-        Name of first model (string or enum).
+        Name of the first model (string or enum).
     a_cstat : float
         C-statistic of first model.
     b_model : Union[str, GRBModelsCombinations]
@@ -189,13 +191,6 @@ def compare_models(
     -------
     str
         Name of the better model (uppercase string).
-
-    Examples
-    --------
-    >>> compare_models('CPL', 100.0, 'BAND', 95.0)
-    'CPL'
-    >>> compare_models(GRBModelsCombinations.CPL, 100.0, GRBModelsCombinations.BAND, 80.0)
-    'BAND'
     """
     # Convert to enums for internal processing
     a = normalize_model(a_model)
@@ -222,8 +217,9 @@ def compare_models(
     if a_free == b_free:
         return _compare_equal_complexity(a, b, a_cstat, b_cstat)
 
-    # Handle different complexity with improvement threshold
-    return _compare_different_complexity(a, b, a_free, b_free, a_cstat, b_cstat)
+    # Handle different complexity with the improvement threshold
+    return _compare_different_complexity(a, b, a_free, b_free, a_cstat, b_cstat,
+                                         is_separate_group)
 
 
 def compare_single_models(
@@ -295,24 +291,24 @@ def filter_models_by_error(c_stats, folder_path, candidates, **kwargs):
     }
 
 
-def pick_best_in_group(c_stats, candidates, group_name):
+def pick_best_in_group(c_stats, candidates, group_name, is_separate_group=0):
     present = [m for m in candidates if m in c_stats]
     if not present:
         raise ValueError(f"No {group_name} models found")
     present.sort(key=complexity_key)
     best, best_c = present[0], c_stats[present[0]]
     for m in present[1:]:
-        best = compare_models(a_model=best, a_cstat=best_c, b_model=m, b_cstat=c_stats[m])
+        best = compare_models(a_model=best, a_cstat=best_c, b_model=m, b_cstat=c_stats[m], is_separate_group=is_separate_group)
         best_c = c_stats[best]
     return best, best_c
 
 
-def pick_best_model(c_stats, candidates, group_name, folder_path=None, **kwargs):
+def pick_best_model(c_stats, candidates, group_name, folder_path=None, is_separate_group=0, **kwargs):
     if folder_path:
         c_stats = filter_models_by_error(c_stats=c_stats, folder_path=folder_path, candidates=candidates, **kwargs)
         if not c_stats:
             raise ValueError(f"No {group_name} models passed error criteria")
-    return pick_best_in_group(c_stats=c_stats, candidates=candidates, group_name=group_name)
+    return pick_best_in_group(c_stats=c_stats, candidates=candidates, group_name=group_name, is_separate_group=is_separate_group)
 
 
 def pick_best_single_model(c_stats: Dict[str, float]):
@@ -361,13 +357,15 @@ def compute_good_models(c_stats, folder_path, **kwargs):
     if base:
         good["BASE"] = pick_best_single_model(base)
 
-    for group_name in ["BB", "PL", "PLBB"]:
+    for group_name in ["BB", "PLBB"]:
         try:
+            candidates_ = [i for i in MODEL_GROUPS[group_name] if good["BASE"][0] in i]
             good[group_name] = pick_best_model(
                 c_stats=c_stats,
-                candidates=MODEL_GROUPS[group_name],
+                candidates=candidates_,
                 group_name=f"+{group_name}",
                 folder_path=folder_path,
+                is_separate_group=1 if group_name == "BB" else 2,
                 **kwargs,
             )
         except Exception:
@@ -535,10 +533,10 @@ def list_par_err(cwd_, fit_type, string=1, is_good=None, result_dict=None, ep_ex
     if is_good:
         hierarchy_result = analyze_model_hierarchy(is_good)
 
-    # Extract GRB and episode info from path
+    # Extract GRB and episode info from the path
     grb = cwd_.split("/")[-2]
     ep = cwd_.split("/")[-1].split("__")[1].replace("m", "-")
-    status_str = "SAFE" if string == 1 else "UNSAFE"
+    status_str = "SAFE" if string == 1 else "MARGINAL" if string == -1 else "UNSAFE"
 
     # Process each model
     for model in fit_type:
@@ -572,7 +570,7 @@ def list_par_err(cwd_, fit_type, string=1, is_good=None, result_dict=None, ep_ex
             )
 
             # Print details
-            _print_parameter_details(status_str, model, schema, vals, errs, flux_data)
+            _print_parameter_details(model_status, model, schema, vals, errs, flux_data)
 
         except Exception as e:
             print(f"[{string}] {model}: failed to read params ({e})")

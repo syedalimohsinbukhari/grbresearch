@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 Script to generate LaTeX tables from GRB spectral analysis log files.
 
@@ -11,12 +10,8 @@ Examples:
 """
 
 import sys
-from pathlib import Path
 
-# Add src to path for imports
-sys.path.insert(0, str(Path(__file__).parent / "src"))
-
-from grb_research.log_to_latex_parser import parse_log_and_generate_table
+from src.grb_research.log_to_latex_parser import parse_log_and_generate_table
 
 
 def main():

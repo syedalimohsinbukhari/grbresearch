@@ -7,3 +7,5 @@ astropy
 scipy
 tqdm
 black
+pyqt6
+plotez

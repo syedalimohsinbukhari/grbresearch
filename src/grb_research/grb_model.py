@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import copy
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 
 import numpy as np
 
@@ -28,6 +28,13 @@ class Model:
     dof: Optional[int] = None
     covariance_matrix: Optional[CovarianceMatrix] = None
 
+    def get_parameter_value(self, par_name):
+        """Get parameter value by name."""
+        for p in self.parameters:
+            if p.name == par_name:
+                return p.value
+        return None
+
     def get_parameter_values(self, get_errors=False, get_both=False):
         """Get parameter values as a numpy array."""
         if get_both:
@@ -45,6 +52,11 @@ class Model:
     def is_good(self):
         """Check if the model is a good fit."""
         return self.status is GoodnessOfFit.GOOD
+
+    @property
+    def is_marginal(self):
+        """Check if the model is a marginal fit."""
+        return self.status is GoodnessOfFit.MARGINAL
 
     @property
     def is_unsafe(self):
@@ -98,7 +110,15 @@ class Model:
         )
 
     def __str__(self) -> str:
-        safety = GoodnessOfFit.BEST if self.is_best else GoodnessOfFit.SAFE if self.is_good else GoodnessOfFit.UNSAFE
+        if self.is_best:
+            safety = GoodnessOfFit.BEST
+        elif self.is_good:
+            safety = GoodnessOfFit.GOOD
+        elif self.is_marginal:
+            safety = GoodnessOfFit.MARGINAL
+        else:
+            safety = GoodnessOfFit.UNSAFE
+
         return (
             f"model: {self.name},\n"
             f"_status: {safety}\n"
@@ -108,7 +128,14 @@ class Model:
         )
 
     def __repr__(self) -> str:
-        safety = GoodnessOfFit.BEST if self.is_best else GoodnessOfFit.SAFE if self.is_good else GoodnessOfFit.UNSAFE
+        if self.is_best:
+            safety = GoodnessOfFit.BEST
+        elif self.is_good:
+            safety = GoodnessOfFit.GOOD
+        elif self.is_marginal:
+            safety = GoodnessOfFit.MARGINAL
+        else:
+            safety = GoodnessOfFit.UNSAFE
         params = ",\n        ".join(repr(p) for p in self.parameters)
 
         return (
@@ -140,13 +167,17 @@ class ModelSet:
 
         lines = ["ModelSet("]
         for m in self._models:
-            lines.append(f"\tModel({m.name}, status={m.status.value}, cstat/dof={m.cstat:.3f}/{m.dof}),")
+            int_ = m.interval.to_string().split(' ')[0]
+            lines.append(f"\tModel({m.name} ({int_}), status={m.status.value}, cstat/dof={m.cstat:.3f}/{m.dof}),")
         lines.append(")")
         return "\n".join(lines)
 
-    def __getitem__(self, key: Union[int, str]) -> Model:
+    def __getitem__(self, key: int | str | slice) -> Model | ModelSet:
         if isinstance(key, int):
             return self._models[key]
+        elif isinstance(key, slice):
+            out_ = self._models[key]
+            return ModelSet(out_)
         return self._by_name[key]
 
     def __setitem__(self, key, value):
@@ -175,7 +206,9 @@ class ModelSet:
     @property
     def good(self) -> "ModelSet":
         """Return all GOOD models."""
-        return self.safe
+        good_models: List[Model] = [m for m in self._models
+                                    if m.status not in [GoodnessOfFit.UNSAFE, GoodnessOfFit.UNSAFE]]
+        return ModelSet(good_models)
 
     @property
     def unsafe(self) -> "ModelSet":

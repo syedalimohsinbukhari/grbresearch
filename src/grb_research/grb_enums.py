@@ -65,9 +65,9 @@ class ModelMetadata:
     latex_name : str
         LaTeX representation for publications.
     base_parameters : List[str]
-        Parameter names when used as base model.
+        Parameter names when used as a base model.
     component_parameters : Optional[List[str]]
-        Parameter names when used as component (e.g., PL as component).
+        Parameter names when used as a component (e.g., PL as a component).
     base_schema : List[ParameterDef]
         Parameter definitions for base model usage.
     component_schema : Optional[List[ParameterDef]]
@@ -75,7 +75,7 @@ class ModelMetadata:
     is_standalone : bool
         Whether this can be used as a standalone model.
     is_allowed : bool
-        Whether this model is in ALLOWED_MODELS set.
+        Whether this model is in the ALLOWED_MODELS set.
     """
 
     color: str
@@ -99,17 +99,17 @@ class GRBModelsCombinations(Enum):
     PL_BB = "pl_bb"
 
     CPL = "cpl"
-    CPL_PL = "cpl_pl"
+    # CPL_PL = "cpl_pl"
     CPL_BB = "cpl_bb"
     CPL_PL_BB = "cpl_pl_bb"
 
     BAND = "band"
-    BAND_PL = "band_pl"
+    # BAND_PL = "band_pl"
     BAND_BB = "band_bb"
     BAND_PL_BB = "band_pl_bb"
 
     SBPL = "sbpl"
-    SBPL_PL = "sbpl_pl"
+    # SBPL_PL = "sbpl_pl"
     SBPL_BB = "sbpl_bb"
     SBPL_PL_BB = "sbpl_pl_bb"
 
@@ -240,6 +240,7 @@ class GoodnessOfFit(Enum):
     UNSAFE = "UNSAFE"
     GOOD = SAFE
     BEST = "BEST"
+    MARGINAL = "MARGINAL"
     UNKNOWN = "UNKNOWN"
 
     def __str__(self):
@@ -323,19 +324,19 @@ MODEL_METADATA: Dict[GRBModelsCombinations, ModelMetadata] = {
         is_allowed=True,
     ),
     # CPL_PL
-    GRBModelsCombinations.CPL_PL: ModelMetadata(
-        color="orange",
-        total_params=7,
-        free_params=5,
-        complexity_order=99,
-        latex_name=r"\cplpl",
-        base_parameters=["amp_pl", "e_piv_pl", "add_index_pl", "amp_cpl", "e_peak_cpl", "index1_cpl", "e_piv_cpl"],
-        component_parameters=None,
-        base_schema=[],
-        component_schema=None,
-        is_standalone=True,
-        is_allowed=True,
-    ),
+    # GRBModelsCombinations.CPL_PL: ModelMetadata(
+    #     color="orange",
+    #     total_params=7,
+    #     free_params=5,
+    #     complexity_order=99,
+    #     latex_name=r"\cplpl",
+    #     base_parameters=["amp_pl", "e_piv_pl", "add_index_pl", "amp_cpl", "e_peak_cpl", "index1_cpl", "e_piv_cpl"],
+    #     component_parameters=None,
+    #     base_schema=[],
+    #     component_schema=None,
+    #     is_standalone=True,
+    #     is_allowed=True,
+    # ),
     # CPL_BB
     GRBModelsCombinations.CPL_BB: ModelMetadata(
         color="orange",
@@ -394,19 +395,19 @@ MODEL_METADATA: Dict[GRBModelsCombinations, ModelMetadata] = {
         is_allowed=True,
     ),
     # BAND_PL
-    GRBModelsCombinations.BAND_PL: ModelMetadata(
-        color="green",
-        total_params=7,
-        free_params=6,
-        complexity_order=99,
-        latex_name=r"\bandpl",
-        base_parameters=["amp_pl", "e_piv_pl", "add_index_pl", "amp_band", "e_peak_band", "index1_band", "index2_band"],
-        component_parameters=None,
-        base_schema=[],
-        component_schema=None,
-        is_standalone=True,
-        is_allowed=True,
-    ),
+    # GRBModelsCombinations.BAND_PL: ModelMetadata(
+    #     color="green",
+    #     total_params=7,
+    #     free_params=6,
+    #     complexity_order=99,
+    #     latex_name=r"\bandpl",
+    #     base_parameters=["amp_pl", "e_piv_pl", "add_index_pl", "amp_band", "e_peak_band", "index1_band", "index2_band"],
+    #     component_parameters=None,
+    #     base_schema=[],
+    #     component_schema=None,
+    #     is_standalone=True,
+    #     is_allowed=True,
+    # ),
     # BAND_BB
     GRBModelsCombinations.BAND_BB: ModelMetadata(
         color="green",
@@ -467,29 +468,29 @@ MODEL_METADATA: Dict[GRBModelsCombinations, ModelMetadata] = {
         is_allowed=True,
     ),
     # SBPL_PL
-    GRBModelsCombinations.SBPL_PL: ModelMetadata(
-        color="red",
-        total_params=9,
-        free_params=6,
-        complexity_order=99,
-        latex_name=r"\sbplpl",
-        base_parameters=[
-            "amp_pl",
-            "e_piv_pl",
-            "add_index_pl",
-            "amp_sbpl",
-            "e_piv_sbpl",
-            "index1_sbpl",
-            "e_break_sbpl",
-            "delta_sbpl",
-            "index2_sbpl",
-        ],
-        component_parameters=None,
-        base_schema=[],
-        component_schema=None,
-        is_standalone=True,
-        is_allowed=True,
-    ),
+    # GRBModelsCombinations.SBPL_PL: ModelMetadata(
+    #     color="red",
+    #     total_params=9,
+    #     free_params=6,
+    #     complexity_order=99,
+    #     latex_name=r"\sbplpl",
+    #     base_parameters=[
+    #         "amp_pl",
+    #         "e_piv_pl",
+    #         "add_index_pl",
+    #         "amp_sbpl",
+    #         "e_piv_sbpl",
+    #         "index1_sbpl",
+    #         "e_break_sbpl",
+    #         "delta_sbpl",
+    #         "index2_sbpl",
+    #     ],
+    #     component_parameters=None,
+    #     base_schema=[],
+    #     component_schema=None,
+    #     is_standalone=True,
+    #     is_allowed=True,
+    # ),
     # SBPL_BB
     GRBModelsCombinations.SBPL_BB: ModelMetadata(
         color="red",
@@ -574,7 +575,7 @@ class ModelGroupType(Enum):
 
     BASE = "BASE"
     BB = "BB"
-    PL = "PL"
+    # PL = "PL"
     PLBB = "PLBB"
 
     @property
@@ -602,7 +603,7 @@ _MODEL_GROUP_MAPPINGS: Dict[ModelGroupType, List[GRBModelsCombinations]] = {
         GRBModelsCombinations.BAND_BB,
         GRBModelsCombinations.SBPL_BB,
     ],
-    ModelGroupType.PL: [GRBModelsCombinations.CPL_PL, GRBModelsCombinations.BAND_PL, GRBModelsCombinations.SBPL_PL],
+    # ModelGroupType.PL: [GRBModelsCombinations.CPL_PL, GRBModelsCombinations.BAND_PL, GRBModelsCombinations.SBPL_PL],
     ModelGroupType.PLBB: [
         GRBModelsCombinations.CPL_PL_BB,
         GRBModelsCombinations.BAND_PL_BB,
@@ -631,13 +632,6 @@ def str_to_model(name: str) -> GRBModelsCombinations:
     ------
     ValueError
         If the model name is invalid.
-
-    Examples
-    --------
-    >>> str_to_model('CPL')
-    <GRBModelsCombinations.CPL: 'cpl'>
-    >>> str_to_model('cpl')
-    <GRBModelsCombinations.CPL: 'cpl'>
     """
     if not isinstance(name, str):
         raise TypeError(f"Expected str, got {type(name).__name__}")
@@ -697,13 +691,6 @@ def normalize_model(model: Union[str, GRBModelsCombinations]) -> GRBModelsCombin
     -------
     GRBModelsCombinations
         The model enum.
-
-    Examples
-    --------
-    >>> normalize_model('CPL')
-    <GRBModelsCombinations.CPL: 'cpl'>
-    >>> normalize_model(GRBModelsCombinations.CPL)
-    <GRBModelsCombinations.CPL: 'cpl'>
     """
     if isinstance(model, str):
         return str_to_model(model)

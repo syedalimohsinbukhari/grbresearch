@@ -616,7 +616,7 @@ def analyze_model_hierarchy(is_good: Dict) -> Dict[str, ModelStatus]:
     # Determine BASE status
     results[base_name] = _determine_base_status(base_name, results, single_extension)
 
-    # Handle any remaining models not yet processed
+    # Handle any remaining models aren't yet processed
     for model_name, value in base_containing_models.items():
         if model_name not in results:
             additional_components = model_name.count("_") - base_name.count("_")
