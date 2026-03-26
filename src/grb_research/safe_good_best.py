@@ -131,7 +131,7 @@ def _compare_equal_complexity(
 
 def _compare_different_complexity(
     a: GRBModelsCombinations, b: GRBModelsCombinations, a_free: int, b_free: int, a_cstat: float, b_cstat: float,
-        is_separate_group: int = 0
+    is_separate_group: int = 0
 ) -> str:
     """Compare models with different complexity using improvement threshold.
 
@@ -248,34 +248,23 @@ def compare_single_models(
 # ----------------- Error Criteria -----------------
 
 
-def _param_error_limit(model, pname, v, par_constraint, loose):
-    parameter_name = pname.lower()
-    base = model.split("_")[0]
-    if parameter_name == "index2" and base in ("BAND", "SBPL"):
-        factor = 1.0 if loose else 0.7
-        return factor * abs(v), f"loose_index2({factor})"
-    if parameter_name == "index2_pl" and "PL" in model.split("_")[1:]:
-        factor = 1.0 if loose else 0.7
-        return factor * abs(v), f"loose_pl_index({factor})"
-    return par_constraint * abs(v), f"default({par_constraint})"
-
-
-def model_passes_error_criteria(path, par_constraint=0.4, loose_criteria=False):
+def model_passes_error_criteria(path, par_constraint=0.4):
     model = get_model_name_from_path(path)
     try:
         schema = build_composite_schema(model)
         vals, errs = read_param_values_errors(path=path, n_parameters=len(schema))
     except Exception:
         return False
+    elevated_constraint = 0
     for (p_name, _, _), v, e in zip(schema, vals, errs):
-        limit, _ = _param_error_limit(
-            model=model, pname=p_name, v=v, par_constraint=par_constraint, loose=loose_criteria
-        )
+        limit = par_constraint * abs(v)
         if abs(v) == 0 and abs(e) != 0:
             return False
         if abs(v) != 0 and abs(e) >= limit:
             return False
-    return True
+        if abs(v) != 0 and np.logical_and(0.4 * abs(v) < abs(e), abs(e) < par_constraint * abs(v)):
+            elevated_constraint += 1
+    return True if elevated_constraint <= 1 else False
 
 
 # ----------------- Filtering & Picking -----------------
@@ -286,8 +275,8 @@ def filter_models_by_error(c_stats, folder_path, candidates, **kwargs):
         m: c_stats[m]
         for m in candidates
         if m in c_stats
-        and os.path.exists(os.path.join(folder_path, f"{m}.fit"))
-        and model_passes_error_criteria(path=os.path.join(folder_path, f"{m}.fit"), **kwargs)
+           and os.path.exists(os.path.join(folder_path, f"{m}.fit"))
+           and model_passes_error_criteria(path=os.path.join(folder_path, f"{m}.fit"), **kwargs)
     }
 
 
@@ -298,7 +287,8 @@ def pick_best_in_group(c_stats, candidates, group_name, is_separate_group=0):
     present.sort(key=complexity_key)
     best, best_c = present[0], c_stats[present[0]]
     for m in present[1:]:
-        best = compare_models(a_model=best, a_cstat=best_c, b_model=m, b_cstat=c_stats[m], is_separate_group=is_separate_group)
+        best = compare_models(a_model=best, a_cstat=best_c, b_model=m, b_cstat=c_stats[m],
+                              is_separate_group=is_separate_group)
         best_c = c_stats[best]
     return best, best_c
 
@@ -308,7 +298,8 @@ def pick_best_model(c_stats, candidates, group_name, folder_path=None, is_separa
         c_stats = filter_models_by_error(c_stats=c_stats, folder_path=folder_path, candidates=candidates, **kwargs)
         if not c_stats:
             raise ValueError(f"No {group_name} models passed error criteria")
-    return pick_best_in_group(c_stats=c_stats, candidates=candidates, group_name=group_name, is_separate_group=is_separate_group)
+    return pick_best_in_group(c_stats=c_stats, candidates=candidates, group_name=group_name,
+                              is_separate_group=is_separate_group)
 
 
 def pick_best_single_model(c_stats: Dict[str, float]):
@@ -327,11 +318,18 @@ def pick_best_single_model(c_stats: Dict[str, float]):
 
 
 def list_safe_models(folder_path, **kwargs):
+    p = {
+        m
+        for m in ALLOWED_MODELS
+        if os.path.exists(os.path.join(folder_path, f"{m}.fit"))
+           and model_passes_error_criteria(os.path.join(folder_path, f"{m}.fit"), **kwargs)
+    }
+    # print(f'{p=}')
     return {
         m
         for m in ALLOWED_MODELS
         if os.path.exists(os.path.join(folder_path, f"{m}.fit"))
-        and model_passes_error_criteria(os.path.join(folder_path, f"{m}.fit"), **kwargs)
+           and model_passes_error_criteria(os.path.join(folder_path, f"{m}.fit"), **kwargs)
     }
 
 

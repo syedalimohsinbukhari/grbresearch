@@ -8,6 +8,8 @@ import re
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
+import numpy as np
+
 from .grb_constants import LATEX_MODEL_NAMES, MODEL_ORDER
 
 
@@ -252,6 +254,7 @@ class LogParser:
             return None
 
         parameters = {}
+        elevated_constrains = 0
 
         # Extract each parameter line
         # Format: "   parameter_name = value(error) , percentage %"
@@ -262,7 +265,10 @@ class LogParser:
         else:
             # For UNSAFE models, also capture error percentage (including scientific notation like "1.79e+04 %")
             param_lines = re.findall(r"\s+(\w+)\s+=\s+([\d.e+-]+)\(([\d.e+-]+)\)\s*,\s*([\d.e+-]+)\s*%", param_section)
+            elevated_constrains = 0
             for param_name, value, error, error_pct in param_lines:
+                if np.logical_and(40 < float(error_pct), float(error_pct) < 50):
+                    elevated_constrains += 1
                 parameters[param_name] = (float(value), float(error), float(error_pct))
 
         # Special handling for c-stat/dof (format: cstat/dof)
@@ -271,7 +277,7 @@ class LogParser:
             parameters["cstat"] = float(cstat_match.group(1))
             parameters["dof"] = float(cstat_match.group(2))
 
-        return parameters if parameters else None
+        return parameters if (parameters and elevated_constrains <= 1) else None
 
     def _check_all_errors_below_threshold(self, parameters: Dict, threshold: float) -> bool:
         """Check if all parameter error percentages are below the threshold.

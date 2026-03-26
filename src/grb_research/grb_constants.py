@@ -6,7 +6,7 @@ This file maintains backward compatibility with existing code.
 """
 
 __all__ = [
-    "GRB_COLORS",
+    "MODEL_COLORS",
     "MODEL_PARAMETERS",
     "NOK_THRESHOLD",
     "OK_THRESHOLD",
@@ -22,6 +22,7 @@ __all__ = [
     "BASE_PARAM_SCHEMAS",
     "COMPONENT_PARAM_SCHEMAS",
     "MODEL_GROUPS",
+    "GRB_COLORS"
 ]
 
 from .grb_enums import GRBModelsCombinations as gmC
@@ -32,9 +33,14 @@ NOK_THRESHOLD = 1.0
 
 kev_to_erg = 1.6021766208e-09
 
+GRB_COLORS = ["#0072B2", "#E69F00", "#CC79A7", "#009E73"]
+GRB_EP_COLOR = {'T90': 'r',
+                'TR': 'g',
+                'EX': 'b'}
+
 # ==================== AUTO-GENERATED FROM ENUMS - DO NOT EDIT DIRECTLY ====================
 
-GRB_COLORS = {m: m.color for m in gmC}
+MODEL_COLORS = {m: m.color for m in gmC}
 
 short_to_long = {
     "150210A": "GRB150210935",
@@ -49,20 +55,20 @@ model_n_pars = {m: m.total_params for m in gmC}
 # AUTO-GENERATED FROM ENUMS - DO NOT EDIT DIRECTLY
 MODEL_PARAMETERS = {m: m.base_parameters for m in gmC}
 
-# Keep original order for backward compatibility
+# Keep the original order for backward compatibility
 MODEL_ORDER = [
     "PL",
     "PL_BB",
     "SBPL",
-    "SBPL_PL",
+    # "SBPL_PL",
     "SBPL_BB",
     "SBPL_PL_BB",
     "BAND",
-    "BAND_PL",
+    # "BAND_PL",
     "BAND_BB",
     "BAND_PL_BB",
     "CPL",
-    "CPL_PL",
+    # "CPL_PL",
     "CPL_BB",
     "CPL_PL_BB",
 ]
@@ -80,7 +86,7 @@ SINGLE_MODEL_FREE_PARAMS = {m.name_upper: m.free_params for m in gmC if m in [gm
 
 SINGLE_MODEL_ORDER = {m.name_upper: m.complexity_order for m in gmC if m in [gmC.PL, gmC.CPL, gmC.BAND, gmC.SBPL]}
 
-# Component free parameters (PL and BB when used as components)
+# Component-free parameters (PL and BB when used as components)
 COMPONENT_FREE_PARAMS = {"PL": 2, "BB": 2}
 
 # ==================== Parameter Schemas for FITS Reading ====================

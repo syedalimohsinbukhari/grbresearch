@@ -102,6 +102,7 @@ class GRB:
 
         if separate:
             m_count_safe, m_count_unsafe = {}, {}
+            m_count_marginal, m_count_best = {}, {}
             for interval_ in int_mask:
                 for m in interval_.models:
                     if m.status is GoodnessOfFit.SAFE:
@@ -114,7 +115,18 @@ class GRB:
                             m_count_unsafe[m.name] = 1
                         else:
                             m_count_unsafe[m.name] += 1
-            return {"SAFE": dict(m_count_safe), "UNSAFE": dict(m_count_unsafe)}
+                    if m.status is GoodnessOfFit.MARGINAL:
+                        if m.name not in m_count_marginal:
+                            m_count_marginal[m.name] = 1
+                        else:
+                            m_count_marginal[m.name] += 1
+                    if m.status is GoodnessOfFit.BEST:
+                        if m.name not in m_count_best:
+                            m_count_best[m.name] = 1
+                        else:
+                            m_count_best[m.name] += 1
+            return {"SAFE": dict(m_count_safe), "UNSAFE": dict(m_count_unsafe),
+                    "MARGINAL": dict(m_count_marginal), "BEST": dict(m_count_best)}
         else:
             m_count = {}
             for interval_ in int_mask:

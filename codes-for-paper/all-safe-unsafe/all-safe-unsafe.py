@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 
 from src.grb_research import GRBCatalog, find_project_root
 from src.grb_research.grb_constants import MODEL_ORDER, short_to_long
+from src.grb_research.grb_styles import GRBPlotStyle as grbStyle
 
 SOURCE_ROOT = find_project_root()
 result_file = SOURCE_ROOT / "results.json"
@@ -16,41 +17,72 @@ with open(result_file, "r") as f:
 
 grb = GRBCatalog.from_iterable(grb_list=grb_name, data=data, name_mapping=short_to_long)
 
-f, ax = plt.subplots(2, 2, figsize=(10, 8), sharex=True, sharey=True)
+f, ax = plt.subplots(2, 2, figsize=(10, 9), sharex=True, sharey=True)
 ax = ax.flatten()
 
-colors = ["blue", "green", "red", "orange"]  # Different color for each GRB
+colors = grbStyle.GRB_COLORS_ITERABLE
 MODEL_ORDER_R = [i.replace("_", "+") for i in MODEL_ORDER]
 
 for index, value in enumerate(grb.grb_list):
     dict_ = value.get_model_count(separate=True)
     safe = dict_["SAFE"]
     unsafe = dict_["UNSAFE"]
+    marginal = dict_["MARGINAL"]
+    best_ = dict_["BEST"]
 
     # Create data for the bar chart
     safe_counts = [safe.get(model, 0) for model in MODEL_ORDER]
     unsafe_counts = [unsafe.get(model, 0) for model in MODEL_ORDER]
+    marginal_counts = [marginal.get(model, 0) for model in MODEL_ORDER]
+    best_counts = [best_.get(model, 0) for model in MODEL_ORDER]
 
     # X positions for bars
     x_positions = list(range(len(MODEL_ORDER)))
 
     # Plot bars with different hatches and colors
-    # Plot SAFE data first (solid fill)
+    # Plot UNSAFE data first
     ax[index].bar(
-        x_positions, safe_counts, label="SAFE", color=colors[index], alpha=0.7, edgecolor="black", linewidth=0.5
+        x_positions, unsafe_counts, label="UNSAFE", color=colors[index], alpha=0.25, edgecolor="black", linewidth=0.5,
+        hatch='///'
     )
 
-    # Plot UNSAFE data on top (with hatch)
+    # Plot MARGINAL data on top (with hatch)
     ax[index].bar(
         x_positions,
-        unsafe_counts,
-        label="UNSAFE",
+        marginal_counts,
+        label="MARGINAL",
         color=colors[index],
-        hatch="///",
+        hatch="O",
         alpha=0.5,
         edgecolor="black",
         linewidth=0.5,
-        bottom=safe_counts,
+        bottom=unsafe_counts,
+    )
+
+    # Plot SAFE data on top (with hatch)
+    ax[index].bar(
+        x_positions,
+        safe_counts,
+        label="SAFE",
+        color=colors[index],
+        alpha=0.75,
+        hatch='\\',
+        edgecolor="black",
+        linewidth=0.5,
+        bottom=[a + b for a, b in zip(unsafe_counts, marginal_counts)],
+    )
+
+    # Plot the BEST data on top (with hatch)
+    ax[index].bar(
+        x_positions,
+        best_counts,
+        label="BEST",
+        color=colors[index],
+        # hatch="\\",
+        # alpha=0.5,
+        edgecolor="black",
+        linewidth=0.5,
+        bottom=[a + b + c for a, b, c in zip(safe_counts, marginal_counts, unsafe_counts)],
     )
 
     # Set tick positions and labels
@@ -61,6 +93,7 @@ for index, value in enumerate(grb.grb_list):
 [v.tick_params("x", rotation=90, labelsize=12) for v in ax]
 [v.tick_params("y", labelsize=12) for v in ax]
 ax[0].set_ylim(top=10.5)
+[i.set_ylabel('No. of models', fontsize=12) for i in [ax[0], ax[2]]]
 plt.tight_layout()
 # plt.show()
 [plt.savefig(f"./all-safe-unsafe.{i}", dpi=600) for i in ["png", "pdf"]]

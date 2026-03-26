@@ -17,6 +17,9 @@ from .grb_time import EpisodeTypes, TimeInterval
 from .grb_utils import break_e_to_e_peak
 
 
+LABEL_FONT_SIZE = 13
+TICK_FONT_SIZE = 12
+
 def get_rng(seed: Optional[int] = None, rng: Optional[np.random.Generator] = None) -> np.random.Generator:
     """
     Get or create a NumPy random number generator.
@@ -124,7 +127,7 @@ class IsotropicEnergy:
 
         # E_iso = (4 * pi * dl^2 * fluence) / (1 + z)
         dl = self.luminosity_distance()
-        e_iso = (4 * np.pi * dl**2 * fluence) / (1 + self.redshift)
+        e_iso = (4 * np.pi * dl ** 2 * fluence) / (1 + self.redshift)
 
         return e_iso
 
@@ -395,10 +398,10 @@ def mcmc_e_iso_sampler(
         bolometric_fluence = simpson(y=bolometric_samples, x=e_observed, axis=1) * model.interval.duration * kev_to_erg
 
     lum_distance = FlatLambdaCDM(H0=h0, Om0=omega_m).luminosity_distance(z).cgs.value
-    return (4 * np.pi * lum_distance**2 * bolometric_fluence.reshape(1, -1)) / (1 + z)
+    return (4 * np.pi * lum_distance ** 2 * bolometric_fluence.reshape(1, -1)) / (1 + z)
 
 
-def plot_best_models(best_models, n_rows=2, n_cols=None, grb_name=None, fig_size=(15, 4)):
+def plot_best_models(best_models, n_rows=2, n_cols=None, grb_name=None, fig_size=(15, 4), save=True):
     """
     Plots the energy flux of the best-fitting models for gamma-ray burst (GRB) intervals.
 
@@ -409,16 +412,16 @@ def plot_best_models(best_models, n_rows=2, n_cols=None, grb_name=None, fig_size
 
     Parameters
     ----------
-    best_models : list
+    best_models :
         A list of best-fitting spectral models, where each model contains
         attributes such as interval type and name.
-    n_rows : int, optional
+    n_rows :
         Number of rows in the subplot grid. Default is 2.
-    n_cols : int, optional
+    n_cols :
         Number of columns in the subplot grid. If None, it will be determined dynamically.
-    grb_name : str, optional
+    grb_name :
         Name of the GRB for labeling and saving output files. Default is None.
-    fig_size : tuple of float, optional
+    fig_size :
         Figure size for the plot, specified as (width, height). Default is (15, 4).
 
     Returns
@@ -453,9 +456,9 @@ def plot_best_models(best_models, n_rows=2, n_cols=None, grb_name=None, fig_size
         med, low, high = credible_interval_partition(samples)
         med, low, high = med * kev_to_erg, low * kev_to_erg, high * kev_to_erg
         ax[i].loglog(
-            x, med * x**2, f"{color}--", label=f"{v.name.replace('_', '+')}\n({v.interval.start} - {v.interval.end})"
+            x, med * x ** 2, f"{color}--", label=f"{v.name.replace('_', '+')}\n({v.interval.start} - {v.interval.end})"
         )
-        ax[i].fill_between(x, low * x**2, high * x**2, color=color, alpha=0.2)
+        ax[i].fill_between(x, low * x ** 2, high * x ** 2, color=color, alpha=0.2)
         ax[i].legend()
 
     [v.set_xlabel("Energy [keV]") for i, v in enumerate(ax) if i > (n_cols - 1)]
@@ -465,11 +468,14 @@ def plot_best_models(best_models, n_rows=2, n_cols=None, grb_name=None, fig_size
         ax[-1].set_ylim(bottom=3.2e-10, top=2.8e-4)
 
     f.tight_layout()
-    [plt.savefig(f"butterfly_{grb_name}.{i}", dpi=300) for i in ["png", "pdf"]]
-    plt.close()
+    if save:
+        [plt.savefig(f"butterfly_{grb_name}.{i}", dpi=300) for i in ["png", "pdf"]]
+        plt.close()
+    else:
+        plt.show()
 
 
-def plot_all_models(best_models, grb_name, n_rows=2, n_cols=None, fig_size=(12, 8)):
+def plot_all_models(best_models, grb_name, n_rows=2, n_cols=None, fig_size=(12, 8), save=False):
     """
     Generates a grid of plots displaying spectral energy distributions for a collection of models.
 
@@ -499,13 +505,11 @@ def plot_all_models(best_models, grb_name, n_rows=2, n_cols=None, fig_size=(12, 
         The size of the entire figure in inches. Default is (12, 8).
     """
     n_grid = 500
-    n_samples = 1000
+    n_samples = 5000
     x = np.logspace(1, 7, n_grid)
 
-    f, ax = plt.subplots(n_rows, n_cols, figsize=fig_size)
+    f, ax = plt.subplots(n_rows, n_cols, figsize=fig_size, sharey=True, sharex=True)
     ax = ax.flatten()
-
-    has_cpl_bb = False
 
     for i, v in enumerate(best_models):
         print(f"processing {grb_name[i]}")
@@ -514,9 +518,6 @@ def plot_all_models(best_models, grb_name, n_rows=2, n_cols=None, fig_size=(12, 
             v[-1], v[-2] = v[-2], v[-1]
 
         for j, w in enumerate(v):
-            if "CPL" in w.name:
-                has_cpl_bb = True
-
             print(f"processing {w.name}")
             samples = mcmc_spectra_sampler(w, n_samples=n_samples, n_grid=n_grid)
             samples = np.array(samples)
@@ -525,36 +526,37 @@ def plot_all_models(best_models, grb_name, n_rows=2, n_cols=None, fig_size=(12, 
             med, low, high = med * kev_to_erg, low * kev_to_erg, high * kev_to_erg
 
             if j == 0:
-                ax[i].loglog(x, med * x**2, "k--", label=f"{w.interval.kind}")
-                ax[i].fill_between(x, low * x**2, high * x**2, color="k", alpha=0.2)
+                ax[i].loglog(x, med * x ** 2, "k-", label=f"{w.interval.kind}")
+                ax[i].fill_between(x, low * x ** 2, high * x ** 2, color="k", alpha=0.2)
             else:
                 sub = (
                     f"{w.interval.kind}{w.interval.index}"
                     if w.interval.kind in [EpisodeTypes.TR, EpisodeTypes.SP]
                     else w.interval.kind
                 )
-                ax[i].loglog(x, med * x**2, "--", label=f"{sub}")
-                ax[i].fill_between(x, low * x**2, high * x**2, alpha=0.2)
+                ax[i].loglog(x, med * x ** 2, "--",
+                             label=f"{sub}" + r'$_\text{' + f'{w.name.replace("_", "+")}' + r'}$')
+                ax[i].fill_between(x, low * x ** 2, high * x ** 2, alpha=0.2)
 
-            if has_cpl_bb:
-                ax[i].set_ylim(bottom=3.2e-10, top=2.8e-4)
+            # if has_cpl_bb:
+            ax[i].set_ylim(bottom=3.2e-10, top=8.7e-5)
 
-            has_cpl_bb = False
-
-        ax[i].legend(ncols=4 if i == 0 else 2, title=f"{grb_name[i]}")
-
-        if i % 2 != 0:
-            ax[i].set_yticks([])
+        ax[i].legend(ncols=3, title=f"{grb_name[i]}", shadow=True)
 
         if i % 2 == 0:
-            ax[i].set_ylabel("Energy Flux\n" + r"[erg/cm$^2$/s]")
+            ax[i].set_ylabel("Energy Flux\n" + r"[erg/cm$^2$/s]", fontsize=LABEL_FONT_SIZE)
+        # if i % 2 != 0:
+        #     ax[i].set_yticks([])
 
-    [i.set_xticks([]) for i in [ax[0], ax[1]]]
-    [i.set_xlabel("Energy [keV]") for i in [ax[2], ax[3]]]
+    [i.grid(True, axis='both', ls='--', alpha=0.5, zorder=-10) for i in ax]
+    # [i.set_xticks([]) for i in [ax[0], ax[1]]]
+    [i.set_xlabel("Energy [keV]", fontsize=LABEL_FONT_SIZE) for i in [ax[2], ax[3]]]
     plt.tight_layout()
-    # plt.show()
-    [plt.savefig(f"butterfly_all.{i}", dpi=300) for i in ["png", "pdf"]]
-    plt.close()
+    if save:
+        [plt.savefig(f"butterfly_all.{i}", dpi=300) for i in ["png", "pdf"]]
+        plt.close()
+    else:
+        plt.show()
 
 
 def amati_relationship_dirirsia2019(
@@ -579,10 +581,10 @@ def amati_relationship_dirirsia2019(
 
     # Central relation and point-wise uncertainty
     y = log_k + m * x
-    sigma_y = np.sqrt(sigma_log_k**2 + x**2 * sigma_m**2 + sigma_ext**2)
+    sigma_y = np.sqrt(sigma_log_k ** 2 + x ** 2 * sigma_m ** 2 + sigma_ext ** 2)
     if use_average:
         sigma_y = np.mean(sigma_y)
-    e_isotropic = (10**y) * e_iso_norm
+    e_isotropic = (10 ** y) * e_iso_norm
 
     # Plot central line
     plt.plot(e_i_peak, e_isotropic, lw=1, alpha=0.45, color="k")
@@ -592,7 +594,7 @@ def amati_relationship_dirirsia2019(
     for i, n_sigma in enumerate(sigmas):
         c = colors[i % len(colors)]
         y_upper, y_lower = y + n_sigma * sigma_y, y - n_sigma * sigma_y
-        e_iso_upper, e_iso_lower = (10**y_upper) * e_iso_norm, (10**y_lower) * e_iso_norm
+        e_iso_upper, e_iso_lower = (10 ** y_upper) * e_iso_norm, (10 ** y_lower) * e_iso_norm
 
         plt.fill_between(e_i_peak, e_iso_lower, e_iso_upper, color=c, alpha=0.1)
         plt.plot(e_i_peak, e_iso_lower, color=c, ls="--")

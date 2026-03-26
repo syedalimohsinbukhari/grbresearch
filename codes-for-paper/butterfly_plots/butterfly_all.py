@@ -20,4 +20,4 @@ grb_best = [i.get_all_best_models() for i in grb]
 is_ex = [[i.interval.is_ex for i in j] for j in grb_best]
 is_ex = [sum(i) for i in is_ex]
 
-plot_all_models(grb_best, grb_name, 2, 2)
+plot_all_models(grb_best, grb_name, 2, 2, save=True)

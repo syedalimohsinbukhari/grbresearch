@@ -6,7 +6,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from uncertainties import unumpy as unp
 
-from .grb_constants import GRB_COLORS, kev_to_erg
+from .grb_constants import MODEL_COLORS, kev_to_erg
 from .grb_enums import GRBModelsCombinations as gmC
 
 
@@ -94,7 +94,7 @@ def plot_model(
         try:
             # Use Enum lookup for colors
             clean_name = model_strings[index].replace("+", "_").lower()
-            color = GRB_COLORS[gmC(clean_name)]
+            color = MODEL_COLORS[gmC(clean_name)]
         except (KeyError, ValueError):
             color = "k"
         ax.loglog(x, y_plot, style, color=color, label=label)
