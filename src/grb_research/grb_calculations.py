@@ -1,5 +1,5 @@
 """Created on Jan 07 15:37:00 2026"""
-
+import os
 from dataclasses import dataclass
 from multiprocessing import Pool, cpu_count
 from typing import List, Optional, Tuple
@@ -429,7 +429,7 @@ def plot_best_models(best_models, n_rows=2, n_cols=None, grb_name=None, fig_size
     None
     """
     n_grid = 500
-    n_samples = 1000
+    n_samples = 10_000 if os.cpu_count() > 8 else 1_000
     x = np.logspace(1, 7, n_grid)
 
     f, ax = plt.subplots(n_rows, n_cols, figsize=fig_size, sharex=True, sharey=True)
@@ -505,7 +505,7 @@ def plot_all_models(best_models, grb_name, n_rows=2, n_cols=None, fig_size=(12, 
         The size of the entire figure in inches. Default is (12, 8).
     """
     n_grid = 500
-    n_samples = 5000
+    n_samples = 10_000 if os.cpu_count() > 8 else 1_000
     x = np.logspace(1, 7, n_grid)
 
     f, ax = plt.subplots(n_rows, n_cols, figsize=fig_size, sharey=True, sharex=True)
