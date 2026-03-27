@@ -42,8 +42,14 @@ for index, value in enumerate(grb.grb_list):
     # Plot bars with different hatches and colors
     # Plot UNSAFE data first
     ax[index].bar(
-        x_positions, unsafe_counts, label="UNSAFE", color=colors[index], alpha=0.25, edgecolor="black", linewidth=0.5,
-        hatch='///'
+        x_positions,
+        unsafe_counts,
+        label="UNSAFE",
+        color=colors[index],
+        alpha=0.25,
+        edgecolor="black",
+        linewidth=0.5,
+        hatch="///",
     )
 
     # Plot MARGINAL data on top (with hatch)
@@ -66,7 +72,7 @@ for index, value in enumerate(grb.grb_list):
         label="SAFE",
         color=colors[index],
         alpha=0.75,
-        hatch='\\',
+        hatch="\\",
         edgecolor="black",
         linewidth=0.5,
         bottom=[a + b for a, b in zip(unsafe_counts, marginal_counts)],
@@ -93,7 +99,7 @@ for index, value in enumerate(grb.grb_list):
 [v.tick_params("x", rotation=90, labelsize=12) for v in ax]
 [v.tick_params("y", labelsize=12) for v in ax]
 ax[0].set_ylim(top=10.5)
-[i.set_ylabel('No. of models', fontsize=12) for i in [ax[0], ax[2]]]
+[i.set_ylabel("No. of models", fontsize=12) for i in [ax[0], ax[2]]]
 plt.tight_layout()
 # plt.show()
 [plt.savefig(f"./all-safe-unsafe.{i}", dpi=600) for i in ["png", "pdf"]]

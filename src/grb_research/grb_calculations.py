@@ -1,4 +1,5 @@
 """Created on Jan 07 15:37:00 2026"""
+
 import os
 from dataclasses import dataclass
 from multiprocessing import Pool, cpu_count
@@ -7,6 +8,7 @@ from typing import List, Optional, Tuple
 import numpy as np
 from astropy.cosmology import FlatLambdaCDM
 from matplotlib import pyplot as plt
+from numpy.typing import ArrayLike
 from scipy.integrate import simpson
 from tqdm import tqdm
 
@@ -16,9 +18,9 @@ from .grb_sed import SpectralModels
 from .grb_time import EpisodeTypes, TimeInterval
 from .grb_utils import break_e_to_e_peak
 
-
 LABEL_FONT_SIZE = 13
 TICK_FONT_SIZE = 12
+
 
 def get_rng(seed: Optional[int] = None, rng: Optional[np.random.Generator] = None) -> np.random.Generator:
     """
@@ -127,7 +129,7 @@ class IsotropicEnergy:
 
         # E_iso = (4 * pi * dl^2 * fluence) / (1 + z)
         dl = self.luminosity_distance()
-        e_iso = (4 * np.pi * dl ** 2 * fluence) / (1 + self.redshift)
+        e_iso = (4 * np.pi * dl**2 * fluence) / (1 + self.redshift)
 
         return e_iso
 
@@ -398,7 +400,7 @@ def mcmc_e_iso_sampler(
         bolometric_fluence = simpson(y=bolometric_samples, x=e_observed, axis=1) * model.interval.duration * kev_to_erg
 
     lum_distance = FlatLambdaCDM(H0=h0, Om0=omega_m).luminosity_distance(z).cgs.value
-    return (4 * np.pi * lum_distance ** 2 * bolometric_fluence.reshape(1, -1)) / (1 + z)
+    return (4 * np.pi * lum_distance**2 * bolometric_fluence.reshape(1, -1)) / (1 + z)
 
 
 def plot_best_models(best_models, n_rows=2, n_cols=None, grb_name=None, fig_size=(15, 4), save=True):
@@ -429,7 +431,7 @@ def plot_best_models(best_models, n_rows=2, n_cols=None, grb_name=None, fig_size
     None
     """
     n_grid = 500
-    n_samples = 10_000 if os.cpu_count() > 8 else 1_000
+    n_samples = 10_000 if os.cpu_count() > 10 else 1_000
     x = np.logspace(1, 7, n_grid)
 
     f, ax = plt.subplots(n_rows, n_cols, figsize=fig_size, sharex=True, sharey=True)
@@ -456,9 +458,9 @@ def plot_best_models(best_models, n_rows=2, n_cols=None, grb_name=None, fig_size
         med, low, high = credible_interval_partition(samples)
         med, low, high = med * kev_to_erg, low * kev_to_erg, high * kev_to_erg
         ax[i].loglog(
-            x, med * x ** 2, f"{color}--", label=f"{v.name.replace('_', '+')}\n({v.interval.start} - {v.interval.end})"
+            x, med * x**2, f"{color}--", label=f"{v.name.replace('_', '+')}\n({v.interval.start} - {v.interval.end})"
         )
-        ax[i].fill_between(x, low * x ** 2, high * x ** 2, color=color, alpha=0.2)
+        ax[i].fill_between(x, low * x**2, high * x**2, color=color, alpha=0.2)
         ax[i].legend()
 
     [v.set_xlabel("Energy [keV]") for i, v in enumerate(ax) if i > (n_cols - 1)]
@@ -505,7 +507,7 @@ def plot_all_models(best_models, grb_name, n_rows=2, n_cols=None, fig_size=(12, 
         The size of the entire figure in inches. Default is (12, 8).
     """
     n_grid = 500
-    n_samples = 10_000 if os.cpu_count() > 8 else 1_000
+    n_samples = 10_000 if os.cpu_count() > 10 else 1_000
     x = np.logspace(1, 7, n_grid)
 
     f, ax = plt.subplots(n_rows, n_cols, figsize=fig_size, sharey=True, sharex=True)
@@ -526,17 +528,16 @@ def plot_all_models(best_models, grb_name, n_rows=2, n_cols=None, fig_size=(12, 
             med, low, high = med * kev_to_erg, low * kev_to_erg, high * kev_to_erg
 
             if j == 0:
-                ax[i].loglog(x, med * x ** 2, "k-", label=f"{w.interval.kind}")
-                ax[i].fill_between(x, low * x ** 2, high * x ** 2, color="k", alpha=0.2)
+                ax[i].loglog(x, med * x**2, "k-", label=f"{w.interval.kind}")
+                ax[i].fill_between(x, low * x**2, high * x**2, color="k", alpha=0.2)
             else:
                 sub = (
                     f"{w.interval.kind}{w.interval.index}"
                     if w.interval.kind in [EpisodeTypes.TR, EpisodeTypes.SP]
                     else w.interval.kind
                 )
-                ax[i].loglog(x, med * x ** 2, "--",
-                             label=f"{sub}" + r'$_\text{' + f'{w.name.replace("_", "+")}' + r'}$')
-                ax[i].fill_between(x, low * x ** 2, high * x ** 2, alpha=0.2)
+                ax[i].loglog(x, med * x**2, "--", label=f"{sub}" + r"$_\text{" + f'{w.name.replace("_", "+")}' + r"}$")
+                ax[i].fill_between(x, low * x**2, high * x**2, alpha=0.2)
 
             # if has_cpl_bb:
             ax[i].set_ylim(bottom=3.2e-10, top=8.7e-5)
@@ -548,7 +549,7 @@ def plot_all_models(best_models, grb_name, n_rows=2, n_cols=None, fig_size=(12, 
         # if i % 2 != 0:
         #     ax[i].set_yticks([])
 
-    [i.grid(True, axis='both', ls='--', alpha=0.5, zorder=-10) for i in ax]
+    [i.grid(True, axis="both", ls="--", alpha=0.5, zorder=-10) for i in ax]
     # [i.set_xticks([]) for i in [ax[0], ax[1]]]
     [i.set_xlabel("Energy [keV]", fontsize=LABEL_FONT_SIZE) for i in [ax[2], ax[3]]]
     plt.tight_layout()
@@ -572,8 +573,12 @@ def amati_relationship_dirirsia2019(
     y_lim=(1e50, 1e55),
     num_points=1_000,
     use_average=False,
+    axis=None,
 ):
     """Plot the Amati relation with confidence bands."""
+
+    if axis is None:
+        raise ValueError("An axis must be provided for plotting.")
 
     # Generate e_i_peak and calculate log-space values
     e_i_peak = np.logspace(np.log10(x_lim[0]), np.log10(x_lim[1]), num=num_points)
@@ -581,38 +586,30 @@ def amati_relationship_dirirsia2019(
 
     # Central relation and point-wise uncertainty
     y = log_k + m * x
-    sigma_y = np.sqrt(sigma_log_k ** 2 + x ** 2 * sigma_m ** 2 + sigma_ext ** 2)
+    sigma_y = np.sqrt(sigma_log_k**2 + x**2 * sigma_m**2 + sigma_ext**2)
     if use_average:
         sigma_y = np.mean(sigma_y)
-    e_isotropic = (10 ** y) * e_iso_norm
+    e_isotropic = (10**y) * e_iso_norm
 
     # Plot central line
-    plt.plot(e_i_peak, e_isotropic, lw=1, alpha=0.45, color="k")
+    axis.loglog(e_i_peak, e_isotropic, lw=1, alpha=0.45, color="k")
 
     # Plot confidence bands
     colors = ["#FFD166", "#FF9F43", "#FF6B6B"]
     for i, n_sigma in enumerate(sigmas):
         c = colors[i % len(colors)]
         y_upper, y_lower = y + n_sigma * sigma_y, y - n_sigma * sigma_y
-        e_iso_upper, e_iso_lower = (10 ** y_upper) * e_iso_norm, (10 ** y_lower) * e_iso_norm
+        e_iso_upper, e_iso_lower = (10**y_upper) * e_iso_norm, (10**y_lower) * e_iso_norm
 
-        plt.fill_between(e_i_peak, e_iso_lower, e_iso_upper, color=c, alpha=0.1)
-        plt.plot(e_i_peak, e_iso_lower, color=c, ls="--")
-        plt.plot(e_i_peak, e_iso_upper, color=c, ls="--")
+        axis.fill_between(e_i_peak, e_iso_lower, e_iso_upper, color=c, alpha=0.1)
+        axis.plot(e_i_peak, e_iso_lower, color=c, ls="--")
+        axis.plot(e_i_peak, e_iso_upper, color=c, ls="--")
 
-    # Formatting
-    plt.xlabel(r"E$_\text{i,peak}$ [keV]", fontsize=12)
-    plt.ylabel(r"E$_\text{iso}$ [erg]", fontsize=12)
-    plt.xticks(fontsize=12)
-    plt.yticks(fontsize=12)
-    plt.xscale("log")
-    plt.yscale("log")
-    plt.xlim(x_lim)
-    plt.ylim(y_lim)
+    axis.set_xlim(x_lim)
+    axis.set_ylim(y_lim)
 
 
 def plot_grbs_over_amati_relationship(
-    grb_names: List[str],
     best_model_list,
     redshift_list: List[float],
     marker_list: List[str],
@@ -620,44 +617,44 @@ def plot_grbs_over_amati_relationship(
     n_sample: int = 10_000,
     seed_number: int = 0,
     unknown_redshift: bool = False,
-) -> None:
+    axis=None,
+) -> tuple[ArrayLike, ArrayLike] | None:
     """
     Plot GRBs on the Amati plane.
 
     Parameters
     ----------
-    grb_names : List[str]
-        Names of the GRBs for labeling in the plot.
-    best_model_list
+    best_model_list :
         Nested list containing model objects for each GRB.
-    redshift_list : List[float]
+    redshift_list :
         Redshift values corresponding to each GRB.
-    marker_list  : List[str]
+    marker_list :
         Marker styles for each GRB on the plot.
-    n_grid : int, optional
+    n_grid :
         Number of grid points for MCMC sampling. Default is 10,000.
-    n_sample : int, optional
+    n_sample :
         Number of samples for Monte Carlo simulations. Default is 10,000.
-    seed_number : int, optional
+    seed_number :
         Random seed number for reproducibility. Default is 0.
-    unknown_redshift : bool, optional
+    unknown_redshift :
         If True, GRBs with unknown redshift are plotted with reduced opacity. Default is False.
-
-    Notes
-    -----
-    The function evaluates E_peak and E_iso (with uncertainties) for each model using MCMC sampling.
-    It supports SBPL and other spectral models and plots their median values with error bars on the Amati plane.
     """
     rng = np.random.default_rng(seed_number)
 
+    TR_MARKERS = range(4, 12)
+    EX_MARKERS = ["*", "p"]
+    SP_MARKERS = ["s", "D", "P"]
+
+    marker = None
+
     ep_sc, ei_sc, col = [], [], []
     for index, k in enumerate(best_model_list):
+        tr_idx, ex_idx, sp_idx = 0, 0, 0
         for index2, m in enumerate(k):
             m_name = m.name
             print(m_name)
             pc = m.get_parameter_set
             pc_names = [i.name for i in pc]
-            # print(pc_names)
             cov_ = 0.5 * (m.covariance_matrix_value + m.covariance_matrix_value.T)
             if "sbpl" in m_name.lower():
                 new_sample_size = int(1.5 * n_sample)
@@ -735,43 +732,73 @@ def plot_grbs_over_amati_relationship(
                 )
             )
 
-            plt.errorbar(
+            if not unknown_redshift:
+                if m.interval.kind is EpisodeTypes.T90:
+                    marker = marker_list[index]
+                elif m.interval.kind in [EpisodeTypes.EX0, EpisodeTypes.EX1]:
+                    marker = EX_MARKERS[ex_idx]
+                elif m.interval.kind is EpisodeTypes.TR:
+                    marker = TR_MARKERS[tr_idx]
+                elif m.interval.kind is EpisodeTypes.SP:
+                    marker = SP_MARKERS[sp_idx]
+
+            axis.scatter(
+                p50_e_peak,
+                p50_e_iso,
+                marker=marker_list[index] if unknown_redshift else marker,
+                s=50,
+                label=(
+                    m.interval.kind
+                    if m.interval.kind in [EpisodeTypes.T90, EpisodeTypes.EX0, EpisodeTypes.EX1]
+                    else f"{m.interval.kind}{m.interval.index}"
+                ),
+                color=col,
+                alpha=0.75 if unknown_redshift else 1,
+            )
+
+            axis.errorbar(
                 p50_e_peak,
                 p50_e_iso,
                 xerr=x_err,
                 yerr=y_err,
-                # capsize=5,
-                fmt=marker_list[index],
-                # ms=6,
-                label=(
-                    f"{grb_names[index] if not unknown_redshift else grb_names[-1]}"
-                    if m.interval.kind is EpisodeTypes.T90
-                    else ""
-                ),
+                ms=0,
+                # marker=marker_list[index],# if not unknown_redshift else marker_list,
                 color=col,
-                alpha=0.5 if unknown_redshift else 1,
+                alpha=0.75 if unknown_redshift else 1,
             )
 
             ep_sc.append(p50_e_peak)
             ei_sc.append(p50_e_iso)
 
+            if not unknown_redshift:
+                if m.interval.kind in [EpisodeTypes.EX0, EpisodeTypes.EX1]:
+                    ex_idx += 1
+                elif m.interval.kind is EpisodeTypes.TR:
+                    tr_idx += 1
+                elif m.interval.kind is EpisodeTypes.SP:
+                    sp_idx += 1
+                else:
+                    continue
+
+    ep_sc, ei_sc = np.array(ep_sc), np.array(ei_sc)
+
     if unknown_redshift:
-        plt.plot(np.array(ep_sc), np.array(ei_sc), f"{col}--", marker="D", alpha=0.5, ms=0)
+        return ep_sc, ei_sc, col
+    else:
+        return None
 
 
-def plot_unknown_redshift_grb(
-    best_model, grb_name, z_values=(1, 2, 3, 4, 5, 6, 7), n_grid=10_0000, n_sample=10_000, seed_number=0
-):
-    """Plot the unknown redshift GRB."""
-    temp_best = [[best_model]] * len(z_values)
-    grb_name = [grb_name]
-    plot_grbs_over_amati_relationship(
-        grb_names=grb_name,
-        best_model_list=temp_best,
-        redshift_list=z_values,
-        marker_list=["D"] * len(z_values),
-        n_grid=n_grid,
-        n_sample=n_sample,
-        seed_number=seed_number,
-        unknown_redshift=True,
-    )
+# def plot_unknown_redshift_grb(
+#     best_model, marker, z_values=(1, 3, 5, 7), n_grid=10_000, n_sample=10_000, seed_number=0, axis=None
+# ):
+#     """Plot the unknown redshift GRB."""
+#     temp_best = [[best_model]] * len(z_values)
+#
+#     plot_grbs_over_amati_relationship(best_model_list=temp_best,
+#                                       redshift_list=z_values,
+#                                       marker_list=marker * len(z_values),
+#                                       n_grid=n_grid,
+#                                       n_sample=n_sample,
+#                                       seed_number=seed_number,
+#                                       unknown_redshift=True,
+#                                       axis=axis)

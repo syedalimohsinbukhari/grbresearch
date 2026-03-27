@@ -20,10 +20,10 @@ with open(result_file, "r") as f:
 
 grb080916c = GRB.from_dictionary(grb_name, grb080916c_data)
 
-base_ = 'SBPL'
+base_ = "SBPL"
 
-band_all = grb080916c.get_model(f'{base_}')  # [:-3]
-band_bb_all = grb080916c.get_model(f'{base_}_BB')  # [:-3]
+band_all = grb080916c.get_model(f"{base_}")  # [:-3]
+band_bb_all = grb080916c.get_model(f"{base_}_BB")  # [:-3]
 
 
 def filter_for_safe(simple_model: ModelSet, complex_model: ModelSet) -> tuple[ModelSet, ModelSet]:
@@ -41,6 +41,7 @@ band_all, band_bb_all = filter_for_safe(band_all, band_bb_all)
 @dataclass
 class PeakEnergyRatioResult:
     """Result of calculating the ratio of peak energy to kT."""
+
     delta_e_peak_over_kt: float
     kt_over_e_peak: float
     band_bb_amp_ratio: float
@@ -51,9 +52,7 @@ class PeakEnergyRatioResult:
 
 
 def calculate_peak_energy_to_kt_ratio(
-    model_name: str,
-    simple_model: Model,
-    complex_model: Model,
+    model_name: str, simple_model: Model, complex_model: Model
 ) -> PeakEnergyRatioResult:
     """Calculates the peak energy to thermal energy ratio and other related ratios using parameters from simple and complex models.
 
@@ -66,19 +65,19 @@ def calculate_peak_energy_to_kt_ratio(
     """
     m_name = model_name.lower()
 
-    if m_name != 'sbpl':
-        ep1 = simple_model.get_parameter_value(f'e_peak_{m_name}')
-        ep2 = complex_model.get_parameter_value(f'e_peak_{m_name}')
+    if m_name != "sbpl":
+        ep1 = simple_model.get_parameter_value(f"e_peak_{m_name}")
+        ep2 = complex_model.get_parameter_value(f"e_peak_{m_name}")
     else:
-        ep1 = simple_model.get_parameter_value(f'e_break_{m_name}')
-        ep2 = complex_model.get_parameter_value(f'e_break_{m_name}')
+        ep1 = simple_model.get_parameter_value(f"e_break_{m_name}")
+        ep2 = complex_model.get_parameter_value(f"e_break_{m_name}")
 
-    kt = complex_model.get_parameter_value('kt_bb')
+    kt = complex_model.get_parameter_value("kt_bb")
     ep = simple_model.interval.to_string()
 
-    amp1 = simple_model.get_parameter_value(f'amp_{m_name}')
-    amp2 = complex_model.get_parameter_value(f'amp_bb')
-    amp3 = complex_model.get_parameter_value(f'amp_{m_name}')
+    amp1 = simple_model.get_parameter_value(f"amp_{m_name}")
+    amp2 = complex_model.get_parameter_value(f"amp_bb")
+    amp3 = complex_model.get_parameter_value(f"amp_{m_name}")
 
     return PeakEnergyRatioResult(
         delta_e_peak_over_kt=(ep2 - ep1) / kt,
@@ -87,13 +86,13 @@ def calculate_peak_energy_to_kt_ratio(
         bb_band_diff_ratio=amp1 / (amp1 - amp3),
         midpoint=simple_model.interval.midpoint,
         half_difference=simple_model.interval.half_difference,
-        ep_type=ep.split(' ')[0],
+        ep_type=ep.split(" ")[0],
     )
 
 
 del_ep, kt_pe, mid_point, half_diff, ep_type, amp_ratio, amp_ratio2 = [], [], [], [], [], [], []
 for i, j in zip(band_all, band_bb_all):
-    pp = calculate_peak_energy_to_kt_ratio(f'{base_}', i, j)
+    pp = calculate_peak_energy_to_kt_ratio(f"{base_}", i, j)
     del_ep.append(pp.delta_e_peak_over_kt)
     kt_pe.append(pp.kt_over_e_peak)
     mid_point.append(pp.midpoint)
@@ -111,17 +110,17 @@ f, ax = plt.subplots(2, 2, figsize=(9, 8), sharey=True)
 ax = ax.flatten()
 
 for i, j, k, l, m, n1, n2 in zip(mid_point, del_ep, kt_pe, ep_type, half_diff, amp_ratio, amp_ratio2):
-    ax[0].errorbar(i, j, xerr=m, fmt='o', capsize=5, label=f'{l}')
-    ax[1].scatter(k * 1e3, j, label=f'{l}', marker='o')
-    ax[2].scatter(n1 * 1e6, j, label=f'{l}', marker='o')
-    ax[3].scatter(n2, j, label=f'{l}', marker='o')
+    ax[0].errorbar(i, j, xerr=m, fmt="o", capsize=5, label=f"{l}")
+    ax[1].scatter(k * 1e3, j, label=f"{l}", marker="o")
+    ax[2].scatter(n1 * 1e6, j, label=f"{l}", marker="o")
+    ax[3].scatter(n2, j, label=f"{l}", marker="o")
 
-ax[0].set_ylabel(r'$\Delta E_\text{peak} / kT$')
-ax[0].set_xlabel('Midpoint\n[s]')
-ax[1].set_xlabel(r'$kT / E_\text{peak}$' + '\n' + r'$[10^{-3}]$')
-ax[2].set_xlabel(r'$A_\text{BB}/ A_\text{Band}$' + '\n' + r'$[10^{-6}]$')
-ax[3].set_xlabel(r'$A_\text{BB}/ (A_\text{Band} - A_\text{Band+BB})$' + '\n' + r'$[10^{-6}]$')
-[i.legend(title='Episode') for i in ax]
-[i.grid('k--', alpha=0.5) for i in ax]
+ax[0].set_ylabel(r"$\Delta E_\text{peak} / kT$")
+ax[0].set_xlabel("Midpoint\n[s]")
+ax[1].set_xlabel(r"$kT / E_\text{peak}$" + "\n" + r"$[10^{-3}]$")
+ax[2].set_xlabel(r"$A_\text{BB}/ A_\text{Band}$" + "\n" + r"$[10^{-6}]$")
+ax[3].set_xlabel(r"$A_\text{BB}/ (A_\text{Band} - A_\text{Band+BB})$" + "\n" + r"$[10^{-6}]$")
+[i.legend(title="Episode") for i in ax]
+[i.grid("k--", alpha=0.5) for i in ax]
 plt.tight_layout()
 plt.show()

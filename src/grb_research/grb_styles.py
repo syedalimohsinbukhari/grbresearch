@@ -36,10 +36,10 @@ from __future__ import annotations
 
 import matplotlib.lines as mlines
 
-
 # ---------------------------------------------------------------------------
 # Core style class
 # ---------------------------------------------------------------------------
+
 
 class GRBPlotStyle:
     """
@@ -81,11 +81,7 @@ class GRBPlotStyle:
         3: "^",  # triangle up — Episode III
     }
 
-    EPISODE_LABELS: dict[int, str] = {
-        1: "Episode I",
-        2: "Episode II",
-        3: "Episode III",
-    }
+    EPISODE_LABELS: dict[int, str] = {1: "Episode I", 2: "Episode II", 3: "Episode III"}
 
     # ------------------------------------------------------------------
     # Base model → line style (both simple and precise tupled forms)
@@ -98,20 +94,10 @@ class GRBPlotStyle:
     }
 
     # Simpler string aliases — useful for colorbars, legends, quick tests
-    MODEL_LINESTYLES_SIMPLE: dict[str, str] = {
-        "PL": "-",
-        "CPL": "--",
-        "Band": "-.",
-        "SBPL": ":",
-    }
+    MODEL_LINESTYLES_SIMPLE: dict[str, str] = {"PL": "-", "CPL": "--", "Band": "-.", "SBPL": ":"}
 
     # Hatch patterns for bar charts, residual boxes, posterior bands
-    MODEL_HATCHES: dict[str, str | None] = {
-        "PL": None,
-        "CPL": "//",
-        "Band": "xx",
-        "SBPL": "..",
-    }
+    MODEL_HATCHES: dict[str, str | None] = {"PL": None, "CPL": "//", "Band": "xx", "SBPL": ".."}
 
     # ------------------------------------------------------------------
     # Extension → marker fill style + edge weight
@@ -119,23 +105,11 @@ class GRBPlotStyle:
     #   "none" — open / hollow (BASE+BB: one extra component)
     #   "bottom" — half-filled (BASE+PL+BB: two extra components)
     # ------------------------------------------------------------------
-    EXTENSION_FILLSTYLE: dict[str, str] = {
-        "BASE": "full",
-        "BASE+BB": "none",
-        "BASE+PL+BB": "bottom",
-    }
+    EXTENSION_FILLSTYLE: dict[str, str] = {"BASE": "full", "BASE+BB": "none", "BASE+PL+BB": "bottom"}
 
-    EXTENSION_EDGE_WIDTH: dict[str, float] = {
-        "BASE": 1.2,
-        "BASE+BB": 1.8,
-        "BASE+PL+BB": 2.4,
-    }
+    EXTENSION_EDGE_WIDTH: dict[str, float] = {"BASE": 1.2, "BASE+BB": 1.8, "BASE+PL+BB": 2.4}
 
-    EXTENSION_LABELS: dict[str, str] = {
-        "BASE": "Base only",
-        "BASE+BB": "Base + BB",
-        "BASE+PL+BB": "Base + PL + BB",
-    }
+    EXTENSION_LABELS: dict[str, str] = {"BASE": "Base only", "BASE+BB": "Base + BB", "BASE+PL+BB": "Base + PL + BB"}
 
     # ------------------------------------------------------------------
     # Global defaults (tune once here, propagate everywhere)
@@ -183,13 +157,7 @@ class GRBPlotStyle:
         return cls.MODEL_LINESTYLES[model]
 
     @classmethod
-    def marker_kwargs(
-        cls,
-        grb: str,
-        episode: int,
-        extension: str = "BASE",
-        **overrides,
-    ) -> dict:
+    def marker_kwargs(cls, grb: str, episode: int, extension: str = "BASE", **overrides) -> dict:
         """
         Kwargs for ax.plot() / ax.scatter() marker appearance.
 
@@ -213,13 +181,7 @@ class GRBPlotStyle:
         return kw
 
     @classmethod
-    def line_kwargs(
-        cls,
-        grb: str,
-        model: str,
-        simple_ls: bool = False,
-        **overrides,
-    ) -> dict:
+    def line_kwargs(cls, grb: str, model: str, simple_ls: bool = False, **overrides) -> dict:
         """
         Kwargs for ax.plot() line appearance (model curves).
 
@@ -235,13 +197,7 @@ class GRBPlotStyle:
         return kw
 
     @classmethod
-    def errorbar_kwargs(
-        cls,
-        grb: str,
-        episode: int,
-        extension: str = "BASE",
-        **overrides,
-    ) -> dict:
+    def errorbar_kwargs(cls, grb: str, episode: int, extension: str = "BASE", **overrides) -> dict:
         """
         Full kwargs dict for ax.errorbar().
 
@@ -276,12 +232,7 @@ class GRBPlotStyle:
 
         Returns keys: color, alpha, linewidth, zorder.
         """
-        kw = dict(
-            color=cls.GRB_COLORS[grb],
-            alpha=cls.BAND_ALPHA,
-            linewidth=cls.BAND_LW,
-            zorder=cls.ZORDER["band"],
-        )
+        kw = dict(color=cls.GRB_COLORS[grb], alpha=cls.BAND_ALPHA, linewidth=cls.BAND_LW, zorder=cls.ZORDER["band"])
         kw.update(overrides)
         return kw
 
@@ -309,22 +260,13 @@ class GRBPlotStyle:
     # ------------------------------------------------------------------
 
     @classmethod
-    def full_style(
-        cls,
-        grb: str,
-        episode: int,
-        model: str,
-        extension: str = "BASE",
-    ) -> dict:
+    def full_style(cls, grb: str, episode: int, model: str, extension: str = "BASE") -> dict:
         """
         Merge marker and line style for ax.plot() calls where the same
         artist carries both marker (data) and line (model) information.
         """
         kw = cls.marker_kwargs(grb, episode, extension)
-        kw.update(
-            linestyle=cls.linestyle(model),
-            linewidth=cls.LINEWIDTH,
-        )
+        kw.update(linestyle=cls.linestyle(model), linewidth=cls.LINEWIDTH)
         return kw
 
     # ------------------------------------------------------------------
@@ -337,7 +279,8 @@ class GRBPlotStyle:
         grbs = grbs or list(cls.GRB_COLORS)
         return [
             mlines.Line2D(
-                [], [],
+                [],
+                [],
                 linestyle="None",
                 marker="o",
                 color=cls.GRB_COLORS[g],
@@ -356,7 +299,8 @@ class GRBPlotStyle:
         neutral = "#444444"
         return [
             mlines.Line2D(
-                [], [],
+                [],
+                [],
                 linestyle="None",
                 marker=cls.EPISODE_MARKERS[e],
                 color=neutral,
@@ -369,38 +313,26 @@ class GRBPlotStyle:
         ]
 
     @classmethod
-    def model_handles(
-        cls,
-        models: list[str] | None = None,
-        color: str = "#222222",
-    ) -> list:
+    def model_handles(cls, models: list[str] | None = None, color: str = "#222222") -> list:
         """One line-style sample per base model."""
         models = models or ["PL", "CPL", "Band", "SBPL"]
         return [
             mlines.Line2D(
-                [], [],
-                linestyle=cls.MODEL_LINESTYLES_SIMPLE[m],
-                linewidth=cls.LINEWIDTH,
-                color=color,
-                label=m,
+                [], [], linestyle=cls.MODEL_LINESTYLES_SIMPLE[m], linewidth=cls.LINEWIDTH, color=color, label=m
             )
             for m in models
         ]
 
     @classmethod
-    def extension_handles(
-        cls,
-        grb: str,
-        episode: int = 1,
-        extensions: list[str] | None = None,
-    ) -> list:
+    def extension_handles(cls, grb: str, episode: int = 1, extensions: list[str] | None = None) -> list:
         """One marker fill-style sample per extension, colored by GRB."""
         extensions = extensions or ["BASE", "BASE+BB", "BASE+PL+BB"]
         handles = []
         for ext in extensions:
             mkw = cls.marker_kwargs(grb, episode, ext)
             h = mlines.Line2D(
-                [], [],
+                [],
+                [],
                 linestyle="None",
                 marker=mkw["marker"],
                 color=mkw["color"],
@@ -421,13 +353,11 @@ class GRBPlotStyle:
     def _alpha_hex(hex_color: str, alpha: float) -> str:
         """Return hex_color blended toward white by (1-alpha)."""
         h = hex_color.lstrip("#")
-        r, g, b = (int(h[i:i + 2], 16) / 255 for i in (0, 2, 4))
+        r, g, b = (int(h[i : i + 2], 16) / 255 for i in (0, 2, 4))
         r2 = r * alpha + (1 - alpha)
         g2 = g * alpha + (1 - alpha)
         b2 = b * alpha + (1 - alpha)
-        return "#{:02x}{:02x}{:02x}".format(
-            int(r2 * 255), int(g2 * 255), int(b2 * 255)
-        )
+        return "#{:02x}{:02x}{:02x}".format(int(r2 * 255), int(g2 * 255), int(b2 * 255))
 
     @classmethod
     def summary(cls) -> None:
@@ -459,6 +389,5 @@ class GRBPlotStyle:
             print(f"    {ext:<14s}  fillstyle='{fs}'   mew={mew}")
 
         print(f"\n  Global defaults")
-        print(f"    markersize={cls.MARKERSIZE}  linewidth={cls.LINEWIDTH}  "
-              f"band_alpha={cls.BAND_ALPHA}")
+        print(f"    markersize={cls.MARKERSIZE}  linewidth={cls.LINEWIDTH}  " f"band_alpha={cls.BAND_ALPHA}")
         print(sep + "\n")

@@ -41,6 +41,7 @@ HIGH_CORR_THRESHOLD = 0.9  # |ρ| above this flags degeneracy
 # Result containers
 # -----------------------------------------------------------------------------
 
+
 @dataclass
 class LRTResult:
     delta_cstat: float
@@ -138,10 +139,7 @@ class ModelComparison:
         self._delta_k = self._k_complex - self._k_simple
 
         if self._delta_k <= 0:
-            raise ValueError(
-                f"complex_ must have more parameters than simple. "
-                f"Got Δk = {self._delta_k}."
-            )
+            raise ValueError(f"complex_ must have more parameters than simple. " f"Got Δk = {self._delta_k}.")
 
         self._delta_cstat = simple.cstat - complex_.cstat
 
@@ -206,13 +204,7 @@ class ModelComparison:
         p = 1.0 - stats.chi2.cdf(dc, df=dk)
         p = max(p, 1e-300)
         sigma = abs(stats.norm.ppf(p / 2.0))
-        return LRTResult(
-            delta_cstat=dc,
-            delta_k=dk,
-            p_value=p,
-            sigma=sigma,
-            detected=dc > DELTA_CSTAT_THRESHOLD,
-        )
+        return LRTResult(delta_cstat=dc, delta_k=dk, p_value=p, sigma=sigma, detected=dc > DELTA_CSTAT_THRESHOLD)
 
     def _run_ic(self) -> ICResult:
         aic_s = self._aic(self.simple)
@@ -237,12 +229,17 @@ class ModelComparison:
         bf = np.exp(d_bic / 2.0)  # > 1 favours complex
 
         return ICResult(
-            aic_simple=aic_s, aic_complex=aic_c,
-            aic_c_simple=aic_c_s, aic_c_complex=aicc_c,
-            bic_simple=bic_s, bic_complex=bic_c,
-            delta_aic=d_aic, delta_aic_c=d_aic_c,
+            aic_simple=aic_s,
+            aic_complex=aic_c,
+            aic_c_simple=aic_c_s,
+            aic_c_complex=aicc_c,
+            bic_simple=bic_s,
+            bic_complex=bic_c,
+            delta_aic=d_aic,
+            delta_aic_c=d_aic_c,
             delta_bic=d_bic,
-            w_simple=w_s, w_complex=w_c,
+            w_simple=w_s,
+            w_complex=w_c,
             bayes_factor=bf,
         )
 
@@ -251,13 +248,15 @@ class ModelComparison:
         for p in self.complex.parameters:
             if self._is_bb_param(p.name):
                 z = (p.value / p.error) if p.error else np.inf
-                results.append(BBSignificanceResult(
-                    param_name=p.name,
-                    value=p.value,
-                    error=p.error,
-                    z_score=z,
-                    significant=abs(z) >= BB_SIGMA_THRESHOLD,
-                ))
+                results.append(
+                    BBSignificanceResult(
+                        param_name=p.name,
+                        value=p.value,
+                        error=p.error,
+                        z_score=z,
+                        significant=abs(z) >= BB_SIGMA_THRESHOLD,
+                    )
+                )
         return results
 
     def _run_param_stability(self) -> list:
@@ -272,7 +271,7 @@ class ModelComparison:
         for name_l, ps in simple_map.items():
             if name_l in complex_map:
                 pc = complex_map[name_l]
-                denom = np.sqrt(ps.error ** 2 + pc.error ** 2)
+                denom = np.sqrt(ps.error**2 + pc.error**2)
 
                 # both fixed
                 if denom == 0:
@@ -280,23 +279,21 @@ class ModelComparison:
                         continue  # same fixed value — no shift, skip
                     else:
                         shift = np.inf  # fixed to different values — flag it
-                        shifts.append(ParamShift(
-                            name=ps.name,
-                            v_simple=ps.value,
-                            v_complex=pc.value,
-                            sigma=shift,
-                            flag=True,  # always flag — physically suspicious
-                        ))
+                        shifts.append(
+                            ParamShift(
+                                name=ps.name,
+                                v_simple=ps.value,
+                                v_complex=pc.value,
+                                sigma=shift,
+                                flag=True,  # always flag — physically suspicious
+                            )
+                        )
                         continue
 
                 shift = abs(ps.value - pc.value) / denom
-                shifts.append(ParamShift(
-                    name=ps.name,
-                    v_simple=ps.value,
-                    v_complex=pc.value,
-                    sigma=shift,
-                    flag=shift > 3.0,
-                ))
+                shifts.append(
+                    ParamShift(name=ps.name, v_simple=ps.value, v_complex=pc.value, sigma=shift, flag=shift > 3.0)
+                )
 
         return shifts
 
@@ -359,18 +356,24 @@ class ModelComparison:
     def _aic_label(delta: float) -> str:
         """Burnham & Anderson ΔAIC evidence label (magnitude)."""
         a = abs(delta)
-        if a < 2:  return "negligible"
-        if a < 6:  return "considerable"
-        if a < 10: return "strong"
+        if a < 2:
+            return "negligible"
+        if a < 6:
+            return "considerable"
+        if a < 10:
+            return "strong"
         return "decisive"
 
     @staticmethod
     def _bic_label(delta: float) -> str:
         """Kass & Raftery ΔBIC evidence label (magnitude)."""
         a = abs(delta)
-        if a < 2:  return "not worth mentioning"
-        if a < 6:  return "positive"
-        if a < 10: return "strong"
+        if a < 2:
+            return "not worth mentioning"
+        if a < 6:
+            return "positive"
+        if a < 10:
+            return "strong"
         return "very strong"
 
     def _overall_verdict(self) -> str:
@@ -418,18 +421,21 @@ class ModelComparison:
 
         print(sep2)
         print(f"  MODEL COMPARISON")
-        print(f"  Simple  :  {self.simple.name}   "
-              f"(k={self._k_simple}, cstat={self.simple.cstat:.{decimals}f}, dof={self.simple.dof})")
-        print(f"  Complex :  {self.complex.name}  "
-              f"(k={self._k_complex}, cstat={self.complex.cstat:.{decimals}f}, dof={self.complex.dof})")
+        print(
+            f"  Simple  :  {self.simple.name}   "
+            f"(k={self._k_simple}, cstat={self.simple.cstat:.{decimals}f}, dof={self.simple.dof})"
+        )
+        print(
+            f"  Complex :  {self.complex.name}  "
+            f"(k={self._k_complex}, cstat={self.complex.cstat:.{decimals}f}, dof={self.complex.dof})"
+        )
         print(sep2)
 
         # -- LRT --------------------------------------------------------------
         lrt = self._lrt
         print(f"\n  LIKELIHOOD RATIO TEST")
         print(sep)
-        row("Δcstat", f"{lrt.delta_cstat:.{decimals}f}",
-            f"threshold = {DELTA_CSTAT_THRESHOLD}")
+        row("Δcstat", f"{lrt.delta_cstat:.{decimals}f}", f"threshold = {DELTA_CSTAT_THRESHOLD}")
         row("Δk", str(lrt.delta_k))
         row("p-value", f"{lrt.p_value:.3e}")
         row("Significance", f"{lrt.sigma:.2f}σ")
@@ -447,16 +453,12 @@ class ModelComparison:
         ]:
             print(f"  {label:<34} {vs:>12.{decimals}f}   {vc:>12.{decimals}f}")
         print(sep)
-        row("ΔAIC  (+ favours complex)", f"{ic.delta_aic:+.{decimals}f}",
-            self._aic_label(ic.delta_aic))
-        row("ΔAICc (+ favours complex)", f"{ic.delta_aic_c:+.{decimals}f}",
-            self._aic_label(ic.delta_aic_c))
-        row("ΔBIC  (+ favours complex)", f"{ic.delta_bic:+.{decimals}f}",
-            self._bic_label(ic.delta_bic))
+        row("ΔAIC  (+ favours complex)", f"{ic.delta_aic:+.{decimals}f}", self._aic_label(ic.delta_aic))
+        row("ΔAICc (+ favours complex)", f"{ic.delta_aic_c:+.{decimals}f}", self._aic_label(ic.delta_aic_c))
+        row("ΔBIC  (+ favours complex)", f"{ic.delta_bic:+.{decimals}f}", self._bic_label(ic.delta_bic))
         row("AIC weight — simple", f"{ic.w_simple * 100:.1f}%")
         row("AIC weight — complex", f"{ic.w_complex * 100:.1f}%")
-        row("BIC Bayes factor (≈)", f"{ic.bayes_factor:.2f}",
-            "> 1 favours complex")
+        row("BIC Bayes factor (≈)", f"{ic.bayes_factor:.2f}", "> 1 favours complex")
 
         # -- BB significance ---------------------------------------------------
         if self._bb_sig:
@@ -464,9 +466,7 @@ class ModelComparison:
             print(sep)
             for bb in self._bb_sig:
                 flag = "✓" if bb.significant else "✗  below threshold"
-                row(bb.param_name,
-                    f"{bb.value:.3e} ± {bb.error:.3e}",
-                    f"{bb.z_score:.2f}σ  {flag}")
+                row(bb.param_name, f"{bb.value:.3e} ± {bb.error:.3e}", f"{bb.z_score:.2f}σ  {flag}")
 
         # -- parameter stability -----------------------------------------------
         if self._shifts:
@@ -475,17 +475,18 @@ class ModelComparison:
             print(f"  {'Parameter':<18} {'Simple':>14}  {'Complex':>14}  {'Shift':>8}")
             for s in self._shifts:
                 flag = "  ← flag" if s.flag else ""
-                print(f"  {s.name:<18} {s.v_simple:>14.4g}  {s.v_complex:>14.4g}  "
-                      f"{s.sigma:>6.2f}σ{flag}")
+                print(f"  {s.name:<18} {s.v_simple:>14.4g}  {s.v_complex:>14.4g}  " f"{s.sigma:>6.2f}σ{flag}")
 
         # -- covariance analysis -----------------------------------------------
         cov_a = self._cov
         if cov_a is not None:
             print(f"\n  COVARIANCE ANALYSIS  (complex model)")
             print(sep)
-            row("Condition number (scaled)",
+            row(
+                "Condition number (scaled)",
                 f"{cov_a.condition_number_scaled:.2e}",
-                "ILL-CONDITIONED ✗" if cov_a.is_ill_conditioned else "well-conditioned ✓")
+                "ILL-CONDITIONED ✗" if cov_a.is_ill_conditioned else "well-conditioned ✓",
+            )
 
             if cov_a.flagged_pairs:
                 print(f"\n  High-correlation pairs  (|ρ| ≥ {HIGH_CORR_THRESHOLD}):")

@@ -167,7 +167,7 @@ class ModelSet:
 
         lines = ["ModelSet("]
         for m in self._models:
-            int_ = m.interval.to_string().split(' ')[0]
+            int_ = m.interval.to_string().split(" ")[0]
             lines.append(f"\tModel({m.name} ({int_}), status={m.status.value}, cstat/dof={m.cstat:.3f}/{m.dof}),")
         lines.append(")")
         return "\n".join(lines)
@@ -206,8 +206,9 @@ class ModelSet:
     @property
     def good(self) -> "ModelSet":
         """Return all GOOD models."""
-        good_models: List[Model] = [m for m in self._models
-                                    if m.status not in [GoodnessOfFit.UNSAFE, GoodnessOfFit.UNSAFE]]
+        good_models: List[Model] = [
+            m for m in self._models if m.status not in [GoodnessOfFit.UNSAFE, GoodnessOfFit.UNSAFE]
+        ]
         return ModelSet(good_models)
 
     @property

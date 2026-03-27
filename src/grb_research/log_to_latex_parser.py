@@ -12,7 +12,6 @@ import numpy as np
 
 from .grb_constants import LATEX_MODEL_NAMES, MODEL_ORDER
 
-
 # LaTeX model name mapping
 
 
@@ -449,7 +448,7 @@ class LaTeXTableGenerator:
         cols[0] = f"     {LATEX_MODEL_NAMES[model]}"
 
         # Determine which columns to fill based on the model type
-        if model in ['PL', 'PL_BB']:
+        if model in ["PL", "PL_BB"]:
             # PL models use columns 7-8 (PL section)
             if "amplitude" in params:
                 cols[6] = self._format_amplitude(params["amplitude"])
@@ -468,7 +467,7 @@ class LaTeXTableGenerator:
             elif "break_energy" in params:
                 cols[4] = self._format_value(params["break_energy"])
 
-        if model.endswith('_PL_BB'):
+        if model.endswith("_PL_BB"):
             cols[6] = self._format_amplitude(params["amplitude_pl"])
             cols[7] = self._format_value(params["index2_pl"])
 

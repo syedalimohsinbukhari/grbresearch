@@ -22,7 +22,7 @@ __all__ = [
     "BASE_PARAM_SCHEMAS",
     "COMPONENT_PARAM_SCHEMAS",
     "MODEL_GROUPS",
-    "GRB_COLORS"
+    "GRB_COLORS",
 ]
 
 from .grb_enums import GRBModelsCombinations as gmC
@@ -34,9 +34,7 @@ NOK_THRESHOLD = 1.0
 kev_to_erg = 1.6021766208e-09
 
 GRB_COLORS = ["#0072B2", "#E69F00", "#CC79A7", "#009E73"]
-GRB_EP_COLOR = {'T90': 'r',
-                'TR': 'g',
-                'EX': 'b'}
+GRB_EP_COLOR = {"T90": "r", "TR": "g", "EX": "b"}
 
 # ==================== AUTO-GENERATED FROM ENUMS - DO NOT EDIT DIRECTLY ====================
 

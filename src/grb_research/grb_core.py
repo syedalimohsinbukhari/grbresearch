@@ -125,8 +125,12 @@ class GRB:
                             m_count_best[m.name] = 1
                         else:
                             m_count_best[m.name] += 1
-            return {"SAFE": dict(m_count_safe), "UNSAFE": dict(m_count_unsafe),
-                    "MARGINAL": dict(m_count_marginal), "BEST": dict(m_count_best)}
+            return {
+                "SAFE": dict(m_count_safe),
+                "UNSAFE": dict(m_count_unsafe),
+                "MARGINAL": dict(m_count_marginal),
+                "BEST": dict(m_count_best),
+            }
         else:
             m_count = {}
             for interval_ in int_mask:

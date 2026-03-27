@@ -81,8 +81,14 @@ with open(log_filename, "w", buffering=1) as log_file:
                 unsafe.sort()
 
                 print(f"SAFE models: {sorted(safe)}")
-                sgb.list_par_err(cwd_=cwd, fit_type=list(mapping_safe.keys()),
-                                 string=1, is_good=good, result_dict=res_safe, ep_ext=ep_ext)
+                sgb.list_par_err(
+                    cwd_=cwd,
+                    fit_type=list(mapping_safe.keys()),
+                    string=1,
+                    is_good=good,
+                    result_dict=res_safe,
+                    ep_ext=ep_ext,
+                )
                 print(f"GOOD models: {good}")
                 if marginal:
                     mapping_marginal = {k: v for k, v in mapping.items() if k in marginal}
@@ -90,8 +96,14 @@ with open(log_filename, "w", buffering=1) as log_file:
                     marginal_names = [i[0] for i in list(good_marginally.values())]
                     marginal.sort()
                     print(f"MARGINALLY SAFE models: {sorted(marginal)}")
-                    sgb.list_par_err(cwd_=cwd, fit_type=list(mapping_marginal.keys()),
-                                     string=-1, is_good=good_marginally, result_dict=res_safe, ep_ext=ep_ext)
+                    sgb.list_par_err(
+                        cwd_=cwd,
+                        fit_type=list(mapping_marginal.keys()),
+                        string=-1,
+                        is_good=good_marginally,
+                        result_dict=res_safe,
+                        ep_ext=ep_ext,
+                    )
                 print(f"UNSAFE models: {sorted(unsafe)}")
                 sgb.list_par_err(cwd_=cwd, fit_type=unsafe, string=0, result_dict=res_unsafe, ep_ext=ep_ext)
                 print(f"[RUN] Finished at {datetime.now().strftime('%Y%m%d_%H%M%S')}")

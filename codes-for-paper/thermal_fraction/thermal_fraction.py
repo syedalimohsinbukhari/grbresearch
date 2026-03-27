@@ -10,4 +10,4 @@ grb_list = ["080916C", "110721A", "110731A", "150210A"]
 gc, grb_list_long, grb_objs, grb_best = prepare_grbs(grb_list, result_file, get_best=True)
 
 grb080916c: GRB = gc.get_grb(grb_list_long[3])
-print(grb080916c.get_model('BAND_BB'))
+print(grb080916c.get_model("BAND_BB"))
