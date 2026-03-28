@@ -23,10 +23,16 @@ __all__ = [
     "COMPONENT_PARAM_SCHEMAS",
     "MODEL_GROUPS",
     "GRB_COLORS",
+    "LABEL_FONT_SIZE", "LEGEND_TITLE_FONT_SIZE", "LEGEND_FONT_SIZE", "TICK_FONT_SIZE",
 ]
 
 from .grb_enums import GRBModelsCombinations as gmC
 from .grb_enums import ModelGroupType
+
+LABEL_FONT_SIZE = 12
+LEGEND_FONT_SIZE = 11
+LEGEND_TITLE_FONT_SIZE = LEGEND_FONT_SIZE
+TICK_FONT_SIZE = 12
 
 OK_THRESHOLD = 0.4
 NOK_THRESHOLD = 1.0

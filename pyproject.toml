@@ -14,6 +14,8 @@ dependencies = [
     "scipy",
     "tqdm",
     "black",
-    "pyqt6>=6.10.2",
-    "plotez>=0.2.1",
+    "pyqt6",
+    "plotez",
+    "pyarrow",
+    "fastparquet",
 ]

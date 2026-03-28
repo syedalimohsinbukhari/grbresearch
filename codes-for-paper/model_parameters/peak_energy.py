@@ -1,24 +1,22 @@
 """Created on Dec 17 13:22:15 2025"""
 
 import json
-from typing import Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
+import numpy.typing as npt
 
 from src.grb_research import find_project_root
 from src.grb_research.grb_atomic import ParameterSet
-from src.grb_research.grb_constants import short_to_long
+from src.grb_research.grb_constants import short_to_long, LABEL_FONT_SIZE, TICK_FONT_SIZE, LEGEND_FONT_SIZE
 from src.grb_research.grb_core import GRBCatalog
 from src.grb_research.grb_model import ModelSet
 from src.grb_research.grb_utils import break_e_to_e_peak, plot_per_episode, save_value_error_as_parquet
 
-fs = 12
-
 rng = np.random.default_rng(42)
 
 
-def extract_peak_energy(best_model: ModelSet) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+def extract_peak_energy(best_model: ModelSet) -> tuple[npt.ArrayLike, npt.ArrayLike, npt.ArrayLike]:
     value, error1, error2 = [], [], []
     for model in best_model:
         if "SBPL" in model.name:
@@ -82,7 +80,8 @@ ep_value_110721a, ep_error1_110721a, ep_error2_110721a = extract_peak_energy(grb
 ep_value_110731a, ep_error1_110731a, ep_error2_110731a = extract_peak_energy(grb110731a_best)
 ep_value_150210a, ep_error1_150210a, ep_error2_150210a = extract_peak_energy(grb150210a_best)
 
-_, ax = plt.subplots(2, 1, figsize=(5.5, 6))
+_, ax = plt.subplots(4, 1, figsize=(5.5, 12))
+
 plot_per_episode(
     values=ep_value_080916c,
     errors=[ep_error1_080916c, ep_error2_080916c],
@@ -94,6 +93,7 @@ plot_per_episode(
     axes=ax[0],
     special_counter=[i.interval.is_sp for i in grb080916c_best],
 )
+
 plot_per_episode(
     values=ep_value_110721a,
     errors=[ep_error1_110721a, ep_error2_110721a],
@@ -106,19 +106,6 @@ plot_per_episode(
     special_counter=[i.interval.is_sp for i in grb110721a_best],
 )
 
-[i.grid(True, which="both", alpha=0.5, ls="--") for i in ax]
-ax[-1].set_xlabel("Time [s]", fontsize=fs)
-[i.set_ylabel("Energy [keV]", fontsize=fs) for i in ax]
-plt.xticks(fontsize=fs)
-plt.yticks(fontsize=fs)
-[i.legend(loc="center right", frameon=False, fontsize=fs) for i in ax]
-# plt.title("Peak Energy of GRB 150210A")
-plt.tight_layout()
-# plt.show()
-[plt.savefig(f"./peak_energy__best__080916c_110721a.{i}", dpi=600) for i in ["png", "pdf"]]
-plt.close()
-
-_, ax = plt.subplots(2, 1, figsize=(5.5, 6))
 plot_per_episode(
     values=ep_value_110731a,
     errors=[ep_error2_110731a, ep_error1_110731a],
@@ -127,9 +114,10 @@ plot_per_episode(
     end=end_110731,
     difference=diff_110731,
     midpoints=midpoint_110731,
-    axes=ax[0],
+    axes=ax[2],
     special_counter=[i.interval.is_sp for i in grb110731a_best],
 )
+
 plot_per_episode(
     values=ep_value_150210a,
     errors=[ep_error1_150210a, ep_error2_150210a],
@@ -138,20 +126,19 @@ plot_per_episode(
     end=end_150210,
     difference=diff_150210,
     midpoints=midpoint_150210,
-    axes=ax[1],
+    axes=ax[3],
     special_counter=[i.interval.is_sp for i in grb150210a_best],
 )
 
 [i.grid(True, which="both", alpha=0.5, ls="--") for i in ax]
-ax[-1].set_xlabel("Time [s]", fontsize=fs)
-[i.set_ylabel("Energy [keV]", fontsize=fs) for i in ax]
-plt.xticks(fontsize=fs)
-plt.yticks(fontsize=fs)
-[i.legend(loc="center right", frameon=False, fontsize=fs) for i in ax]
-# plt.title("Peak Energy of GRB 150210A")
+[i.set_xlabel("Time [s]", fontsize=LABEL_FONT_SIZE) for i in ax]
+[i.set_ylabel("Energy [keV]", fontsize=LABEL_FONT_SIZE) for i in ax]
+plt.xticks(fontsize=TICK_FONT_SIZE)
+plt.yticks(fontsize=TICK_FONT_SIZE)
+[i.legend(loc="upper center", frameon=False, fontsize=LEGEND_FONT_SIZE) for i in ax]
 plt.tight_layout()
 # plt.show()
-[plt.savefig(f"./peak_energy__best__110731a_150210a.{i}", dpi=600) for i in ["png", "pdf"]]
+[plt.savefig(f"./peak_energy_best__all.{i}", dpi=600) for i in ["png", "pdf"]]
 plt.close()
 
 ######################################################################################################################

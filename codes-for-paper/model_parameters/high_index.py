@@ -6,11 +6,10 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 from src.grb_research import find_project_root
+from src.grb_research.grb_constants import LEGEND_FONT_SIZE, TICK_FONT_SIZE, LABEL_FONT_SIZE
 from src.grb_research.grb_core import prepare_grbs
 from src.grb_research.grb_model import ModelSet
 from src.grb_research.grb_utils import plot_per_episode, save_value_error_as_parquet
-
-fs = 12
 
 
 def extract_high_index(model_collection: ModelSet) -> Tuple[np.ndarray, np.ndarray]:
@@ -29,9 +28,9 @@ def extract_high_index(model_collection: ModelSet) -> Tuple[np.ndarray, np.ndarr
     values = []
     errors = []
 
-    sbpl_band_models = {"band", "band_pl", "band_bb", "band_pl_bb", "sbpl", "sbpl_pl", "sbpl_bb", "sbpl_pl_bb"}
+    sbpl_band_models = {"band", "band_bb", "band_pl_bb", "sbpl", "sbpl_bb", "sbpl_pl_bb"}
 
-    cpl_pl_models = {"cpl_pl", "cpl_pl_bb"}
+    cpl_pl_models = {"cpl_pl_bb"}
 
     for model in model_collection:
         model_collection = model.name.lower()
@@ -85,7 +84,8 @@ ep_value_110721a, ep_error_110721a = extract_high_index(grb_best[1])
 ep_value_110731a, ep_error_110731a = extract_high_index(grb_best[2])
 ep_value_150210a, ep_error_150210a = extract_high_index(grb_best[3])
 
-_, ax = plt.subplots(2, 1, figsize=(5.5, 6))
+_, ax = plt.subplots(4, 1, figsize=(5.5, 12))
+
 plot_per_episode(
     values=ep_value_080916c,
     errors=ep_error_080916c,
@@ -97,6 +97,7 @@ plot_per_episode(
     axes=ax[0],
     special_counter=[i.interval.is_sp for i in grb_best[0]],
 )
+
 plot_per_episode(
     values=ep_value_110721a,
     errors=ep_error_110721a,
@@ -109,18 +110,6 @@ plot_per_episode(
     special_counter=[i.interval.is_sp for i in grb_best[1]],
 )
 
-[i.grid(True, which="both", alpha=0.5, ls="--") for i in ax]
-ax[-1].set_xlabel("Time [s]", fontsize=fs)
-[i.set_ylabel(r"Higher Index [$\beta$]", fontsize=fs) for i in ax]
-plt.xticks(fontsize=fs)
-plt.yticks(fontsize=fs)
-[i.legend(loc="upper right", frameon=False, fontsize=fs) for i in ax]
-plt.tight_layout()
-# plt.show()
-[plt.savefig(f"./high_index__best__080916c_110721a.{i}", dpi=600) for i in ["png", "pdf"]]
-plt.close()
-
-_, ax = plt.subplots(2, 1, figsize=(5.5, 6))
 plot_per_episode(
     values=ep_value_110731a,
     errors=ep_error_110731a,
@@ -129,9 +118,10 @@ plot_per_episode(
     end=end_110731,
     difference=diff_110731,
     midpoints=midpoint_110731,
-    axes=ax[0],
+    axes=ax[2],
     special_counter=[i.interval.is_sp for i in grb_best[2]],
 )
+
 plot_per_episode(
     values=ep_value_150210a,
     errors=ep_error_150210a,
@@ -140,19 +130,19 @@ plot_per_episode(
     end=end_150210,
     difference=diff_150210,
     midpoints=midpoint_150210,
-    axes=ax[1],
+    axes=ax[3],
     special_counter=[i.interval.is_sp for i in grb_best[3]],
 )
 
 [i.grid(True, which="both", alpha=0.5, ls="--") for i in ax]
-ax[-1].set_xlabel("Time [s]", fontsize=fs)
-[i.set_ylabel(r"Higher Index [$\beta$]", fontsize=fs) for i in ax]
-plt.xticks(fontsize=fs)
-plt.yticks(fontsize=fs)
-[i.legend(loc="center right", frameon=False, fontsize=fs) for i in ax]
+[i.set_xlabel("Time [s]", fontsize=LABEL_FONT_SIZE) for i in ax]
+[i.set_ylabel(r"Higher Index [$\beta$]", fontsize=LABEL_FONT_SIZE) for i in ax]
+plt.xticks(fontsize=TICK_FONT_SIZE)
+plt.yticks(fontsize=TICK_FONT_SIZE)
+[i.legend(loc="best", frameon=False, fontsize=LEGEND_FONT_SIZE) for i in ax]
 plt.tight_layout()
 # plt.show()
-[plt.savefig(f"./high_index__best__110731a_150210a.{i}", dpi=600) for i in ["png", "pdf"]]
+[plt.savefig(f"./high_index_best__all.{i}", dpi=600) for i in ["png", "pdf"]]
 plt.close()
 
 ######################################################################################################################

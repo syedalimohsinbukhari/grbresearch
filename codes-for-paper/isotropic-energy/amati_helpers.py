@@ -14,11 +14,11 @@ from src.grb_research.grb_utils import break_e_to_e_peak
 # ---------------------------------------------------------------------------
 
 EPISODE_COLORS: dict[EpisodeTypes, str] = {
-    EpisodeTypes.T90: "r",
+    EpisodeTypes.T90: "k",
     EpisodeTypes.TR: "g",
     EpisodeTypes.EX0: "b",
     EpisodeTypes.EX1: "b",
-    EpisodeTypes.SP: "k",
+    EpisodeTypes.SP: "r",
 }
 
 
@@ -26,10 +26,10 @@ class EpisodeMarkerResolver:
     """
     Maps an episode interval to a matplotlib marker.
 
-    T90  — GRB-specific marker passed at construction (the only dimension
+    T90 — GRB-specific marker passed at construction (the only dimension
             that differs across GRBs).
-    EX0  — star  ("*")
-    EX1  — pentagon ("p")
+    EX0 — star ("*")
+    EX1 — pentagon ("p")
     TR n — integer marker from TR_MARKERS, indexed by interval.index
     SP n — shape from SP_MARKERS, indexed by interval.index
 
@@ -39,7 +39,7 @@ class EpisodeMarkerResolver:
         Marker to use for T90 episodes of this GRB.
     """
 
-    TR_MARKERS: List = [4, 5, 6, 7, 8, 9, 10, 11]
+    TR_MARKERS: List = ['v', '<', '>', 'h', 'H', '8', 'd']
     EX_MARKERS: List[str] = ["*", "p"]
     SP_MARKERS: List[str] = ["s", "D", "P"]
 
@@ -188,11 +188,11 @@ def _plot_model_point(
 # Public API
 # ---------------------------------------------------------------------------
 
-def amati_relationship_dirirsia2019(
+def amati_relationship_dirirsa2019(
     e_iso_norm: float = 1e52,
     e_i_peak_norm: float = 950.0,
-    log_k: float = 1.67,
-    sigma_log_k: float = 0.16,
+    k: float = 1.67,
+    sigma_k: float = 0.16,
     m: float = 1.16,
     sigma_m: float = 0.37,
     sigma_ext: float = 0.47,
@@ -209,8 +209,9 @@ def amati_relationship_dirirsia2019(
 
     e_i_peak = np.logspace(np.log10(x_lim[0]), np.log10(x_lim[1]), num=num_points)
     x = np.log10(e_i_peak / e_i_peak_norm)
-    y = log_k + m * x
-    sigma_y = np.sqrt(sigma_log_k ** 2 + x ** 2 * sigma_m ** 2 + sigma_ext ** 2)
+    y = k + m * x
+    sigma_y = np.sqrt(sigma_k ** 2 + x ** 2 * sigma_m ** 2 + sigma_ext ** 2)
+
     if use_average:
         sigma_y = np.mean(sigma_y)
     e_isotropic = (10 ** y) * e_iso_norm

@@ -7,6 +7,8 @@ import numpy as np
 from numpy.linalg import LinAlgError, cholesky, inv
 
 
+FOUR_TABS = '\t\t\t\t'
+
 # make the class as dataclass
 @dataclass
 class ParameterSet:
@@ -15,7 +17,12 @@ class ParameterSet:
     parameters: list
 
     def __repr__(self):
-        return f"ParameterSet[\n\t{', '.join(repr(param) for param in self.parameters)}\n]"
+        l = 'ParameterSet[\n'
+        for param in self.parameters:
+            l += f'{FOUR_TABS}{param.name},' + '\n'
+        l += f'{FOUR_TABS}]'
+        return l
+        # return f"ParameterSet[{', '.join(param.name for param in self.parameters)}\n]"
 
     def __getitem__(self, key):
         if isinstance(key, str):

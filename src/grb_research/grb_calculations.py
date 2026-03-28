@@ -3,23 +3,18 @@
 import os
 from dataclasses import dataclass
 from multiprocessing import Pool, cpu_count
-from typing import List, Optional, Tuple
+from typing import Optional, Tuple
 
 import numpy as np
 from astropy.cosmology import FlatLambdaCDM
 from matplotlib import pyplot as plt
-from numpy.typing import ArrayLike
 from scipy.integrate import simpson
 from tqdm import tqdm
 
-from .grb_constants import kev_to_erg
+from .grb_constants import kev_to_erg, LABEL_FONT_SIZE
 from .grb_model import Model
 from .grb_sed import SpectralModels
 from .grb_time import EpisodeTypes, TimeInterval
-from .grb_utils import break_e_to_e_peak
-
-LABEL_FONT_SIZE = 13
-TICK_FONT_SIZE = 12
 
 
 def get_rng(seed: Optional[int] = None, rng: Optional[np.random.Generator] = None) -> np.random.Generator:
@@ -129,7 +124,7 @@ class IsotropicEnergy:
 
         # E_iso = (4 * pi * dl^2 * fluence) / (1 + z)
         dl = self.luminosity_distance()
-        e_iso = (4 * np.pi * dl**2 * fluence) / (1 + self.redshift)
+        e_iso = (4 * np.pi * dl ** 2 * fluence) / (1 + self.redshift)
 
         return e_iso
 
@@ -400,7 +395,7 @@ def mcmc_e_iso_sampler(
         bolometric_fluence = simpson(y=bolometric_samples, x=e_observed, axis=1) * model.interval.duration * kev_to_erg
 
     lum_distance = FlatLambdaCDM(H0=h0, Om0=omega_m).luminosity_distance(z).cgs.value
-    return (4 * np.pi * lum_distance**2 * bolometric_fluence.reshape(1, -1)) / (1 + z)
+    return (4 * np.pi * lum_distance ** 2 * bolometric_fluence.reshape(1, -1)) / (1 + z)
 
 
 def plot_best_models(best_models, n_rows=2, n_cols=None, grb_name=None, fig_size=(15, 4), save=True):
@@ -458,9 +453,9 @@ def plot_best_models(best_models, n_rows=2, n_cols=None, grb_name=None, fig_size
         med, low, high = credible_interval_partition(samples)
         med, low, high = med * kev_to_erg, low * kev_to_erg, high * kev_to_erg
         ax[i].loglog(
-            x, med * x**2, f"{color}--", label=f"{v.name.replace('_', '+')}\n({v.interval.start} - {v.interval.end})"
+            x, med * x ** 2, f"{color}--", label=f"{v.name.replace('_', '+')}\n({v.interval.start} - {v.interval.end})"
         )
-        ax[i].fill_between(x, low * x**2, high * x**2, color=color, alpha=0.2)
+        ax[i].fill_between(x, low * x ** 2, high * x ** 2, color=color, alpha=0.2)
         ax[i].legend()
 
     [v.set_xlabel("Energy [keV]") for i, v in enumerate(ax) if i > (n_cols - 1)]
@@ -528,16 +523,17 @@ def plot_all_models(best_models, grb_name, n_rows=2, n_cols=None, fig_size=(12, 
             med, low, high = med * kev_to_erg, low * kev_to_erg, high * kev_to_erg
 
             if j == 0:
-                ax[i].loglog(x, med * x**2, "k-", label=f"{w.interval.kind}")
-                ax[i].fill_between(x, low * x**2, high * x**2, color="k", alpha=0.2)
+                ax[i].loglog(x, med * x ** 2, "k-", label=f"{w.interval.kind}")
+                ax[i].fill_between(x, low * x ** 2, high * x ** 2, color="k", alpha=0.2)
             else:
                 sub = (
                     f"{w.interval.kind}{w.interval.index}"
                     if w.interval.kind in [EpisodeTypes.TR, EpisodeTypes.SP]
                     else w.interval.kind
                 )
-                ax[i].loglog(x, med * x**2, "--", label=f"{sub}" + r"$_\text{" + f'{w.name.replace("_", "+")}' + r"}$")
-                ax[i].fill_between(x, low * x**2, high * x**2, alpha=0.2)
+                ax[i].loglog(x, med * x ** 2, "--",
+                             label=f"{sub}" + r"$_\text{" + f'{w.name.replace("_", "+")}' + r"}$")
+                ax[i].fill_between(x, low * x ** 2, high * x ** 2, alpha=0.2)
 
             # if has_cpl_bb:
             ax[i].set_ylim(bottom=3.2e-10, top=8.7e-5)

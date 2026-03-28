@@ -136,7 +136,8 @@ class Model:
             safety = GoodnessOfFit.MARGINAL
         else:
             safety = GoodnessOfFit.UNSAFE
-        params = ",\n        ".join(repr(p) for p in self.parameters)
+        params = ParameterSet(self.parameters)
+        # params = ",\n        ".join(repr(p) for p in self.parameters)
 
         return (
             "Model[\n"
@@ -147,7 +148,7 @@ class Model:
             f"    ),\n"
             f"    cstat={self.cstat},\n"
             f"    dof={self.dof},\n"
-            f"    covariance_matrix={self.covariance_matrix}"
+            f"    covariance_matrix={self.covariance_matrix}\n"
             "]"
         )
 
@@ -168,7 +169,8 @@ class ModelSet:
         lines = ["ModelSet("]
         for m in self._models:
             int_ = m.interval.to_string().split(" ")[0]
-            lines.append(f"\tModel({m.name} ({int_}), status={m.status.value}, cstat/dof={m.cstat:.3f}/{m.dof}),")
+            lines.append(f"\tModel({m.name:<10} ({int_}), status={m.status.value:<6}, "
+                         f"cstat/dof={m.cstat:.3f}/{m.dof}),")
         lines.append(")")
         return "\n".join(lines)
 
