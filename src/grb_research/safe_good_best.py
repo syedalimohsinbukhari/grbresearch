@@ -5,7 +5,7 @@ from typing import Dict, List, Union
 
 import numpy as np
 
-from .grb_constants import ALLOWED_MODELS, MODEL_GROUPS, MODEL_PARAMETERS, SINGLE_MODEL_FREE_PARAMS, SINGLE_MODEL_ORDER
+from .grb_constants import ALLOWED_MODELS, MODEL_PARAMETERS, SINGLE_MODEL_FREE_PARAMS, SINGLE_MODEL_ORDER
 from .grb_enums import GRBModelsCombinations
 from .grb_enums import GRBModelsCombinations as gmC
 from .grb_enums import normalize_model
@@ -17,7 +17,6 @@ from .grb_fits_io import (
     read_cstat_from_fit,
     read_param_values_errors,
 )
-from .grb_utils import analyze_model_hierarchy
 
 # Re-export for backward compatibility
 __all__ = [
@@ -26,13 +25,11 @@ __all__ = [
     "collect_model_cstat",
     "compare_models",
     "compare_single_models",
-    "compute_free_params",
-    "compute_good_models",
+    "complexity_key",
     "filter_models_by_error",
     "get_extra_values",
     "get_model_name_from_path",
     "list_par_err",
-    "list_safe_models",
     "model_passes_error_criteria",
     "pick_best_in_group",
     "pick_best_model",
@@ -43,23 +40,6 @@ __all__ = [
 
 
 # ----------------- Utilities -----------------
-
-
-def compute_free_params(model_name: Union[str, GRBModelsCombinations]) -> int:
-    """Compute the number of free parameters for a model.
-
-    Parameters
-    ----------
-    model_name : Union[str, GRBModelsCombinations]
-        Model name as string or enum.
-
-    Returns
-    -------
-    int
-        Number of free parameters.
-    """
-    model = normalize_model(model_name)
-    return model.free_params
 
 
 def complexity_key(model_name: Union[str, GRBModelsCombinations]):
@@ -161,7 +141,7 @@ def _compare_different_complexity(
         simple, simple_c, simple_f = b, b_cstat, b_free
         complex_, complex_c, complex_f = a, a_cstat, a_free
 
-    required = 9 * (complex_f - simple_f) if is_separate_group == 0 else 25 if is_separate_group == 1 else 50
+    required = 9 * (complex_f - simple_f) if is_separate_group == 0 else 28.74 if is_separate_group == 1 else 36.86
     improvement = simple_c - complex_c
     return complex_.name_upper if improvement >= required else simple.name_upper
 
@@ -279,8 +259,8 @@ def filter_models_by_error(c_stats, folder_path, candidates, **kwargs):
         m: c_stats[m]
         for m in candidates
         if m in c_stats
-        and os.path.exists(os.path.join(folder_path, f"{m}.fit"))
-        and model_passes_error_criteria(path=os.path.join(folder_path, f"{m}.fit"), **kwargs)
+           and os.path.exists(os.path.join(folder_path, f"{m}.fit"))
+           and model_passes_error_criteria(path=os.path.join(folder_path, f"{m}.fit"), **kwargs)
     }
 
 
@@ -320,63 +300,6 @@ def pick_best_single_model(c_stats: Dict[str, float]):
     return best, best_c
 
 
-# ----------------- SAFE / GOOD / BEST -----------------
-
-
-def list_safe_models(folder_path, **kwargs):
-    p = {
-        m
-        for m in ALLOWED_MODELS
-        if os.path.exists(os.path.join(folder_path, f"{m}.fit"))
-        and model_passes_error_criteria(os.path.join(folder_path, f"{m}.fit"), **kwargs)
-    }
-    # print(f'{p=}')
-    return {
-        m
-        for m in ALLOWED_MODELS
-        if os.path.exists(os.path.join(folder_path, f"{m}.fit"))
-        and model_passes_error_criteria(os.path.join(folder_path, f"{m}.fit"), **kwargs)
-    }
-
-
-def compute_good_models(c_stats, folder_path, **kwargs):
-    """Compute GOOD models from SAFE models for each model group.
-
-    Parameters
-    ----------
-    c_stats : dict
-        Dictionary of model names to c-stat values.
-    folder_path : str
-        Path to folder containing .fit files.
-    **kwargs
-        Additional arguments for error criteria.
-
-    Returns
-    -------
-    dict
-        Dictionary mapping group names to (model_name, cstat) tuples.
-    """
-    good = {}
-    base = filter_models_by_error(c_stats=c_stats, folder_path=folder_path, candidates=MODEL_GROUPS["BASE"], **kwargs)
-    if base:
-        good["BASE"] = pick_best_single_model(base)
-
-    for group_name in ["BB", "PLBB"]:
-        try:
-            candidates_ = [i for i in MODEL_GROUPS[group_name] if good["BASE"][0] in i]
-            good[group_name] = pick_best_model(
-                c_stats=c_stats,
-                candidates=candidates_,
-                group_name=f"+{group_name}",
-                folder_path=folder_path,
-                is_separate_group=1 if group_name == "BB" else 2,
-                **kwargs,
-            )
-        except Exception:
-            pass
-    return good
-
-
 # ----------------- Parameter Error Listing Helpers -----------------
 
 
@@ -408,28 +331,6 @@ def _extract_model_data(fit_path, schema_len):
     }
 
     return schema, vals, errs, flux_data, c_stat, dof, cov_matrix
-
-
-def _determine_model_status(model_name, hierarchy_result, default_status):
-    """Determine the status of a model (SAFE/UNSAFE/BEST).
-
-    Parameters
-    ----------
-    model_name : str
-        Name of the model.
-    hierarchy_result : dict
-        Result from analyze_model_hierarchy.
-    default_status : str
-        Default status (SAFE or UNSAFE).
-
-    Returns
-    -------
-    str
-        Model status.
-    """
-    if model_name in hierarchy_result and hierarchy_result[model_name] == 1:
-        return "BEST"
-    return default_status
 
 
 def _store_model_results(result_dict, grb, ep_ext, ep, model, status, vals, errs, cstat, dof, cov, model_params):
@@ -506,7 +407,7 @@ def _print_parameter_details(status_str, model, schema, vals, errs, flux_data):
         print(f"   {par_name:15s} = {v:.{acc}f}{sep1}{e:.{acc}f}{sep2}")
 
 
-def list_par_err(cwd_, fit_type, string=1, is_good=None, result_dict=None, ep_ext="T90") -> Dict:
+def list_par_err(cwd_, fit_type, string: str = "SAFE", result_dict=None, ep_ext="T90") -> Dict:
     """List parameter errors for given models in the specified directory.
 
     Parameters
@@ -532,15 +433,9 @@ def list_par_err(cwd_, fit_type, string=1, is_good=None, result_dict=None, ep_ex
     if result_dict is None:
         result_dict = {}
 
-    # Analyze model hierarchy if GOOD models provided
-    hierarchy_result = {}
-    if is_good:
-        hierarchy_result = analyze_model_hierarchy(is_good)
-
     # Extract GRB and episode info from the path
     grb = cwd_.split("/")[-2]
     ep = cwd_.split("/")[-1].split("__")[1].replace("m", "-")
-    status_str = "SAFE" if string == 1 else "MARGINAL" if string == -1 else "UNSAFE"
 
     # Process each model
     for model in fit_type:
@@ -554,9 +449,6 @@ def list_par_err(cwd_, fit_type, string=1, is_good=None, result_dict=None, ep_ex
                 fit_path, len(build_composite_schema(model))
             )
 
-            # Determine model status
-            model_status = _determine_model_status(model, hierarchy_result, status_str)
-
             # Store results
             _store_model_results(
                 result_dict,
@@ -564,7 +456,7 @@ def list_par_err(cwd_, fit_type, string=1, is_good=None, result_dict=None, ep_ex
                 ep_ext,
                 ep,
                 model,
-                model_status,
+                string,
                 vals,
                 errs,
                 c_stat,
@@ -574,7 +466,7 @@ def list_par_err(cwd_, fit_type, string=1, is_good=None, result_dict=None, ep_ex
             )
 
             # Print details
-            _print_parameter_details(model_status, model, schema, vals, errs, flux_data)
+            _print_parameter_details(string, model, schema, vals, errs, flux_data)
 
         except Exception as e:
             print(f"[{string}] {model}: failed to read params ({e})")

@@ -169,8 +169,9 @@ class ModelSet:
         lines = ["ModelSet("]
         for m in self._models:
             int_ = m.interval.to_string().split(" ")[0]
-            lines.append(f"\tModel({m.name:<10} ({int_}), status={m.status.value:<6}, "
-                         f"cstat/dof={m.cstat:.3f}/{m.dof}),")
+            lines.append(
+                f"\tModel({m.name:<10} ({int_}), status={m.status.value:<6}, " f"cstat/dof={m.cstat:.3f}/{m.dof}),"
+            )
         lines.append(")")
         return "\n".join(lines)
 

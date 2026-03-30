@@ -5,7 +5,14 @@ import json
 import matplotlib.pyplot as plt
 
 from src.grb_research import GRBCatalog, find_project_root
-from src.grb_research.grb_constants import MODEL_ORDER, short_to_long
+from src.grb_research.grb_constants import (
+    MODEL_ORDER,
+    short_to_long,
+    TICK_FONT_SIZE,
+    LABEL_FONT_SIZE,
+    LEGEND_FONT_SIZE,
+    LEGEND_TITLE_FONT_SIZE,
+)
 from src.grb_research.grb_styles import GRBPlotStyle as grbStyle
 
 SOURCE_ROOT = find_project_root()
@@ -40,7 +47,7 @@ for index, value in enumerate(grb.grb_list):
     x_positions = list(range(len(MODEL_ORDER)))
 
     # Plot bars with different hatches and colors
-    # Plot UNSAFE data first
+    # Plot UNSAFE data first (keep the alpha value low)
     ax[index].bar(
         x_positions,
         unsafe_counts,
@@ -78,14 +85,12 @@ for index, value in enumerate(grb.grb_list):
         bottom=[a + b for a, b in zip(unsafe_counts, marginal_counts)],
     )
 
-    # Plot the BEST data on top (with hatch)
+    # Plot the BEST data on top (without hatch style)
     ax[index].bar(
         x_positions,
         best_counts,
         label="BEST",
         color=colors[index],
-        # hatch="\\",
-        # alpha=0.5,
         edgecolor="black",
         linewidth=0.5,
         bottom=[a + b + c for a, b, c in zip(safe_counts, marginal_counts, unsafe_counts)],
@@ -94,12 +99,19 @@ for index, value in enumerate(grb.grb_list):
     # Set tick positions and labels
     ax[index].set_xticks(x_positions)
     ax[index].set_xticklabels(MODEL_ORDER_R)
-    ax[index].legend(loc="best", title=f"GRB{grb_name[index]}", ncol=2, shadow=True)
+    ax[index].legend(
+        loc="best",
+        title=f"GRB{grb_name[index]}",
+        ncol=2,
+        shadow=True,
+        fontsize=LEGEND_FONT_SIZE,
+        title_fontsize=LEGEND_TITLE_FONT_SIZE,
+    )
 
-[v.tick_params("x", rotation=90, labelsize=12) for v in ax]
-[v.tick_params("y", labelsize=12) for v in ax]
+[v.tick_params("x", rotation=90, labelsize=TICK_FONT_SIZE) for v in ax]
+[v.tick_params("y", labelsize=TICK_FONT_SIZE) for v in ax]
 ax[0].set_ylim(top=10.5)
-[i.set_ylabel("No. of models", fontsize=12) for i in [ax[0], ax[2]]]
+[i.set_ylabel("No. of models", fontsize=LABEL_FONT_SIZE) for i in [ax[0], ax[2]]]
 plt.tight_layout()
 # plt.show()
 [plt.savefig(f"./all-safe-unsafe.{i}", dpi=600) for i in ["png", "pdf"]]

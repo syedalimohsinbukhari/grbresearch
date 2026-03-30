@@ -4,11 +4,7 @@ import os
 
 import matplotlib.pyplot as plt
 
-from amati_helpers import (
-    amati_relationship_dirirsa2019,
-    plot_grbs_over_amati_relationship,
-    plot_unknown_redshift_grb,
-)
+from amati_helpers import amati_relationship_dirirsa2019, plot_grbs_over_amati_relationship, plot_unknown_redshift_grb
 from src.grb_research import find_project_root
 from src.grb_research.grb_constants import TICK_FONT_SIZE, LEGEND_TITLE_FONT_SIZE, LEGEND_FONT_SIZE, LABEL_FONT_SIZE
 from src.grb_research.grb_core import prepare_grbs
@@ -64,8 +60,9 @@ for i, a in enumerate(ax[:-1]):
         seed_number=n_seed,
         axis=a,
     )
-    a.legend(loc="best", ncols=3, title=f"GRB{grb_list[i]}",
-             fontsize=LEGEND_FONT_SIZE, title_fontsize=LEGEND_TITLE_FONT_SIZE)
+    a.legend(
+        loc="best", ncols=3, title=f"GRB{grb_list[i]}", fontsize=LEGEND_FONT_SIZE, title_fontsize=LEGEND_TITLE_FONT_SIZE
+    )
 
 # ---------------------------------------------------------------------------
 # Unknown-redshift GRB (GRB150210A) — redshift locus across z = 1, 3, 5, 7
@@ -82,8 +79,9 @@ for m in grb_best[-1]:
         axis=ax[-1],
     )
 
-ax[-1].legend(loc="best", ncols=3, title=f"GRB{grb_list[-1]}",
-              fontsize=LEGEND_FONT_SIZE, title_fontsize=LEGEND_TITLE_FONT_SIZE)
+ax[-1].legend(
+    loc="best", ncols=3, title=f"GRB{grb_list[-1]}", fontsize=LEGEND_FONT_SIZE, title_fontsize=LEGEND_TITLE_FONT_SIZE
+)
 
 # ---------------------------------------------------------------------------
 # Shared axis labels and export

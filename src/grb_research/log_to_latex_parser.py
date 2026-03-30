@@ -94,8 +94,12 @@ class LogParser:
         episode_name, time_range = self._parse_episode_info(episode_dir)
 
         # Extract SAFE models list
-        safe_models = self._extract_safe_models(block_content)
+        safe_models = self._extract_safe_models(block_content, "SAFE")
         if not safe_models:
+            return None
+
+        best_models = self._extract_safe_models(block_content, "BEST")
+        if not best_models:
             return None
 
         # Extract parameters for each SAFE model
@@ -103,6 +107,11 @@ class LogParser:
         for model in safe_models:
             params = self._extract_model_parameters(block_content, model, is_safe=True)
             if params:  # Only include models with actual parameter data
+                model_parameters[model] = params
+
+        for model in best_models:
+            params = self._extract_model_parameters(block_content, model, is_safe=True)
+            if params:
                 model_parameters[model] = params
 
         # Extract UNSAFE models and filter those with all errors <= 50%
@@ -177,7 +186,7 @@ class LogParser:
                 num -= value * count
         return "".join(result)
 
-    def _extract_safe_models(self, block_content: str) -> List[str]:
+    def _extract_safe_models(self, block_content: str, type_:str) -> List[str]:
         """Extract the list of SAFE models from the block content.
 
         Parameters
@@ -190,7 +199,7 @@ class LogParser:
         List[str]
             List of SAFE model names.
         """
-        match = re.search(r"SAFE models: \[(.+?)\]", block_content)
+        match = re.search(fr"{type_} models: \[(.+?)\]", block_content)
         if not match:
             return []
 
@@ -212,7 +221,7 @@ class LogParser:
         List[str]
             List of UNSAFE model names.
         """
-        match = re.search(r"(?:UNSAFE|MARGINALLY SAFE) models: \[(.+?)\]", block_content)
+        match = re.search(r"(?:UNSAFE|MARGINAL) models: \[(.+?)\]", block_content)
         if not match:
             return []
 
@@ -240,7 +249,7 @@ class LogParser:
         """
         # Find the parameter details section for this model
         model_type = r"(?:SAFE|BEST)" if is_safe else r"(?:UNSAFE|MARGINAL)"
-        pattern = rf"\[{model_type}\] {model} parameter details:\n(.*?)(?=\[SAFE\]|\[BEST\]|\[UNSAFE\]|\[MARGINAL\]|GOOD models:|$)"
+        pattern = rf"\[{model_type}\] {model} parameter details:\n(.*?)(?=\[SAFE\]|\[BEST\]|\[UNSAFE\]|\[MARGINAL\]|SAFE models:$)"
         match = re.search(pattern, block_content, re.DOTALL)
 
         if not match:

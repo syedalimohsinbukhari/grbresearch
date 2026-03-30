@@ -17,7 +17,7 @@ from .grb_sed import SpectralModels
 from .grb_time import EpisodeTypes, TimeInterval
 
 
-def get_rng(seed: Optional[int] = None, rng: Optional[np.random.Generator] = None) -> np.random.Generator:
+def get_rng(seed: int | None = None, rng: np.random.Generator | None = None) -> np.random.Generator:
     """
     Get or create a NumPy random number generator.
 
@@ -33,6 +33,9 @@ def get_rng(seed: Optional[int] = None, rng: Optional[np.random.Generator] = Non
     np.random.Generator
         RNG instance to use for random sampling.
     """
+    if seed is None and rng is None:
+        raise ValueError("Either seed or rng must be provided.")
+
     if rng is not None:
         return rng
     return np.random.default_rng(seed)
@@ -124,7 +127,7 @@ class IsotropicEnergy:
 
         # E_iso = (4 * pi * dl^2 * fluence) / (1 + z)
         dl = self.luminosity_distance()
-        e_iso = (4 * np.pi * dl ** 2 * fluence) / (1 + self.redshift)
+        e_iso = (4 * np.pi * dl**2 * fluence) / (1 + self.redshift)
 
         return e_iso
 
@@ -395,7 +398,7 @@ def mcmc_e_iso_sampler(
         bolometric_fluence = simpson(y=bolometric_samples, x=e_observed, axis=1) * model.interval.duration * kev_to_erg
 
     lum_distance = FlatLambdaCDM(H0=h0, Om0=omega_m).luminosity_distance(z).cgs.value
-    return (4 * np.pi * lum_distance ** 2 * bolometric_fluence.reshape(1, -1)) / (1 + z)
+    return (4 * np.pi * lum_distance**2 * bolometric_fluence.reshape(1, -1)) / (1 + z)
 
 
 def plot_best_models(best_models, n_rows=2, n_cols=None, grb_name=None, fig_size=(15, 4), save=True):
@@ -453,9 +456,9 @@ def plot_best_models(best_models, n_rows=2, n_cols=None, grb_name=None, fig_size
         med, low, high = credible_interval_partition(samples)
         med, low, high = med * kev_to_erg, low * kev_to_erg, high * kev_to_erg
         ax[i].loglog(
-            x, med * x ** 2, f"{color}--", label=f"{v.name.replace('_', '+')}\n({v.interval.start} - {v.interval.end})"
+            x, med * x**2, f"{color}--", label=f"{v.name.replace('_', '+')}\n({v.interval.start} - {v.interval.end})"
         )
-        ax[i].fill_between(x, low * x ** 2, high * x ** 2, color=color, alpha=0.2)
+        ax[i].fill_between(x, low * x**2, high * x**2, color=color, alpha=0.2)
         ax[i].legend()
 
     [v.set_xlabel("Energy [keV]") for i, v in enumerate(ax) if i > (n_cols - 1)]
@@ -472,35 +475,41 @@ def plot_best_models(best_models, n_rows=2, n_cols=None, grb_name=None, fig_size
         plt.show()
 
 
-def plot_all_models(best_models, grb_name, n_rows=2, n_cols=None, fig_size=(12, 8), save=False):
+def plot_all_models(
+    best_models,
+    grb_name,
+    n_rows: int = 2,
+    n_cols: int | None = None,
+    fig_size: tuple[float, float] = (12.0, 8.0),
+    save: bool = False,
+    seed: int | None = None,
+    rng: np.random.Generator | None = None,
+):
     """
     Generates a grid of plots displaying spectral energy distributions for a collection of models.
 
-    This function takes a set of best-fit models for gamma-ray bursts (GRBs), creates energy flux
-    distributions for each model using Monte Carlo sampling, and visualizes the results on a grid of
-    log-log plots. Each plot corresponds to one GRB, displaying its associated models and intervals.
-    Special consideration is given to cases with a "CPL" component in the models, where specific limits
-    are applied to the y-axis.
-
     Parameters
     ----------
-    best_models : list of lists
-        A nested list where each sublist contains spectral models for a specific GRB.
+    :param best_models: A nested list where each sublist contains spectral models for a specific GRB.
         Each model within a sublist should contain spectral information and interval data.
-
-    grb_name : list of str
-        List of gamma-ray burst names corresponding to the entries in `best_models`.
-
-    n_rows : int, optional
-        Number of rows in the plot grid. Default is 2.
-
-    n_cols : int, optional
-        Number of columns in the plot grid.
+    :param grb_name: A list of strings corresponding to the names of the GRBs.
+        This is used to label the plots and to save the output files.
+    :param n_rows: The number of rows in the grid of plots. Default is 2.
+    :param n_cols: The number of columns in the grid of plots.
         If None (default), it is automatically determined based on the number of GRBs and `n_rows`.
+    :param fig_size: A tuple of floats representing the size of the figure in inches.
+        Default is (12, 8).
+    :param save: A boolean flag indicating whether to save the generated plots.
+        If True, the plots will be saved as PNG and PDF files in the current working directory.
+        If False, the plots will be displayed on the screen.
+    :param seed: An optional integer seed for reproducibility.
+        If provided, it will be used to initialize the random number generator.
+    :param rng: An optional instance of `np.random.Generator` for reproducible results.
+        If provided, it will be used instead of the default random number generator.
 
-    fig_size : tuple of float, optional
-        The size of the entire figure in inches. Default is (12, 8).
     """
+    rng = get_rng(seed=seed, rng=rng)
+
     n_grid = 500
     n_samples = 10_000 if os.cpu_count() > 10 else 1_000
     x = np.logspace(1, 7, n_grid)
@@ -516,37 +525,32 @@ def plot_all_models(best_models, grb_name, n_rows=2, n_cols=None, fig_size=(12, 
 
         for j, w in enumerate(v):
             print(f"processing {w.name}")
-            samples = mcmc_spectra_sampler(w, n_samples=n_samples, n_grid=n_grid)
+            samples = mcmc_spectra_sampler(w, n_samples=n_samples, n_grid=n_grid, rng=rng)
             samples = np.array(samples)
 
             med, low, high = credible_interval_partition(samples)
             med, low, high = med * kev_to_erg, low * kev_to_erg, high * kev_to_erg
 
             if j == 0:
-                ax[i].loglog(x, med * x ** 2, "k-", label=f"{w.interval.kind}")
-                ax[i].fill_between(x, low * x ** 2, high * x ** 2, color="k", alpha=0.2)
+                ax[i].loglog(x, med * x**2, "k-", label=f"{w.interval.kind}")
+                ax[i].fill_between(x, low * x**2, high * x**2, color="k", alpha=0.2)
             else:
                 sub = (
                     f"{w.interval.kind}{w.interval.index}"
                     if w.interval.kind in [EpisodeTypes.TR, EpisodeTypes.SP]
                     else w.interval.kind
                 )
-                ax[i].loglog(x, med * x ** 2, "--",
-                             label=f"{sub}" + r"$_\text{" + f'{w.name.replace("_", "+")}' + r"}$")
-                ax[i].fill_between(x, low * x ** 2, high * x ** 2, alpha=0.2)
+                ax[i].loglog(x, med * x**2, "--", label=f"{sub}" + r"$_\text{" + f'{w.name.replace("_", "+")}' + r"}$")
+                ax[i].fill_between(x, low * x**2, high * x**2, alpha=0.2)
 
-            # if has_cpl_bb:
             ax[i].set_ylim(bottom=3.2e-10, top=8.7e-5)
 
         ax[i].legend(ncols=3, title=f"{grb_name[i]}", shadow=True)
 
         if i % 2 == 0:
             ax[i].set_ylabel("Energy Flux\n" + r"[erg/cm$^2$/s]", fontsize=LABEL_FONT_SIZE)
-        # if i % 2 != 0:
-        #     ax[i].set_yticks([])
 
     [i.grid(True, axis="both", ls="--", alpha=0.5, zorder=-10) for i in ax]
-    # [i.set_xticks([]) for i in [ax[0], ax[1]]]
     [i.set_xlabel("Energy [keV]", fontsize=LABEL_FONT_SIZE) for i in [ax[2], ax[3]]]
     plt.tight_layout()
     if save:

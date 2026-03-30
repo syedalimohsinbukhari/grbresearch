@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 import seaborn
 from matplotlib.patches import Ellipse
-from plotez import plot_errorband, plot_errorbar
+from scipy import stats
 
 from .grb_constants import MODEL_PARAMETERS, NOK_THRESHOLD, OK_THRESHOLD, model_n_pars
 from .grb_enums import GRBModelsCombinations, ModelStatus
@@ -20,7 +20,7 @@ m_style = seaborn.color_palette("deep6")
 
 
 def get_directories_in_current_folder(cur_dir=None):
-    """Get sorted list of relevant directories in the current folder."""
+    """Get a sorted list of relevant directories in the current folder."""
     current_directory = os.getcwd() if cur_dir is None else cur_dir
     all_entries = os.listdir(current_directory)
     directories = []
@@ -562,13 +562,47 @@ def _determine_base_status(base_name, all_results, single_extensions):
         return ModelStatus.ACCEPTED.value
 
 
+def cstat_threshold(delta_k: int, sigma: float = 5.0) -> float:
+    """
+    Compute the Δcstat detection threshold for a likelihood ratio test
+    at a given significance level.
+
+    Uses the fact that under H₀, Δcstat ~ χ²(Δk), so the threshold
+    is the inverse χ² CDF at the desired significance level.
+
+    Parameters
+    ----------
+    delta_k : int
+        Difference in number of free parameters between complex and simple model.
+    sigma : float
+        Desired significance level in Gaussian sigma. Default is 5.0.
+
+    Returns
+    -------
+    float
+        Δcstat threshold value.
+
+    Examples
+    --------
+    >>> cstat_threshold(delta_k=2, sigma=5.0)
+    28.74
+    >>> cstat_threshold(delta_k=2, sigma=4.56)
+    ~25.0
+    >>> cstat_threshold(delta_k=4, sigma=5.0)
+    36.86
+    """
+    p_value = 2 * stats.norm.sf(sigma)  # two-tailed p-value for a given sigma
+    threshold = stats.chi2.ppf(1 - p_value, df=delta_k)
+    return threshold
+
+
 def analyze_model_hierarchy(is_good: Dict) -> Dict[str, ModelStatus]:
     """
     Analyze model hierarchy with custom flags based on comparison rules.
 
     Rules:
     1. BASE must be present in the model name for comparison
-    2. BASE -> BASE_XX requires >25 improvement
+    2. BASE -> BASE_XX requires > 25 improvement
     3. BASE -> BASE_XX_YY requires:
        - >50 if both BASE_XX and BASE_YY are REJECTED
        - >25 from best BASE_XX/BASE_YY if either is ACCEPTED
@@ -621,7 +655,8 @@ def analyze_model_hierarchy(is_good: Dict) -> Dict[str, ModelStatus]:
     for model_name, value in base_containing_models.items():
         if model_name not in results:
             additional_components = model_name.count("_") - base_name.count("_")
-            threshold = 50 if additional_components >= 2 else 25
+            # STATISTICAL THRESHOLD FOR delta_k = 2 and delta_k = 4
+            threshold = cstat_threshold(delta_k=2 * additional_components, sigma=5.0)
 
             if base_value - value > threshold:
                 results[model_name] = ModelStatus.ACCEPTED.value

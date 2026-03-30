@@ -39,7 +39,7 @@ class EpisodeMarkerResolver:
         Marker to use for T90 episodes of this GRB.
     """
 
-    TR_MARKERS: List = ['v', '<', '>', 'h', 'H', '8', 'd']
+    TR_MARKERS: List = ["v", "<", ">", "h", "H", "8", "d"]
     EX_MARKERS: List[str] = ["*", "p"]
     SP_MARKERS: List[str] = ["s", "D", "P"]
 
@@ -66,6 +66,7 @@ class EpisodeMarkerResolver:
 # Private helpers
 # ---------------------------------------------------------------------------
 
+
 def _episode_label(m) -> str:
     """Produce the legend label for a single model's episode."""
     if m.interval.kind in (EpisodeTypes.T90, EpisodeTypes.EX0, EpisodeTypes.EX1):
@@ -74,12 +75,7 @@ def _episode_label(m) -> str:
 
 
 def _compute_ep_eiso(
-    m,
-    redshift: float,
-    n_sample: int,
-    n_grid: int,
-    seed_number: int,
-    rng,
+    m, redshift: float, n_sample: int, n_grid: int, seed_number: int, rng
 ) -> tuple[ArrayLike, ArrayLike]:
     """
     Draw posterior samples of (E_peak_intrinsic, E_iso) for a single model.
@@ -101,10 +97,7 @@ def _compute_ep_eiso(
         mvd = {v: raw[:, i] for i, v in enumerate(pc_names)}
 
         mask = np.logical_and(
-            np.abs(
-                (mvd["index1_sbpl"] + mvd["index2_sbpl"] + 4)
-                / (mvd["index1_sbpl"] - mvd["index2_sbpl"])
-            ) < 1,
+            np.abs((mvd["index1_sbpl"] + mvd["index2_sbpl"] + 4) / (mvd["index1_sbpl"] - mvd["index2_sbpl"])) < 1,
             mvd["e_break_sbpl"] > 0,
         )
         mvd_f = {k: v[mask] for k, v in mvd.items()}
@@ -115,9 +108,7 @@ def _compute_ep_eiso(
         mvd_s = {k: v[idx] for k, v in mvd_f.items()}
 
         ep_samples = break_e_to_e_peak(
-            index1_sbpl=mvd_s["index1_sbpl"],
-            index2_sbpl=mvd_s["index2_sbpl"],
-            break_energy_sbpl=mvd_s["e_break_sbpl"],
+            index1_sbpl=mvd_s["index1_sbpl"], index2_sbpl=mvd_s["index2_sbpl"], break_energy_sbpl=mvd_s["e_break_sbpl"]
         )
         samples_arr = np.array(list(mvd_s.values())).T
 
@@ -134,13 +125,7 @@ def _compute_ep_eiso(
         samples_arr = np.array(list(mvd.values())).T
 
     eiso_samples = mcmc_e_iso_sampler(
-        m, redshift,
-        n_samples=n_sample,
-        n_grid=n_grid,
-        method=2,
-        samples=samples_arr,
-        seed_number=seed_number,
-        rng=rng,
+        m, redshift, n_samples=n_sample, n_grid=n_grid, method=2, samples=samples_arr, seed_number=seed_number, rng=rng
     )
 
     ep_intrinsic = ep_samples * (1 + redshift)
@@ -176,10 +161,8 @@ def _plot_model_point(
     x_err = np.array([[p50_ep - p16_ep], [p84_ep - p50_ep]])
     y_err = np.array([[p50_ei - p16_ei], [p84_ei - p50_ei]])
 
-    axis.scatter(p50_ep, p50_ei, marker=marker, s=50,
-                 color=color, alpha=alpha, label=label, zorder=3)
-    axis.errorbar(p50_ep, p50_ei, xerr=x_err, yerr=y_err,
-                  ms=0, color=color, alpha=alpha, zorder=2)
+    axis.scatter(p50_ep, p50_ei, marker=marker, s=50, color=color, alpha=alpha, label=label, zorder=3)
+    axis.errorbar(p50_ep, p50_ei, xerr=x_err, yerr=y_err, ms=0, color=color, alpha=alpha, zorder=2)
 
     return p50_ep, p50_ei
 
@@ -187,6 +170,7 @@ def _plot_model_point(
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
+
 
 def amati_relationship_dirirsa2019(
     e_iso_norm: float = 1e52,
@@ -210,11 +194,11 @@ def amati_relationship_dirirsa2019(
     e_i_peak = np.logspace(np.log10(x_lim[0]), np.log10(x_lim[1]), num=num_points)
     x = np.log10(e_i_peak / e_i_peak_norm)
     y = k + m * x
-    sigma_y = np.sqrt(sigma_k ** 2 + x ** 2 * sigma_m ** 2 + sigma_ext ** 2)
+    sigma_y = np.sqrt(sigma_k**2 + x**2 * sigma_m**2 + sigma_ext**2)
 
     if use_average:
         sigma_y = np.mean(sigma_y)
-    e_isotropic = (10 ** y) * e_iso_norm
+    e_isotropic = (10**y) * e_iso_norm
 
     axis.loglog(e_i_peak, e_isotropic, lw=1, alpha=0.45, color="k")
 
@@ -270,9 +254,7 @@ def plot_grbs_over_amati_relationship(
 
     rng = np.random.default_rng(seed_number)
 
-    for index, (models, redshift, t90_marker) in enumerate(
-        zip(best_model_list, redshift_list, t90_marker_list)
-    ):
+    for index, (models, redshift, t90_marker) in enumerate(zip(best_model_list, redshift_list, t90_marker_list)):
         resolver = EpisodeMarkerResolver(t90_marker=t90_marker)
         for index2, m in enumerate(models):
             _plot_model_point(

@@ -19,6 +19,7 @@ with open(log_filename, "w", buffering=1) as log_file:
     tr_count, tex_count, esp_count = 0, 0, 0
     try:
         res_safe, res_unsafe, res_total = {}, {}, {}
+        res_best, res_marginal = {}, {}
         cwd_ = os.getcwd()
         outer_dirs = utils.get_directories_in_current_folder()
         for out_ in outer_dirs:
@@ -41,74 +42,147 @@ with open(log_filename, "w", buffering=1) as log_file:
                 for k, v in mapping.items():
                     print(f"{k}: {v[0]:.4f}/{v[1]}")
                 mapping = {k: v[0] for k, v in mapping.items()}
+
+                # Step 1 — find the best single model
+                simple_models = ["PL", "CPL", "BAND", "SBPL"]
                 try:
                     base_filtered = sgb.filter_models_by_error(
-                        c_stats=mapping, folder_path=cwd, candidates=["PL", "CPL", "BAND", "SBPL"]
+                        c_stats=mapping, folder_path=cwd, candidates=simple_models
                     )
                     if base_filtered:
-                        best, best_c = sgb.pick_best_single_model(base_filtered)
-                        print(f"Best single model: {best} (cstat={best_c})")
+                        best_simple, best_c = sgb.pick_best_single_model(base_filtered)
+                        print(f"Best single model: {best_simple} (cstat={best_c})")
                     else:
                         print("Best single model: none")
+                        best_simple = None
                 except Exception as e:
                     print(f"Best single model unavailable ({e})")
-                for label, group in {
-                    "+BB": ["PL_BB", "CPL_BB", "BAND_BB", "SBPL_BB"],
-                    # "+PL": ["CPL_PL", "BAND_PL", "SBPL_PL"],
-                    "+PL+BB": ["CPL_PL_BB", "BAND_PL_BB", "SBPL_PL_BB"],
-                }.items():
-                    try:
-                        best, best_c = sgb.pick_best_model(
-                            c_stats=mapping, candidates=group, group_name=label, folder_path=cwd
-                        )
-                        print(f"Best {label} model: {best} (cstat={best_c})")
-                    except Exception as e:
-                        print(f"Best {label} model unavailable ({e})")
-                safe = list(sgb.list_safe_models(cwd))
-                mapping_safe = {k: v for k, v in mapping.items() if k in safe}
+                    best_simple = None
 
-                _marginal = list(sgb.list_safe_models(cwd, par_constraint=0.5))
+                # -- use exact match, not substring ------------------------------
+                bb_map = {"PL": "PL_BB", "CPL": "CPL_BB", "BAND": "BAND_BB", "SBPL": "SBPL_BB"}
+
+                pl_bb_map = {
+                    "PL": None,  # PL has no direct PL+BB, the nearest is CPL_PL_BB
+                    "CPL": "CPL_PL_BB",
+                    "BAND": "BAND_PL_BB",
+                    "SBPL": "SBPL_PL_BB",
+                }
+
+                # Step 2 — BB comparison
+                best_current = best_simple
+                bb_candidate = bb_map.get(best_simple)
+
+                if bb_candidate:
+                    bb_candidate_filtered = sgb.filter_models_by_error(
+                        c_stats=mapping, folder_path=cwd, candidates=[bb_candidate]
+                    )
+                    if bb_candidate_filtered:
+                        try:
+                            best_bb, best_bb_c = sgb.pick_best_model(
+                                c_stats=mapping,
+                                candidates=bb_candidate_filtered,
+                                group_name="+BB",
+                                folder_path=cwd,
+                                is_separate_group=1,
+                            )
+                            print(f"Best +BB model: {best_bb} (cstat={best_bb_c})")
+                            best_current = best_bb
+                        except Exception as e:
+                            best_bb = None
+                            print(f"Best +BB model unavailable ({e})")
+                    else:
+                        best_bb = None
+                        print(f"Best +BB model: {bb_candidate} rejected by error criterion")
+                else:
+                    best_bb = None
+                    print(f"No +BB candidate defined for {best_simple}")
+
+                # Step 3 — PL+BB comparison
+                # compares against a BB model if BB was accepted, else against the simpler model
+                is_separate_group = 1 if best_current in bb_map.values() else 2
+                pl_bb_candidate = pl_bb_map.get(best_simple)  # always derived from the simpler model base
+
+                if pl_bb_candidate:
+                    pl_bb_candidate_filtered = sgb.filter_models_by_error(
+                        c_stats=mapping, folder_path=cwd, candidates=[pl_bb_candidate]
+                    )
+                    if pl_bb_candidate_filtered:
+                        try:
+                            best_pl_bb, best_pl_bb_c = sgb.pick_best_model(
+                                c_stats=mapping,
+                                candidates=[pl_bb_candidate_filtered],
+                                group_name="+PL+BB",
+                                folder_path=cwd,
+                                is_separate_group=is_separate_group,
+                            )
+                            print(f"Best +PL+BB model: {best_pl_bb} (cstat={best_pl_bb_c})")
+                            best_current = best_pl_bb
+                        except Exception as e:
+                            print(f"Best +PL+BB model unavailable ({e})")
+                            best_pl_bb = None
+                    else:
+                        best_pl_bb = None
+                        print(f"Best +PL+BB model: {pl_bb_candidate} rejected by error criterion")
+                else:
+                    best_pl_bb = None
+                    print(f"No +PL+BB candidate defined for {best_simple}")
+
+                safe_dict = sgb.filter_models_by_error(c_stats=mapping, folder_path=cwd, candidates=sgb.ALLOWED_MODELS)
+                safe = list(safe_dict.keys())
+
+                marginal_dict = sgb.filter_models_by_error(
+                    c_stats=mapping, folder_path=cwd, candidates=sgb.ALLOWED_MODELS, par_constraint=0.5
+                )
+                _marginal = list(marginal_dict.keys())
                 marginal = list(set(safe) ^ set(_marginal))
-                good = sgb.compute_good_models(c_stats=mapping_safe, folder_path=cwd)
+
                 if marginal:
                     new_list = safe + marginal
                     unsafe = [m for m in mapping if m not in new_list]
                 else:
                     unsafe = [m for m in mapping if m not in safe]
 
-                good_names = [i[0] for i in list(good.values())]
+                good_n = []
+                if best_simple:
+                    good_n.append(best_simple)
+                if best_bb:
+                    good_n.append(best_bb)
+                if best_pl_bb:
+                    good_n.append(best_pl_bb)
+
                 safe.sort()
                 unsafe.sort()
 
-                print(f"SAFE models: {sorted(safe)}")
+                # EXTRACT BEST_CURRENT MODEL FROM SAFE_DICT to BEST_DICT
+                if best_current:
+                    best_dict = {best_current: safe_dict[best_current]}
+                    safe_dict.pop(best_current)
+
+                print(f"BEST models: {sorted(best_dict.keys())}")
                 sgb.list_par_err(
-                    cwd_=cwd,
-                    fit_type=list(mapping_safe.keys()),
-                    string=1,
-                    is_good=good,
-                    result_dict=res_safe,
-                    ep_ext=ep_ext,
+                    cwd_=cwd, fit_type=list(best_dict.keys()), string="BEST", result_dict=res_best, ep_ext=ep_ext
                 )
-                print(f"GOOD models: {good}")
+
+                print(f"SAFE models: {sorted(safe_dict.keys())}")
+                sgb.list_par_err(
+                    cwd_=cwd, fit_type=list(safe_dict.keys()), string="SAFE", result_dict=res_safe, ep_ext=ep_ext
+                )
                 if marginal:
-                    mapping_marginal = {k: v for k, v in mapping.items() if k in marginal}
-                    good_marginally = sgb.compute_good_models(c_stats=mapping_marginal, folder_path=cwd)
-                    marginal_names = [i[0] for i in list(good_marginally.values())]
-                    marginal.sort()
-                    print(f"MARGINALLY SAFE models: {sorted(marginal)}")
+                    marginal_dict = {k: v for k, v in marginal_dict.items() if k in marginal}
+                    print(f"MARGINAL models: {sorted(marginal_dict.keys())}")
                     sgb.list_par_err(
                         cwd_=cwd,
-                        fit_type=list(mapping_marginal.keys()),
-                        string=-1,
-                        is_good=good_marginally,
-                        result_dict=res_safe,
+                        fit_type=list(marginal_dict.keys()),
+                        string="MARGINAL",
+                        result_dict=res_marginal,
                         ep_ext=ep_ext,
                     )
                 print(f"UNSAFE models: {sorted(unsafe)}")
-                sgb.list_par_err(cwd_=cwd, fit_type=unsafe, string=0, result_dict=res_unsafe, ep_ext=ep_ext)
+                sgb.list_par_err(cwd_=cwd, fit_type=unsafe, string="UNSAFE", result_dict=res_unsafe, ep_ext=ep_ext)
                 print(f"[RUN] Finished at {datetime.now().strftime('%Y%m%d_%H%M%S')}")
-                res_total = utils.deep_merge(d=res_total, u=res_safe)
-                res_total = utils.deep_merge(d=res_total, u=res_unsafe)
+                for i in [res_best, res_safe, res_marginal, res_unsafe]:
+                    res_total = utils.deep_merge(d=res_total, u=i)
                 pp = utils.flatten_results(res_total)
                 with open("results.json", "w") as f:
                     json.dump(obj=utils.make_json_safe(res_total), fp=f, indent=4)

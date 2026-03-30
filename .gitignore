@@ -211,4 +211,5 @@ __marimo__/
 /**/*.dat
 /**/lat.fits
 /GRBResearch/
-uv.lock
+
+copy_images_to_folders.py
