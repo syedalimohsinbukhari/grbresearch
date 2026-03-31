@@ -32,7 +32,7 @@ f, ax = make_lightcurves(
     lat_gtrspgen=f"{cwd}/{path_}/{fit}",
 )
 
-times = [0.064, 0.832, 2.112, 3.008, 17.344, 31.36]
+times = [0.064, 0.832, 2.112, 3.008, 13.120, 31.36]
 colors = ["r", "g", "gold", "b", "maroon", "cyan"]
 
 for ax_i in ax:

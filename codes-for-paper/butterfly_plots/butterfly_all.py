@@ -24,4 +24,4 @@ is_ex = [sum(i) for i in is_ex]
 
 rng = np.random.default_rng(seed=42)
 
-plot_all_models(grb_best, grb_name, 2, 2, save=True)
+plot_all_models(grb_best, grb_name, 2, 2, save=True, rng=rng)

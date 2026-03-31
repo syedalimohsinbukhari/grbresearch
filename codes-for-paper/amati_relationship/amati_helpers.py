@@ -39,7 +39,7 @@ class EpisodeMarkerResolver:
         Marker to use for T90 episodes of this GRB.
     """
 
-    TR_MARKERS: List = ["v", "<", ">", "h", "H", "8", "d"]
+    TR_MARKERS: List = ["v", "<", ">", "^", "d", "8", "h"]
     EX_MARKERS: List[str] = ["*", "p"]
     SP_MARKERS: List[str] = ["s", "D", "P"]
 
