@@ -116,7 +116,7 @@ def _compare_different_complexity(
     b_free: int,
     a_cstat: float,
     b_cstat: float,
-    is_separate_group: int = 0,
+    is_separate_group: int = -1,
 ) -> str:
     """Compare models with different complexity using improvement threshold.
 
@@ -141,8 +141,17 @@ def _compare_different_complexity(
         simple, simple_c, simple_f = b, b_cstat, b_free
         complex_, complex_c, complex_f = a, a_cstat, a_free
 
-    required = 9 * (complex_f - simple_f) if is_separate_group == 0 else 28.74 if is_separate_group == 1 else 36.86
+    required = 0
+
+    if is_separate_group == -1:
+        required = 9 * (complex_f - simple_f)
+    elif is_separate_group == 0:
+        required = 28.74
+    elif is_separate_group == 1:
+        required = 36.86
+
     improvement = simple_c - complex_c
+    print(f'{simple=} {complex_=} {improvement=}, {required=}, {is_separate_group=}')
     return complex_.name_upper if improvement >= required else simple.name_upper
 
 
@@ -155,7 +164,7 @@ def compare_models(
     b_model: Union[str, GRBModelsCombinations],
     b_cstat: float,
     single_only: bool = False,
-    is_separate_group: int = 0,
+    is_separate_group: int = -1,
 ) -> str:
     """Compare two models and return the better one based on c-stat and complexity.
 
@@ -264,7 +273,7 @@ def filter_models_by_error(c_stats, folder_path, candidates, **kwargs):
     }
 
 
-def pick_best_in_group(c_stats, candidates, group_name, is_separate_group=0):
+def pick_best_in_group(c_stats, candidates, group_name, is_separate_group=-1):
     present = [m for m in candidates if m in c_stats]
     if not present:
         raise ValueError(f"No {group_name} models found")
@@ -278,7 +287,7 @@ def pick_best_in_group(c_stats, candidates, group_name, is_separate_group=0):
     return best, best_c
 
 
-def pick_best_model(c_stats, candidates, group_name, folder_path=None, is_separate_group=0, **kwargs):
+def pick_best_model(c_stats, candidates, group_name, folder_path=None, is_separate_group=-1, **kwargs):
     if folder_path:
         c_stats = filter_models_by_error(c_stats=c_stats, folder_path=folder_path, candidates=candidates, **kwargs)
         if not c_stats:

@@ -77,14 +77,17 @@ with open(log_filename, "w", buffering=1) as log_file:
                     bb_candidate_filtered = sgb.filter_models_by_error(
                         c_stats=mapping, folder_path=cwd, candidates=[bb_candidate]
                     )
+
+                    new_candidates = list(bb_candidate_filtered.keys()) + [best_current]
+
                     if bb_candidate_filtered:
                         try:
                             best_bb, best_bb_c = sgb.pick_best_model(
                                 c_stats=mapping,
-                                candidates=bb_candidate_filtered,
+                                candidates=new_candidates,
                                 group_name="+BB",
                                 folder_path=cwd,
-                                is_separate_group=1,
+                                is_separate_group=0,
                             )
                             print(f"Best +BB model: {best_bb} (cstat={best_bb_c})")
                             best_current = best_bb
@@ -100,18 +103,21 @@ with open(log_filename, "w", buffering=1) as log_file:
 
                 # Step 3 — PL+BB comparison
                 # compares against a BB model if BB was accepted, else against the simpler model
-                is_separate_group = 1 if best_current in bb_map.values() else 2
+                is_separate_group = 0 if best_current in bb_map.values() else 1
                 pl_bb_candidate = pl_bb_map.get(best_simple)  # always derived from the simpler model base
 
                 if pl_bb_candidate:
                     pl_bb_candidate_filtered = sgb.filter_models_by_error(
                         c_stats=mapping, folder_path=cwd, candidates=[pl_bb_candidate]
                     )
+
+                    new_candidates = list(pl_bb_candidate_filtered.keys()) + [best_current]
+
                     if pl_bb_candidate_filtered:
                         try:
                             best_pl_bb, best_pl_bb_c = sgb.pick_best_model(
                                 c_stats=mapping,
-                                candidates=[pl_bb_candidate_filtered],
+                                candidates=new_candidates,
                                 group_name="+PL+BB",
                                 folder_path=cwd,
                                 is_separate_group=is_separate_group,

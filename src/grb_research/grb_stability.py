@@ -32,7 +32,7 @@ from scipy import stats
 # Thresholds (edit to match your pipeline conventions)
 # -----------------------------------------------------------------------------
 
-DELTA_CSTAT_THRESHOLD = 25.0  # pipeline detection threshold
+DELTA_CSTAT_THRESHOLD = 28.74  # pipeline detection threshold
 BB_SIGMA_THRESHOLD = 3.0  # minimum sigma for BB normalization
 HIGH_CORR_THRESHOLD = 0.9  # |ρ| above this flags degeneracy
 
