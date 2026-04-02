@@ -87,7 +87,7 @@ class GRB:
             if interval and interval_.kind != interval:
                 continue
 
-            if tr_index is not None and interval_.kind is EpisodeTypes.TR:
+            if tr_index is not None and interval_.kind in [EpisodeTypes.TR, EpisodeTypes.SP]:
                 if interval_.index != tr_index:
                     continue
 

@@ -74,6 +74,48 @@ def _episode_label(m) -> str:
     return f"{m.interval.kind}{m.interval.index}"
 
 
+# Define base models that have an e_peak parameter
+_EP_MODELS = {"band", "cpl"}
+_NO_EP_MODELS = {"pl"}
+_SBPL = "sbpl"
+
+
+def _get_base_model_name(m_name: str) -> str:
+    """
+    Extract the base spectral model name from a compound model string.
+
+    Supported compounds: BAND, BAND_BB, BAND_PL_BB,
+                         CPL,  CPL_BB,  CPL_PL_BB
+
+    Raises
+    ------
+    ValueError
+        If the model is PL-only or PL+BB (no e_peak defined),
+        or if no recognised base model is found.
+    """
+    components = [c.lower() for c in m_name.split("_")]
+
+    # Check for PL-only or PL+BB — no e_peak exists
+    base_candidates = [c for c in components if c not in ("bb", "pl")]
+
+    if not base_candidates:
+        raise ValueError(
+            f"Model '{m_name}' contains no base spectral component with a "
+            f"defined e_peak (PL-only or PL+BB models do not have e_peak). "
+            f"Cannot compute Ep-Eiso for this model."
+        )
+
+    base = base_candidates[0]  # first non-PL, non-BB component
+
+    if base not in _EP_MODELS:
+        raise ValueError(
+            f"Model '{m_name}': unrecognised base component '{base}'. "
+            f"Expected one of {_EP_MODELS}."
+        )
+
+    return base
+
+
 def _compute_ep_eiso(
     m, redshift: float, n_sample: int, n_grid: int, seed_number: int, rng
 ) -> tuple[ArrayLike, ArrayLike]:
@@ -113,15 +155,11 @@ def _compute_ep_eiso(
         samples_arr = np.array(list(mvd_s.values())).T
 
     else:
-        name_split = m_name.lower().split("_")
-        if len(name_split) > 1:
-            name_split = name_split[0] if "BB" in m_name else name_split[1]
-        else:
-            name_split = m_name
+        base = _get_base_model_name(m_name)
 
         raw = pc.get_populated_values(cov_, size=n_sample, rng=rng)
         mvd = {v: raw[:, i] for i, v in enumerate(pc_names)}
-        ep_samples = mvd[f"e_peak_{name_split.lower()}"]
+        ep_samples = mvd[f"e_peak_{base.lower()}"]
         samples_arr = np.array(list(mvd.values())).T
 
     eiso_samples = mcmc_e_iso_sampler(
@@ -143,7 +181,7 @@ def _plot_model_point(
     rng,
     alpha: float,
     label: str,
-    axis,
+    axis=None,
 ) -> tuple[float, float]:
     """
     Compute and draw a single (E_peak, E_iso) point with error bars.
@@ -155,16 +193,29 @@ def _plot_model_point(
     """
     ep_s, ei_s = _compute_ep_eiso(m, redshift, n_sample, n_grid, seed_number, rng)
 
+    p50_ei, p50_ep, x_err, y_err = percentile_calculator(ei_s, ep_s)
+
+    if axis is not None:
+        axis.scatter(p50_ep, p50_ei, marker=marker, s=50, color=color, alpha=alpha, label=label, zorder=3)
+        axis.errorbar(p50_ep, p50_ei, xerr=x_err, yerr=y_err, ms=0, color=color, alpha=alpha, zorder=2)
+
+    return p50_ep, p50_ei
+
+
+def percentile_calculator(
+    ei_s: ArrayLike,
+    ep_s: ArrayLike,
+    return_percentiles_only=False):
     p16_ep, p50_ep, p84_ep = np.percentile(ep_s, [16, 50, 84])
     p16_ei, p50_ei, p84_ei = np.percentile(ei_s, [16, 50, 84])
 
     x_err = np.array([[p50_ep - p16_ep], [p84_ep - p50_ep]])
     y_err = np.array([[p50_ei - p16_ei], [p84_ei - p50_ei]])
 
-    axis.scatter(p50_ep, p50_ei, marker=marker, s=50, color=color, alpha=alpha, label=label, zorder=3)
-    axis.errorbar(p50_ep, p50_ei, xerr=x_err, yerr=y_err, ms=0, color=color, alpha=alpha, zorder=2)
-
-    return p50_ep, p50_ei
+    if return_percentiles_only:
+        return p16_ep, p50_ep, p84_ep, p16_ei, p50_ei, p84_ei
+    else:
+        return p50_ei, p50_ep, x_err, y_err
 
 
 # ---------------------------------------------------------------------------
@@ -194,11 +245,11 @@ def amati_relationship_dirirsa2019(
     e_i_peak = np.logspace(np.log10(x_lim[0]), np.log10(x_lim[1]), num=num_points)
     x = np.log10(e_i_peak / e_i_peak_norm)
     y = k + m * x
-    sigma_y = np.sqrt(sigma_k**2 + x**2 * sigma_m**2 + sigma_ext**2)
+    sigma_y = np.sqrt(sigma_k ** 2 + x ** 2 * sigma_m ** 2 + sigma_ext ** 2)
 
     if use_average:
         sigma_y = np.mean(sigma_y)
-    e_isotropic = (10**y) * e_iso_norm
+    e_isotropic = (10 ** y) * e_iso_norm
 
     axis.loglog(e_i_peak, e_isotropic, lw=1, alpha=0.45, color="k")
 

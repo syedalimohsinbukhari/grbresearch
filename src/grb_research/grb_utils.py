@@ -365,11 +365,11 @@ def break_e_to_e_peak(index1_sbpl, index2_sbpl, break_energy_sbpl):
 
     Parameters
     ----------
-    index1_sbpl
-        Low-energy spectral index.
-    index2_sbpl
-        High-energy spectral index.
-    break_energy_sbpl
+    index1_sbpl:
+        Low energy spectral index.
+    index2_sbpl:
+        High energy spectral index.
+    break_energy_sbpl:
         Break energy of the smoothly broken power law.
 
     Returns
