@@ -4,7 +4,7 @@ import json
 import os
 from itertools import chain
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -15,6 +15,7 @@ from scipy import stats
 
 from .grb_constants import MODEL_PARAMETERS, NOK_THRESHOLD, OK_THRESHOLD, model_n_pars
 from .grb_enums import GRBModelsCombinations, ModelStatus
+from .grb_time import EpisodeTypes, TimeInterval
 
 m_style = seaborn.color_palette("deep6")
 
@@ -687,3 +688,56 @@ def save_value_error_as_parquet(grb_names, list_of_values, list_of_errors, list_
         df = df[["grb_name", "best_model_name", "value", "error"]]
 
     df.to_parquet(Path.cwd() / filename, index=False)
+
+
+class EpisodeMarkerResolver:
+    """Maps an episode interval to a matplotlib marker and colour.
+
+    T90 — GRB-specific marker passed at construction (the only dimension
+          that differs across GRBs).
+    EX0 — star (``"*"``)
+    EX1 — pentagon (``"p"``)
+    TR *n* — shape from ``TR_MARKERS``, indexed by ``interval.index``
+    SP *n* — shape from ``SP_MARKERS``, indexed by ``interval.index``
+
+    Parameters
+    ----------
+    t90_marker : str
+        Marker to use for T90 episodes of this GRB.
+    """
+
+    TR_MARKERS: List = ["v", "<", ">", "^", "d", "8", "h"]
+    EX_MARKERS: List[str] = ["*", "p"]
+    SP_MARKERS: List[str] = ["s", "D", "P"]
+
+    def __init__(self, t90_marker: str) -> None:
+        self.t90_marker = t90_marker
+
+    def resolve(self, interval) -> str:
+        """Return the marker for *interval* based on its kind and index."""
+        kind = interval.kind
+        if kind is EpisodeTypes.T90:
+            return self.t90_marker
+        if kind is EpisodeTypes.EX0:
+            return self.EX_MARKERS[0]
+        if kind is EpisodeTypes.EX1:
+            return self.EX_MARKERS[1]
+        if kind is EpisodeTypes.TR:
+            return self.TR_MARKERS[interval.index % len(self.TR_MARKERS)]
+        if kind is EpisodeTypes.SP:
+            return self.SP_MARKERS[interval.index % len(self.SP_MARKERS)]
+        raise ValueError(f"Unrecognised EpisodeType: {kind}")
+
+    @staticmethod
+    def get_color(interval) -> str:
+        """Return the colour string for *interval*.
+
+        T90 → ``"r"``, TR → ``"g"``, SP → ``"k"``, anything else → ``"b"``.
+        """
+        if interval.is_t90:
+            return "r"
+        if interval.is_tr:
+            return "g"
+        if interval.is_sp:
+            return "k"
+        return "b"

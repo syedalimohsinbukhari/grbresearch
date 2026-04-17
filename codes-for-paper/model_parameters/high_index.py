@@ -5,16 +5,22 @@ from typing import Tuple
 import numpy as np
 from matplotlib import pyplot as plt
 
-from src.grb_research import find_project_root
-from src.grb_research.grb_constants import LEGEND_FONT_SIZE, TICK_FONT_SIZE, LABEL_FONT_SIZE
-from src.grb_research.grb_core import prepare_grbs
-from src.grb_research.grb_model import ModelSet
-from src.grb_research.grb_utils import plot_per_episode, save_value_error_as_parquet
+from utils import (
+    extract_parameter,
+    find_project_root,
+    prepare_grbs,
+    LEGEND_FONT_SIZE,
+    TICK_FONT_SIZE,
+    LABEL_FONT_SIZE,
+    ModelSet,
+    plot_per_episode,
+    save_value_error_as_parquet,
+)
 
 
-def extract_high_index(model_collection: ModelSet) -> Tuple[np.ndarray, np.ndarray]:
+def extract_high_index(model_collection: ModelSet) -> Tuple[np.typing.ArrayLike, np.typing.ArrayLike]:
     """
-    Extract peak energy proxy values and errors based on model type.
+    Extract high (beta) spectral index values and errors based on model type.
 
     Rules:
     - BAND / SBPL and their derivatives:
@@ -22,37 +28,34 @@ def extract_high_index(model_collection: ModelSet) -> Tuple[np.ndarray, np.ndarr
     - CPL_PL / CPL_PL_BB:
         extract parameter where 'add_index_pl' is in the name
     - CPL only:
-        append np.nan (no peak energy proxy)
+        append np.nan (no high-energy index)
     """
 
     values = []
     errors = []
 
     sbpl_band_models = {"band", "band_bb", "band_pl_bb", "sbpl", "sbpl_bb", "sbpl_pl_bb"}
-
     cpl_pl_models = {"cpl_pl_bb"}
 
     for model in model_collection:
-        model_collection = model.name.lower()
+        m_name = model.name.lower()
 
         # --- BAND / SBPL family ---
-        if model_collection in sbpl_band_models:
-            param = next((p for p in model.parameters if "index2" in p.name), None)
-
-            if param is not None:
-                values.append(param.value)
-                errors.append(param.error)
+        if m_name in sbpl_band_models:
+            result = extract_parameter(model, "index2")
+            if result is not None:
+                values.append(result[0])
+                errors.append(result[1])
 
         # --- CPL + PL family ---
-        elif model_collection in cpl_pl_models:
-            param = next((p for p in model.parameters if "add_index_pl" in p.name), None)
-
-            if param is not None:
-                values.append(param.value)
-                errors.append(param.error)
+        elif m_name in cpl_pl_models:
+            result = extract_parameter(model, "add_index_pl")
+            if result is not None:
+                values.append(result[0])
+                errors.append(result[1])
 
         # --- Pure CPL ---
-        elif model_collection == "cpl":
+        elif m_name == "cpl":
             values.append(np.nan)
             errors.append(np.nan)
 
@@ -84,7 +87,7 @@ ep_value_110721a, ep_error_110721a = extract_high_index(grb_best[1])
 ep_value_110731a, ep_error_110731a = extract_high_index(grb_best[2])
 ep_value_150210a, ep_error_150210a = extract_high_index(grb_best[3])
 
-_, ax = plt.subplots(4, 1, figsize=(5.5, 12))
+_, ax = plt.subplots(4, 1, figsize=(6, 12))  # , sharey=True)
 
 plot_per_episode(
     values=ep_value_080916c,
@@ -139,10 +142,13 @@ plot_per_episode(
 [i.set_ylabel(r"Higher Index [$\beta$]", fontsize=LABEL_FONT_SIZE) for i in ax]
 plt.xticks(fontsize=TICK_FONT_SIZE)
 plt.yticks(fontsize=TICK_FONT_SIZE)
-[i.legend(loc="best", frameon=False, fontsize=LEGEND_FONT_SIZE) for i in ax]
+[i.legend(loc="center right", frameon=False, fontsize=LEGEND_FONT_SIZE) for i in ax]
 plt.tight_layout()
 # plt.show()
-[plt.savefig(f"./high_index_best__all.{i}", dpi=600) for i in ["png", "pdf"]]
+[
+    plt.savefig(f"./high_index_best__all.{i}", dpi=600)
+    for i in ["png", "pdf"]
+]
 plt.close()
 
 ######################################################################################################################

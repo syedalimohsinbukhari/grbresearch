@@ -6,28 +6,28 @@ from typing import Tuple
 import matplotlib.pyplot as plt
 import numpy as np
 
-from src.grb_research import find_project_root
-from src.grb_research.grb_constants import short_to_long, LABEL_FONT_SIZE, TICK_FONT_SIZE, LEGEND_FONT_SIZE
-from src.grb_research.grb_core import GRBCatalog
-from src.grb_research.grb_model import ModelSet
-from src.grb_research.grb_utils import plot_per_episode, save_value_error_as_parquet
+from utils import (
+    extract_parameter,
+    find_project_root,
+    short_to_long,
+    LABEL_FONT_SIZE,
+    TICK_FONT_SIZE,
+    LEGEND_FONT_SIZE,
+    GRBCatalog,
+    ModelSet,
+    plot_per_episode,
+    save_value_error_as_parquet,
+)
 
 
 def extract_low_index(best_model: ModelSet) -> Tuple[np.ndarray, np.ndarray]:
-    """
-    Extracts the peak energy values and their associated errors from a given set of models.
-
-    :param best_model: Set of models from which peak energy values are extracted
-    :type best_model: ModelSet
-    :return: A tuple containing two numpy arrays - the extracted peak energy values and their respective errors
-    :rtype: Tuple[np.ndarray, np.ndarray]
-    """
+    """Extract the low (alpha) spectral index values and errors from a model set."""
     value, error = [], []
     for model in best_model:
-        for p in model.parameters:
-            if "index1" in p.name:
-                value.append(p.value)
-                error.append(p.error)
+        result = extract_parameter(model, "index1")
+        if result is not None:
+            value.append(result[0])
+            error.append(result[1])
 
     return np.array(value), np.array(error)
 

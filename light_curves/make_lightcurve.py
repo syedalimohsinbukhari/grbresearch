@@ -66,11 +66,11 @@ def make_lightcurves(
         lt_1gev = ene_lat <= 1000
         gt_1gev = ene_lat > 1000
 
-        lt_1gev_lt9 = np.logical_and(ene_lat < 1000, p_lat < 0.9)
-        lt_1gev_gt9 = np.logical_and(ene_lat < 1000, p_lat > 0.9)
+        lt_1gev_lt9 = np.logical_and(lt_1gev, p_lat < 0.9)
+        lt_1gev_gt9 = np.logical_and(lt_1gev, p_lat >= 0.9)
 
-        gt_1gev_lt9 = np.logical_and(ene_lat > 1000, p_lat < 0.9)
-        gt_1gev_gt9 = np.logical_and(ene_lat > 1000, p_lat > 0.9)
+        gt_1gev_lt9 = np.logical_and(gt_1gev, p_lat < 0.9)
+        gt_1gev_gt9 = np.logical_and(gt_1gev, p_lat >= 0.9)
 
         sub_time = t_lat - met_time
 

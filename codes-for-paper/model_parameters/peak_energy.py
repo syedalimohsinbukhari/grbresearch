@@ -6,37 +6,36 @@ import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
 
-from src.grb_research import find_project_root
-from src.grb_research.grb_atomic import ParameterSet
-from src.grb_research.grb_constants import short_to_long, LABEL_FONT_SIZE, TICK_FONT_SIZE, LEGEND_FONT_SIZE
-from src.grb_research.grb_core import GRBCatalog
-from src.grb_research.grb_model import ModelSet
-from src.grb_research.grb_utils import break_e_to_e_peak, plot_per_episode, save_value_error_as_parquet
+from utils import (
+    extract_parameter,
+    convert_sbpl_to_band,
+    find_project_root,
+    short_to_long,
+    LABEL_FONT_SIZE,
+    TICK_FONT_SIZE,
+    LEGEND_FONT_SIZE,
+    GRBCatalog,
+    ModelSet,
+    plot_per_episode,
+    save_value_error_as_parquet,
+)
 
-rng = np.random.default_rng(42)
 
-
-def extract_peak_energy(best_model: ModelSet) -> tuple[npt.ArrayLike, npt.ArrayLike, npt.ArrayLike]:
+def extract_peak_energy(best_model: ModelSet, seed: int = 42) -> tuple[npt.ArrayLike, npt.ArrayLike, npt.ArrayLike]:
     value, error1, error2 = [], [], []
     for model in best_model:
         if "SBPL" in model.name:
-            par_dist = ParameterSet(model.parameters).get_populated_values(
-                cov_matrix=model.covariance_matrix_value, size=5_000, rng=rng
-            )
-            idx = (5, 8, 6) if model.name == "SBPL_PL" else (2, 5, 3)
-            peak_energy = break_e_to_e_peak(
-                index1_sbpl=par_dist[:, idx[0]], index2_sbpl=par_dist[:, idx[1]], break_energy_sbpl=par_dist[:, idx[2]]
-            )
-            pp2 = np.nanpercentile(peak_energy, [16, 50, 84], axis=0)
-            value.append(pp2[1])
-            error1.append(pp2[2] - pp2[1])
-            error2.append(pp2[1] - pp2[0])
+            lower_err, median, upper_err = convert_sbpl_to_band(model, seed=seed)
+            value.append(median)
+            error1.append(upper_err)
+            error2.append(lower_err)
         else:
-            for p in model.parameters:
-                if "e_peak" in p.name:
-                    value.append(p.value)
-                    error1.append(p.error)
-                    error2.append(p.error)
+            result = extract_parameter(model, "e_peak")
+            if result is not None:
+                val, err = result
+                value.append(val)
+                error1.append(err)
+                error2.append(err)
 
     return np.array(value), np.array(error1), np.array(error2)
 

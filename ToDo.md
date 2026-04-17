@@ -15,8 +15,8 @@
 
 ### Butterfly (Spectral-Model) Plots
 
-- [ ] Produce model spectra with full error propagation (**butterfly plots**) for both **SAFE** and **UNSAFE** fits to illustrate the statistical range of each model.
-- [ ] For joint time-integrated (TI) and time-resolved (TR) analyses, overplot butterflies from different model quality categories (e.g., SAFE, GOOD, BEST) on the same figure to enable direct visual comparison.
+- [x] Produce model spectra with full error propagation (**butterfly plots**) for both **SAFE** and **UNSAFE** fits to illustrate the statistical range of each model.
+- [x] For joint time-integrated (TI) and time-resolved (TR) analyses, overplot butterflies from different model quality categories (e.g., SAFE, GOOD, BEST) on the same figure to enable direct visual comparison.
 
 ### Blackbody Component Diagnostics
 
@@ -28,12 +28,12 @@
 ### Model Robustness and Alternatives
 
 - [ ] **Alternative models:** Fit synchrotron, Comptonized, or two-BB models to test whether the BB signature is genuine or an artifact of model choice.
-- [ ] Compare fit statistics (likelihood ratio, AIC/BIC) across all tested models to establish the significance of the BB component.
+- [x] Compare fit statistics (likelihood ratio, AIC/BIC) across all tested models to establish the significance of the BB component.
 
 ### GRB Characterization
 
-- [ ] Test each burst against well-known empirical relations such as the **Amati** and **Yonetoku** correlations.
-- [ ] Derive physical parameters such as isotropic energy ($E_\text{iso}$), peak luminosity, and, where feasible, constraints on jet overflow or jet-break signatures.
+- [x] Test each burst against well-known empirical relations such as the **Amati** and ~~**Yonetoku**~~ relationships.
+- [x] Derive physical parameters such as isotropic energy ($E_\text{iso}$), peak luminosity, and, where feasible, constraints on jet overflow or jet-break signatures.
 
 ### Population Context and Comparative Analysis
 
