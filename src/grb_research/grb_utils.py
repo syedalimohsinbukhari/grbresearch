@@ -732,12 +732,12 @@ class EpisodeMarkerResolver:
     def get_color(interval) -> str:
         """Return the colour string for *interval*.
 
-        T90 → ``"r"``, TR → ``"g"``, SP → ``"k"``, anything else → ``"b"``.
+        T90 → ``"k"``, TR → ``"g"``, SP → ``"r"``, anything else → ``"b"``.
         """
         if interval.is_t90:
-            return "r"
+            return "k"
         if interval.is_tr:
             return "g"
         if interval.is_sp:
-            return "k"
+            return "r"
         return "b"

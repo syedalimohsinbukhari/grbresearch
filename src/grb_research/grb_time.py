@@ -21,7 +21,7 @@ class EpisodeTypes(Enum):
     EX0 = "EX0"
     EX1 = "EX1"
     TR = "TR"
-    SP = "SP"
+    SP = "BR"
     UNKNOWN = "UNKNOWN"
 
     def __str__(self):
@@ -45,7 +45,7 @@ class TimeInterval:
     _T90 = re.compile(r"T90\s+(-?\d+(?:\.\d+)?)_(-?\d+(?:\.\d+)?)")
     _EX = re.compile(r"(EX[01])\s+(-?\d+(?:\.\d+)?)_(-?\d+(?:\.\d+)?)")
     _TR = re.compile(r"TR(\d+)\s+(-?\d+(?:\.\d+)?)_(-?\d+(?:\.\d+)?)")
-    _SP = re.compile(r"SP(\d+)\s+(-?\d+(?:\.\d+)?)_(-?\d+(?:\.\d+)?)")
+    _SP = re.compile(r"BR(\d+)\s+(-?\d+(?:\.\d+)?)_(-?\d+(?:\.\d+)?)")
 
     def __post_init__(self):
         if self.kind is EpisodeTypes.TR or self.kind is EpisodeTypes.SP:
@@ -94,7 +94,7 @@ class TimeInterval:
         elif self.is_tr:
             return f"TR{self.index} {start_str}_{end_str}"
         elif self.is_sp:
-            return f"SP{self.index} {start_str}_{end_str}"
+            return f"BR{self.index} {start_str}_{end_str}"
         else:
             return "UNKNOWN"
 
@@ -182,7 +182,7 @@ class TimeIntervalSet:
         if len(self._by_kind[EpisodeTypes.EX1]) > 1:
             raise ValueError("Multiple EX1 intervals found")
 
-        self._trs = tuple(sorted(self._by_kind.get(EpisodeTypes.TR, []), key=lambda i: i.index))
+        self._trs = tuple(sorted(self._by_kind.get(EpisodeTypes.TR, []), key=lambda _: _.index))
 
     # ---------- canonical access ----------
 

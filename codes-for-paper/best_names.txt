@@ -1,0 +1,32 @@
+==================== GRB080916C ===================
+T90: SBPL_BB
+EX0: BAND_BB
+TR0: BAND_BB
+TR1: BAND
+TR2: SBPL
+TR3: SBPL
+EX1: SBPL
+TR4: SBPL
+==================== GRB110721A ===================
+T90: BAND_BB
+EX0: BAND
+TR0: BAND
+SP0: BAND_BB
+SP1: SBPL
+SP2: BAND
+TR1: BAND_BB
+==================== GRB110731A ===================
+T90: SBPL
+EX0: BAND
+TR0: BAND
+TR1: SBPL
+EX1: SBPL
+TR2: SBPL
+==================== GRB150210A ===================
+T90: SBPL
+EX0: CPL
+TR0: CPL
+TR1: SBPL
+TR2: BAND
+TR3: BAND
+TR4: CPL

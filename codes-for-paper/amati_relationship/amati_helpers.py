@@ -14,11 +14,11 @@ from src.grb_research.grb_utils import break_e_to_e_peak
 # ---------------------------------------------------------------------------
 
 EPISODE_COLORS: dict[EpisodeTypes, str] = {
-    EpisodeTypes.T90: "k",
+    EpisodeTypes.T90: "r",
     EpisodeTypes.TR: "g",
     EpisodeTypes.EX0: "b",
     EpisodeTypes.EX1: "b",
-    EpisodeTypes.SP: "r",
+    EpisodeTypes.SP: "k",
 }
 
 

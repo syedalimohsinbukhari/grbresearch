@@ -151,7 +151,6 @@ def _compare_different_complexity(
         required = 36.86
 
     improvement = simple_c - complex_c
-    print(f'{simple=} {complex_=} {improvement=}, {required=}, {is_separate_group=}')
     return complex_.name_upper if improvement >= required else simple.name_upper
 
 

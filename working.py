@@ -16,7 +16,7 @@ with open(log_filename, "w", buffering=1) as log_file:
     sys.stdout = log_file
     sys.stderr = log_file
     ep_ext = "T90"
-    tr_count, tex_count, esp_count = 0, 0, 0
+    tr_count, tex_count, brk_count = 0, 0, 0
     try:
         res_safe, res_unsafe, res_total = {}, {}, {}
         res_best, res_marginal = {}, {}
@@ -31,9 +31,9 @@ with open(log_filename, "w", buffering=1) as log_file:
                 elif "A" in cw_test or "B" in cw_test:
                     ep_ext = f"EX{tex_count}"
                 elif "X" in cw_test or "Y" in cw_test or "Z" in cw_test:
-                    ep_ext = f"SP{esp_count}"
+                    ep_ext = f"BR{brk_count + 1}"
                 else:
-                    ep_ext = f"TR{tr_count}"
+                    ep_ext = f"TR{tr_count + 1}"
                 print(f"\n[RUN] Started at {timestamp} on directory {cwd_}/{out_}/{in_}\n")
                 cwd = f"{cwd_}/{out_}/{in_}"
                 candidates = [m + ".fit" for m in sorted(sgb.ALLOWED_MODELS)]
@@ -197,13 +197,13 @@ with open(log_filename, "w", buffering=1) as log_file:
                 elif "A" in cw_test or "B" in cw_test:
                     tex_count += 1
                 elif "X" in cw_test or "Y" in cw_test or "Z" in cw_test:
-                    esp_count += 1
+                    brk_count += 1
                 else:
                     tr_count += 1
 
             tr_count = 0
             tex_count = 0
-            esp_count = 0
+            brk_count = 0
 
     finally:
         sys.stdout = orig_stdout
