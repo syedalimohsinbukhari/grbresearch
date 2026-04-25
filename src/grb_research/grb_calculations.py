@@ -532,7 +532,7 @@ def plot_all_models(
             med, low, high = med * kev_to_erg, low * kev_to_erg, high * kev_to_erg
 
             if j == 0:
-                ax[i].loglog(x, med * x**2, "k-", label=f"{w.interval.kind}")
+                ax[i].loglog(x, med * x**2, "k-", label=f"{w.interval.kind}" + r"$_\text{" + f'{w.name.replace("_", "+")}' + r"}$")
                 ax[i].fill_between(x, low * x**2, high * x**2, color="k", alpha=0.2)
             else:
                 sub = (
