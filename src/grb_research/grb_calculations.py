@@ -514,12 +514,15 @@ def plot_all_models(
     n_samples = 10_000 if os.cpu_count() > 10 else 1_000
     x = np.logspace(1, 7, n_grid)
 
+    # legend position per panel — keeps legend away from the spectral peaks
+    legend_loc = {0: 'lower left', 1: 'lower left', 2: 'lower left', 3: 'upper right'}
+
     f, ax = plt.subplots(n_rows, n_cols, figsize=fig_size, sharey=True, sharex=True)
     ax = ax.flatten()
 
     for i, v in enumerate(best_models):
         print(f"processing {grb_name[i]}")
-        is_ex = sum([i.interval.is_ex for i in v])
+        is_ex = sum([ep.interval.is_ex for ep in v])  # fixed: was shadowing outer loop variable i
         if is_ex == 2:
             v[-1], v[-2] = v[-2], v[-1]
 
@@ -545,13 +548,22 @@ def plot_all_models(
 
             ax[i].set_ylim(bottom=3.2e-10, top=8.7e-5)
 
-        ax[i].legend(ncols=3, title=f"{grb_name[i]}", shadow=True)
+        # ── legend fix ────────────────────────────────────────────────────────
+        ax[i].legend(
+            ncols=3,
+            title=f"{grb_name[i]}",
+            shadow=True,
+            loc=legend_loc.get(i, 'best'),
+            fontsize=7,
+            title_fontsize=8,
+        )
+        # ─────────────────────────────────────────────────────────────────────
 
-        if i % 2 == 0:
+        if i % n_cols == 0:  # fixed: was hardcoded % 2, now uses n_cols
             ax[i].set_ylabel("Energy Flux\n" + r"[erg/cm$^2$/s]", fontsize=LABEL_FONT_SIZE)
 
     [i.grid(True, axis="both", ls="--", alpha=0.5, zorder=-10) for i in ax]
-    [i.set_xlabel("Energy [keV]", fontsize=LABEL_FONT_SIZE) for i in [ax[2], ax[3]]]
+    [ax[i].set_xlabel("Energy [keV]", fontsize=LABEL_FONT_SIZE) for i in range(len(best_models) - n_cols, len(best_models))]  # fixed: was hardcoded [ax[2], ax[3]]
     plt.tight_layout()
     if save:
         [plt.savefig(f"butterfly_all.{i}", dpi=300) for i in ["png", "pdf"]]
