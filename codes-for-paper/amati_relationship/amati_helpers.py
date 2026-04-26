@@ -162,6 +162,8 @@ def _compute_ep_eiso(
         ep_samples = mvd[f"e_peak_{base.lower()}"]
         samples_arr = np.array(list(mvd.values())).T
 
+    ############################################
+
     m_res = ModelResampler(model=m, samples=samples_arr, rng=rng, destroy=False)
     m_res.run_resampler()
     samples_arr = m_res.samples
