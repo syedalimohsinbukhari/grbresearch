@@ -275,7 +275,7 @@ def plot_grbs_over_amati_relationship(
     seed_number: int = 0,
     alpha: float = 1.0,
     axis=None,
-) -> None:
+) -> tuple[list, list, list]:
     """
     Plot one or more GRBs on the Amati plane.
 
@@ -305,10 +305,13 @@ def plot_grbs_over_amati_relationship(
 
     rng = np.random.default_rng(seed_number)
 
+    ep_total, ei_total = [], []
+    ep_labels = []
+
     for index, (models, redshift, t90_marker) in enumerate(zip(best_model_list, redshift_list, t90_marker_list)):
         resolver = EpisodeMarkerResolver(t90_marker=t90_marker)
         for index2, m in enumerate(models):
-            _plot_model_point(
+            ep, ei = _plot_model_point(
                 m=m,
                 redshift=redshift,
                 marker=resolver.resolve(m.interval),
@@ -321,6 +324,11 @@ def plot_grbs_over_amati_relationship(
                 label=_episode_label(m),
                 axis=axis,
             )
+            ep_total.append(ep)
+            ei_total.append(ei)
+            ep_labels.append(_episode_label(m))
+
+    return ep_total, ei_total, ep_labels
 
 
 def plot_unknown_redshift_grb(
@@ -331,7 +339,7 @@ def plot_unknown_redshift_grb(
     n_sample: int = 10_000,
     seed_number: int = 0,
     axis=None,
-) -> None:
+) -> tuple[list, list, list]:
     """
     Plot a GRB with unknown redshift across several assumed z values.
 
@@ -359,6 +367,9 @@ def plot_unknown_redshift_grb(
 
     rng = np.random.default_rng(seed_number)
     resolver = EpisodeMarkerResolver(t90_marker=t90_marker)
+
+    ep_all, ei_all = [], []
+    ep_name = []
 
     for ep_idx, m in enumerate(models):
         color = EPISODE_COLORS[m.interval.kind]
@@ -388,5 +399,11 @@ def plot_unknown_redshift_grb(
             ep_track.append(ep)
             ei_track.append(ei)
 
+            ep_all.append(ep)
+            ei_all.append(ei)
+            ep_name.append(_episode_label(m))
+
         # Connect the z-track for this episode on the correct axis
         axis.plot(ep_track, ei_track, ls="--", color=color, alpha=0.5, zorder=1)
+
+    return ep_all, ei_all, ep_name

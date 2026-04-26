@@ -1,12 +1,15 @@
 """Created on Jan 24 02:32:18 2026 — refactored Mar 27 2026"""
 
 import os
+from itertools import chain
 
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 
 from amati_helpers import amati_relationship_dirirsa2019, plot_grbs_over_amati_relationship, plot_unknown_redshift_grb
 from src.grb_research import find_project_root
-from src.grb_research.grb_constants import TICK_FONT_SIZE, LEGEND_TITLE_FONT_SIZE, LEGEND_FONT_SIZE, LABEL_FONT_SIZE
+from src.grb_research.grb_constants import LEGEND_TITLE_FONT_SIZE, LEGEND_FONT_SIZE, LABEL_FONT_SIZE, TICK_FONT_SIZE
 from src.grb_research.grb_core import prepare_grbs
 
 # ---------------------------------------------------------------------------
@@ -50,8 +53,11 @@ for a in ax:
 # Known-redshift GRBs — one per subplot
 # ---------------------------------------------------------------------------
 
+ep_total, ei_total = [], []
+ep_label, g_name = [], []
+
 for i, a in enumerate(ax[:-1]):
-    plot_grbs_over_amati_relationship(
+    _ = plot_grbs_over_amati_relationship(
         best_model_list=[grb_best[i]],
         redshift_list=[redshifts[i]],
         t90_marker_list=[t90_markers[i]],
@@ -63,13 +69,17 @@ for i, a in enumerate(ax[:-1]):
     a.legend(
         loc="best", ncols=3, title=f"GRB{grb_list[i]}", fontsize=LEGEND_FONT_SIZE, title_fontsize=LEGEND_TITLE_FONT_SIZE
     )
+    ep_total.append(_[0])
+    ei_total.append(_[1])
+    ep_label.append(_[2])
+    g_name.append([f'GRB{grb_list[i]}'] * len(_[0]))
 
 # ---------------------------------------------------------------------------
 # Unknown-redshift GRB (GRB150210A) — redshift locus across z = 1, 3, 5, 7
 # ---------------------------------------------------------------------------
 
 for m in grb_best[-1]:
-    plot_unknown_redshift_grb(
+    _ = plot_unknown_redshift_grb(
         models=[m],
         t90_marker=t90_markers[-1],
         z_values=(1, 3, 5, 7),
@@ -79,9 +89,28 @@ for m in grb_best[-1]:
         axis=ax[-1],
     )
 
+    ep_total.append(_[0])
+    ei_total.append(_[1])
+    ep_label.append(_[2])
+    g_name.append([f'GRB{grb_list[-1]}'] * len(_[0]))
+
 ax[-1].legend(
     loc="best", ncols=3, title=f"GRB{grb_list[-1]}", fontsize=LEGEND_FONT_SIZE, title_fontsize=LEGEND_TITLE_FONT_SIZE
 )
+
+
+ep_total = list(chain.from_iterable(ep_total))
+ei_total = list(chain.from_iterable(ei_total))
+ep_label = list(chain.from_iterable(ep_label))
+g_name = list(chain.from_iterable(g_name))
+
+ep_total, ei_total = np.array(ep_total), np.array(ei_total)
+ep_label = np.array(ep_label)
+g_name = np.array(g_name)
+
+q = pd.DataFrame([g_name, ep_label, ep_total, ei_total]).T
+q.columns = ["GRBName", "EpisodeName", "E_i_peak__keV", "E_0_iso__keV"]
+q.to_csv("amati_relationship.csv", index=False)
 
 # ---------------------------------------------------------------------------
 # Shared axis labels and export
