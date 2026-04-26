@@ -46,6 +46,7 @@ class ParameterDef:
     name: str
     is_fixed: bool
     has_bounds: bool
+    only_positive: bool
 
 
 @dataclass(frozen=True)
@@ -264,14 +265,14 @@ MODEL_METADATA: Dict[GRBModelsCombinations, ModelMetadata] = {
         base_parameters=["amp_pl", "e_piv_pl", "index1_pl"],
         component_parameters=["amp_pl", "e_piv_pl", "add_index_pl"],
         base_schema=[
-            ParameterDef("amplitude", False, False),
-            ParameterDef("e_pivot", True, False),
-            ParameterDef("index1", False, False),
+            ParameterDef("amplitude", False, False, True),
+            ParameterDef("e_pivot", True, False, True),
+            ParameterDef("index1", False, False, False),
         ],
         component_schema=[
-            ParameterDef("amplitude_pl", False, False),
-            ParameterDef("e_pivot_pl", True, False),
-            ParameterDef("index2_pl", False, False),
+            ParameterDef("amplitude_pl", False, False, True),
+            ParameterDef("e_pivot_pl", True, False, True),
+            ParameterDef("index2_pl", False, False, False),
         ],
         is_standalone=True,
         is_allowed=True,
@@ -285,8 +286,10 @@ MODEL_METADATA: Dict[GRBModelsCombinations, ModelMetadata] = {
         latex_name=r"\bb",
         base_parameters=["amp_bb", "kt_bb"],
         component_parameters=["amp_bb", "kt_bb"],
-        base_schema=[ParameterDef("amplitude_bb", False, False), ParameterDef("kt_temperature", False, False)],
-        component_schema=[ParameterDef("amplitude_bb", False, False), ParameterDef("kt_temperature", False, False)],
+        base_schema=[ParameterDef("amplitude_bb", False, False, True),
+                     ParameterDef("kt_temperature", False, False, True)],
+        component_schema=[ParameterDef("amplitude_bb", False, False, True),
+                          ParameterDef("kt_temperature", False, False, True)],
         is_standalone=False,
         is_allowed=False,
     ),
@@ -314,10 +317,10 @@ MODEL_METADATA: Dict[GRBModelsCombinations, ModelMetadata] = {
         base_parameters=["amp_cpl", "e_peak_cpl", "index1_cpl", "e_piv_cpl"],
         component_parameters=None,
         base_schema=[
-            ParameterDef("amplitude", False, False),
-            ParameterDef("peak_energy", False, False),
-            ParameterDef("index1", False, False),
-            ParameterDef("e_pivot", True, False),
+            ParameterDef("amplitude", False, False, True),
+            ParameterDef("peak_energy", False, False, True),
+            ParameterDef("index1", False, False, False),
+            ParameterDef("e_pivot", True, False, True),
         ],
         component_schema=None,
         is_standalone=True,
@@ -385,10 +388,10 @@ MODEL_METADATA: Dict[GRBModelsCombinations, ModelMetadata] = {
         base_parameters=["amp_band", "e_peak_band", "index1_band", "index2_band"],
         component_parameters=None,
         base_schema=[
-            ParameterDef("amplitude", False, False),
-            ParameterDef("peak_energy", False, False),
-            ParameterDef("index1", False, False),
-            ParameterDef("index2", False, False),
+            ParameterDef("amplitude", False, False, True),
+            ParameterDef("peak_energy", False, False, True),
+            ParameterDef("index1", False, False, False),
+            ParameterDef("index2", False, False, False),
         ],
         component_schema=None,
         is_standalone=True,
@@ -456,12 +459,12 @@ MODEL_METADATA: Dict[GRBModelsCombinations, ModelMetadata] = {
         base_parameters=["amp_sbpl", "e_piv_sbpl", "index1_sbpl", "e_break_sbpl", "delta_sbpl", "index2_sbpl"],
         component_parameters=None,
         base_schema=[
-            ParameterDef("amplitude", False, False),
-            ParameterDef("e_pivot", True, False),
-            ParameterDef("index1", False, False),
-            ParameterDef("break_energy", False, False),
-            ParameterDef("delta", True, False),
-            ParameterDef("index2", False, False),
+            ParameterDef("amplitude", False, False, True),
+            ParameterDef("e_pivot", True, False, True),
+            ParameterDef("index1", False, False, False),
+            ParameterDef("break_energy", False, False, True),
+            ParameterDef("delta", True, False, True),
+            ParameterDef("index2", False, False, False),
         ],
         component_schema=None,
         is_standalone=True,

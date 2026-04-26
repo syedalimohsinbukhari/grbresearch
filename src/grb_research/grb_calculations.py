@@ -12,6 +12,8 @@ from scipy.integrate import simpson
 from tqdm import tqdm
 
 from .grb_constants import kev_to_erg, LABEL_FONT_SIZE
+from .grb_enums import GRBModelsCombinations as gmC
+from .grb_fits_io import build_composite_schema
 from .grb_model import Model
 from .grb_sed import SpectralModels
 from .grb_time import EpisodeTypes, TimeInterval
@@ -127,7 +129,7 @@ class IsotropicEnergy:
 
         # E_iso = (4 * pi * dl^2 * fluence) / (1 + z)
         dl = self.luminosity_distance()
-        e_iso = (4 * np.pi * dl**2 * fluence) / (1 + self.redshift)
+        e_iso = (4 * np.pi * dl ** 2 * fluence) / (1 + self.redshift)
 
         return e_iso
 
@@ -262,6 +264,9 @@ def mcmc_spectra_sampler(
     if samples is None:
         rng_instance = get_rng(seed=seed, rng=rng)
         samples = rng_instance.multivariate_normal(mean=m_vals, cov=covar_, size=n_samples)
+        m_res = ModelResampler(model=model, samples=samples, rng=rng_instance, destroy=False)
+        m_res.run_resampler()
+        samples = m_res.samples
 
     if n_workers is None:
         n_workers = cpu_count()
@@ -274,6 +279,116 @@ def mcmc_spectra_sampler(
         results = list(tqdm(iterable=pool.imap(func=legacy_build_mp, iterable=args_list), total=n_samples))
 
     return results
+
+
+class ModelResampler:
+
+    def __init__(self, model: Model, samples: np.ndarray, rng: Optional[np.random.Generator] = None,
+                 destroy: bool = True):
+        self.model = model
+        self.samples = samples if destroy else samples.copy()
+        self.rng = rng
+
+        self.m_val = [i.value for i in model.parameters]
+        self.errs = np.sqrt(np.diag(model.covariance_matrix_value))
+        self.err_ratio = [(j / abs(i)) * 100 for i, j in zip(self.m_val, self.errs)]
+
+    def __cond_check(self, schema=None) -> Tuple[bool, np.ndarray, np.ndarray]:
+        if any([x > 25 for x in self.err_ratio]):
+            print("Warning: Some parameters have large uncertainties.")
+            pos_mask = np.array([p[-1] for p in schema], dtype=bool)
+            neg_mask = ~pos_mask
+            return True, pos_mask, neg_mask
+        else:
+            return False, np.array([], dtype=bool), np.array([], dtype=bool)
+
+    def __resampler(self, pos_mask, neg_mask, extra_mask=None):
+        s = self.samples
+        mask = np.any(s[:, pos_mask] < 0, axis=1) | np.any(s[:, neg_mask] > 0, axis=1)
+        if extra_mask is not None:
+            mask |= extra_mask
+        print(f"The number of resampled parameters: {np.sum(mask)}")
+        re_sample = self.rng.multivariate_normal(self.m_val,
+                                                 self.model.covariance_matrix_value,
+                                                 np.sum(mask))
+        return mask, re_sample
+
+    def __runner(self, extra_mask=None):
+        schema = build_composite_schema(self.model.name)
+        check, pos_mask, neg_mask = self.__cond_check(schema)
+        if check:
+            mask, re = self.__resampler(pos_mask, neg_mask, extra_mask=extra_mask)
+            self.samples[mask] = re
+
+    def _pl_resampler(self):
+        self.__runner()
+
+    def _cpl_resampler(self):
+        self.__runner()
+
+    def _band_resampler(self):
+        self.__runner()
+
+    def _sbpl_resampler(self):
+        s = self.samples
+        l1_idx, l2_idx = 2, 5
+        denominator = s[:, l1_idx] - s[:, l2_idx]
+        kaneko_mask = np.where(np.abs(denominator) > 1e-8,
+                               (s[:, l1_idx] + s[:, l2_idx] + 4) / denominator < 1,
+                               False)
+        self.__runner(extra_mask=kaneko_mask)
+
+    def _pl_bb_resampler(self):
+        self.__runner()
+
+    def _cpl_bb_resampler(self):
+        self.__runner()
+
+    def _band_bb_resampler(self):
+        self.__runner()
+
+    def _sbpl_bb_resampler(self):
+        self._sbpl_resampler()
+
+    def _cpl_pl_bb_resampler(self):
+        self.__runner()
+
+    def _band_pl_bb_resampler(self):
+        self.__runner()
+
+    def _sbpl_pl_bb_resampler(self):
+        # amp_pl, index1_pl, e_piv_pl
+        # amp_sbpl, e_piv_sbpl, index1_sbpl, e_break_sbpl, break_scale_sbpl, index2_sbpl
+        # amp_bb, kT_bb
+        s = self.samples
+        l1_idx, l2_idx = 5, 8
+        denominator = s[:, l1_idx] - s[:, l2_idx]
+        kaneko_mask = np.where(np.abs(denominator) > 1e-8,
+                               (s[:, l1_idx] + s[:, l2_idx] + 4) / denominator < 1,
+                               False)
+        self.__runner(extra_mask=kaneko_mask)
+
+    def run_resampler(self):
+        """Resamples unphysical draws in-place. `samples` array is modified directly."""
+        dispatcher = {
+            gmC.PL.name_upper: self._pl_resampler,
+            gmC.PL_BB.name_upper: self._pl_bb_resampler,
+            gmC.CPL.name_upper: self._cpl_resampler,
+            gmC.CPL_BB.name_upper: self._cpl_bb_resampler,
+            gmC.CPL_PL_BB.name_upper: self._cpl_pl_bb_resampler,
+            gmC.BAND.name_upper: self._band_resampler,
+            gmC.BAND_BB.name_upper: self._band_bb_resampler,
+            gmC.BAND_PL_BB.name_upper: self._band_pl_bb_resampler,
+            gmC.SBPL.name_upper: self._sbpl_resampler,
+            gmC.SBPL_BB.name_upper: self._sbpl_bb_resampler,
+            gmC.SBPL_PL_BB.name_upper: self._sbpl_pl_bb_resampler
+        }
+
+        resampler = dispatcher.get(self.model.name, None)
+        if resampler is not None:
+            resampler()
+        else:
+            print(f"Warning: No resampler for {self.model.name} model.")
 
 
 def credible_interval_partition(samples: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -398,7 +513,7 @@ def mcmc_e_iso_sampler(
         bolometric_fluence = simpson(y=bolometric_samples, x=e_observed, axis=1) * model.interval.duration * kev_to_erg
 
     lum_distance = FlatLambdaCDM(H0=h0, Om0=omega_m).luminosity_distance(z).cgs.value
-    return (4 * np.pi * lum_distance**2 * bolometric_fluence.reshape(1, -1)) / (1 + z)
+    return (4 * np.pi * lum_distance ** 2 * bolometric_fluence.reshape(1, -1)) / (1 + z)
 
 
 def plot_best_models(best_models, n_rows=2, n_cols=None, grb_name=None, fig_size=(15, 4), save=True):
@@ -456,9 +571,9 @@ def plot_best_models(best_models, n_rows=2, n_cols=None, grb_name=None, fig_size
         med, low, high = credible_interval_partition(samples)
         med, low, high = med * kev_to_erg, low * kev_to_erg, high * kev_to_erg
         ax[i].loglog(
-            x, med * x**2, f"{color}--", label=f"{v.name.replace('_', '+')}\n({v.interval.start} - {v.interval.end})"
+            x, med * x ** 2, f"{color}--", label=f"{v.name.replace('_', '+')}\n({v.interval.start} - {v.interval.end})"
         )
-        ax[i].fill_between(x, low * x**2, high * x**2, color=color, alpha=0.2)
+        ax[i].fill_between(x, low * x ** 2, high * x ** 2, color=color, alpha=0.2)
         ax[i].legend()
 
     [v.set_xlabel("Energy [keV]") for i, v in enumerate(ax) if i > (n_cols - 1)]
@@ -527,7 +642,7 @@ def plot_all_models(
             v[-1], v[-2] = v[-2], v[-1]
 
         for j, w in enumerate(v):
-            print(f"processing {w.name}")
+            print(f"processing {w.name}: {w.interval}")
             samples = mcmc_spectra_sampler(w, n_samples=n_samples, n_grid=n_grid, rng=rng)
             samples = np.array(samples)
 
@@ -535,6 +650,8 @@ def plot_all_models(
             med, low, high = med * kev_to_erg, low * kev_to_erg, high * kev_to_erg
 
             if j == 0:
+                ax[i].loglog(x, med * x ** 2, "k-", label=f"{w.interval.kind}")
+                ax[i].fill_between(x, low * x ** 2, high * x ** 2, color="k", alpha=0.2)
                 ax[i].loglog(x, med * x**2, "k-", label=f"{w.interval.kind}" + r"$_\text{" + f'{w.name.replace("_", "+")}' + r"}$")
                 ax[i].fill_between(x, low * x**2, high * x**2, color="k", alpha=0.2)
             else:
@@ -543,8 +660,9 @@ def plot_all_models(
                     if w.interval.kind in [EpisodeTypes.TR, EpisodeTypes.SP]
                     else w.interval.kind
                 )
-                ax[i].loglog(x, med * x**2, "--", label=f"{sub}" + r"$_\text{" + f'{w.name.replace("_", "+")}' + r"}$")
-                ax[i].fill_between(x, low * x**2, high * x**2, alpha=0.2)
+                ax[i].loglog(x, med * x ** 2, "--",
+                             label=f"{sub}" + r"$_\text{" + f'{w.name.replace("_", "+")}' + r"}$")
+                ax[i].fill_between(x, low * x ** 2, high * x ** 2, alpha=0.2)
 
             ax[i].set_ylim(bottom=3.2e-10, top=8.7e-5)
 

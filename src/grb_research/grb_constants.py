@@ -102,14 +102,14 @@ COMPONENT_FREE_PARAMS = {"PL": 2, "BB": 2}
 
 # Convert ParameterDef to tuples for backward compatibility
 BASE_PARAM_SCHEMAS = {
-    m.name_upper: [(p.name, p.is_fixed, p.has_bounds) for p in m.base_schema]
+    m.name_upper: [(p.name, p.is_fixed, p.has_bounds, p.only_positive) for p in m.base_schema]
     for m in gmC
     if m.base_schema and m in [gmC.PL, gmC.CPL, gmC.BAND, gmC.SBPL]
 }
 
 COMPONENT_PARAM_SCHEMAS = {
-    "PL": [(p.name, p.is_fixed, p.has_bounds) for p in gmC.PL.component_schema],
-    "BB": [(p.name, p.is_fixed, p.has_bounds) for p in gmC.BB.base_schema],
+    "PL": [(p.name, p.is_fixed, p.has_bounds, p.only_positive) for p in gmC.PL.component_schema],
+    "BB": [(p.name, p.is_fixed, p.has_bounds, p.only_positive) for p in gmC.BB.base_schema],
 }
 
 # ==================== Model Groups for GOOD Selection ====================
