@@ -283,11 +283,16 @@ def mcmc_spectra_sampler(
 
 class ModelResampler:
 
-    def __init__(self, model: Model, samples: np.ndarray, rng: Optional[np.random.Generator] = None,
+    def __init__(self, model: Model, samples: np.ndarray, rng: Optional[np.random.Generator] = None, seed=None,
                  destroy: bool = True):
         self.model = model
         self.samples = samples if destroy else samples.copy()
-        self.rng = rng
+        if seed is None and rng is None:
+            raise ValueError("Either seed or rng must be definend.")
+        if rng is None:
+            self.rng: np.random.Generator = np.random.default_rng(seed)
+        else:
+            self.rng: np.random.Generator = rng
 
         self.m_val = [i.value for i in model.parameters]
         self.errs = np.sqrt(np.diag(model.covariance_matrix_value))
@@ -306,7 +311,7 @@ class ModelResampler:
         s = self.samples
         mask = np.any(s[:, pos_mask] < 0, axis=1) | np.any(s[:, neg_mask] > 0, axis=1)
         if extra_mask is not None:
-            mask |= extra_mask
+            mask &= extra_mask
         print(f"The number of resampled parameters: {np.sum(mask)}")
         re_sample = self.rng.multivariate_normal(self.m_val,
                                                  self.model.covariance_matrix_value,
@@ -332,11 +337,10 @@ class ModelResampler:
     def _sbpl_resampler(self):
         s = self.samples
         l1_idx, l2_idx = 2, 5
-        denominator = s[:, l1_idx] - s[:, l2_idx]
-        kaneko_mask = np.where(np.abs(denominator) > 1e-8,
-                               (s[:, l1_idx] + s[:, l2_idx] + 4) / denominator < 1,
-                               False)
-        self.__runner(extra_mask=kaneko_mask)
+        lambda_1, lambda_2 = s[:, l1_idx], s[:, l2_idx]
+        kaneko_mask = np.abs((lambda_1 + lambda_2 + 4) / (lambda_1 - lambda_2)) < 1
+        m2 = np.logical_and(lambda_1 > -2, lambda_2 < -2)
+        self.__runner(extra_mask=np.logical_and(kaneko_mask, m2))
 
     def _pl_bb_resampler(self):
         self.__runner()
@@ -652,8 +656,9 @@ def plot_all_models(
             if j == 0:
                 ax[i].loglog(x, med * x ** 2, "k-", label=f"{w.interval.kind}")
                 ax[i].fill_between(x, low * x ** 2, high * x ** 2, color="k", alpha=0.2)
-                ax[i].loglog(x, med * x**2, "k-", label=f"{w.interval.kind}" + r"$_\text{" + f'{w.name.replace("_", "+")}' + r"}$")
-                ax[i].fill_between(x, low * x**2, high * x**2, color="k", alpha=0.2)
+                ax[i].loglog(x, med * x ** 2, "k-",
+                             label=f"{w.interval.kind}" + r"$_\text{" + f'{w.name.replace("_", "+")}' + r"}$")
+                ax[i].fill_between(x, low * x ** 2, high * x ** 2, color="k", alpha=0.2)
             else:
                 sub = (
                     f"{w.interval.kind}{w.interval.index}"
@@ -681,7 +686,8 @@ def plot_all_models(
             ax[i].set_ylabel("Energy Flux\n" + r"[erg/cm$^2$/s]", fontsize=LABEL_FONT_SIZE)
 
     [i.grid(True, axis="both", ls="--", alpha=0.5, zorder=-10) for i in ax]
-    [ax[i].set_xlabel("Energy [keV]", fontsize=LABEL_FONT_SIZE) for i in range(len(best_models) - n_cols, len(best_models))]  # fixed: was hardcoded [ax[2], ax[3]]
+    [ax[i].set_xlabel("Energy [keV]", fontsize=LABEL_FONT_SIZE) for i in
+     range(len(best_models) - n_cols, len(best_models))]  # fixed: was hardcoded [ax[2], ax[3]]
     plt.tight_layout()
     if save:
         [plt.savefig(f"butterfly_all.{i}", dpi=300) for i in ["png", "pdf"]]
