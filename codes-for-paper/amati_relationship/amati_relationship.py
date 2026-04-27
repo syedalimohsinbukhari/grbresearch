@@ -55,6 +55,7 @@ for a in ax:
 
 ep_total, ei_total = [], []
 ep_label, g_name = [], []
+model_list = []
 
 for i, a in enumerate(ax[:-1]):
     _ = plot_grbs_over_amati_relationship(
@@ -72,6 +73,7 @@ for i, a in enumerate(ax[:-1]):
     ep_total.append(_[0])
     ei_total.append(_[1])
     ep_label.append(_[2])
+    model_list.append(_[3])
     g_name.append([f'GRB{grb_list[i]}'] * len(_[0]))
 
 # ---------------------------------------------------------------------------
@@ -92,6 +94,7 @@ for m in grb_best[-1]:
     ep_total.append(_[0])
     ei_total.append(_[1])
     ep_label.append(_[2])
+    model_list.append(_[3])
     g_name.append([f'GRB{grb_list[-1]}'] * len(_[0]))
 
 ax[-1].legend(
@@ -101,14 +104,16 @@ ax[-1].legend(
 ep_total = list(chain.from_iterable(ep_total))
 ei_total = list(chain.from_iterable(ei_total))
 ep_label = list(chain.from_iterable(ep_label))
+model_list = list(chain.from_iterable(model_list))
 g_name = list(chain.from_iterable(g_name))
 
 ep_total, ei_total = np.array(ep_total), np.array(ei_total)
 ep_label = np.array(ep_label)
 g_name = np.array(g_name)
+model_list = np.array(model_list)
 
-q = pd.DataFrame([g_name, ep_label, ep_total, ei_total]).T
-q.columns = ["GRBName", "EpisodeName", "E_i_peak__keV", "E_0_iso__keV"]
+q = pd.DataFrame([g_name, model_list, ep_label, ep_total, ei_total / 1e52]).T
+q.columns = ["GRBName", "Model", "EpisodeName", "E_i_peak__keV", "E_0_iso__keV"]
 q.to_csv("amati_relationship.csv", index=False)
 
 # ---------------------------------------------------------------------------

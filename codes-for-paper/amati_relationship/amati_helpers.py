@@ -283,7 +283,7 @@ def plot_grbs_over_amati_relationship(
     seed_number: int = 0,
     alpha: float = 1.0,
     axis=None,
-) -> tuple[list, list, list]:
+) -> tuple[list, list, list, list]:
     """
     Plot one or more GRBs on the Amati plane.
 
@@ -315,6 +315,7 @@ def plot_grbs_over_amati_relationship(
 
     ep_total, ei_total = [], []
     ep_labels = []
+    _models = []
 
     for index, (models, redshift, t90_marker) in enumerate(zip(best_model_list, redshift_list, t90_marker_list)):
         resolver = EpisodeMarkerResolver(t90_marker=t90_marker)
@@ -335,8 +336,9 @@ def plot_grbs_over_amati_relationship(
             ep_total.append(ep)
             ei_total.append(ei)
             ep_labels.append(_episode_label(m))
+            _models.append(m.name)
 
-    return ep_total, ei_total, ep_labels
+    return ep_total, ei_total, ep_labels, _models
 
 
 def plot_unknown_redshift_grb(
@@ -347,7 +349,7 @@ def plot_unknown_redshift_grb(
     n_sample: int = 10_000,
     seed_number: int = 0,
     axis=None,
-) -> tuple[list, list, list]:
+) -> tuple[list, list, list, list]:
     """
     Plot a GRB with unknown redshift across several assumed z values.
 
@@ -378,6 +380,7 @@ def plot_unknown_redshift_grb(
 
     ep_all, ei_all = [], []
     ep_name = []
+    model_list = []
 
     for ep_idx, m in enumerate(models):
         color = EPISODE_COLORS[m.interval.kind]
@@ -409,9 +412,10 @@ def plot_unknown_redshift_grb(
 
             ep_all.append(ep)
             ei_all.append(ei)
+            model_list.append(m.name)
             ep_name.append(_episode_label(m))
 
         # Connect the z-track for this episode on the correct axis
         axis.plot(ep_track, ei_track, ls="--", color=color, alpha=0.5, zorder=1)
 
-    return ep_all, ei_all, ep_name
+    return ep_all, ei_all, ep_name, model_list
