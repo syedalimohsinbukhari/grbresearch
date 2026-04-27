@@ -57,9 +57,6 @@ ep_total, ei_total = [], []
 ep_label, g_name = [], []
 
 for i, a in enumerate(ax[:-1]):
-    print(f"\n=== GRB{grb_list[i]} ===")
-    for m in grb_best[i]:
-        print(f"  Episode: {m.interval} | Model: {m.name}")
     _ = plot_grbs_over_amati_relationship(
         best_model_list=[grb_best[i]],
         redshift_list=[redshifts[i]],
@@ -100,7 +97,6 @@ for m in grb_best[-1]:
 ax[-1].legend(
     loc="best", ncols=3, title=f"GRB{grb_list[-1]}", fontsize=LEGEND_FONT_SIZE, title_fontsize=LEGEND_TITLE_FONT_SIZE
 )
-
 
 ep_total = list(chain.from_iterable(ep_total))
 ei_total = list(chain.from_iterable(ei_total))

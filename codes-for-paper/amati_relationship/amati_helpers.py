@@ -134,6 +134,8 @@ def _compute_ep_eiso(
     pc_names = [p.name for p in pc]
     cov_ = 0.5 * (m.covariance_matrix_value + m.covariance_matrix_value.T)
 
+    print(f'{m_name}')
+
     if "sbpl" in m_name.lower():
         raw = pc.get_populated_values(cov_, size=int(1.5 * n_sample), rng=rng)
         mvd = {v: raw[:, i] for i, v in enumerate(pc_names)}
