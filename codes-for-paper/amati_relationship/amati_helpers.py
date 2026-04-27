@@ -190,7 +190,7 @@ def _plot_model_point(
     alpha: float,
     label: str,
     axis=None,
-) -> tuple[float, float]:
+) -> tuple[float, float, np.ndarray, np.ndarray]:
     """
     Compute and draw a single (E_peak, E_iso) point with error bars.
 
@@ -198,6 +198,9 @@ def _plot_model_point(
     -------
     p50_ep, p50_eiso : float
         Median values, useful for building redshift tracks.
+    x_err, y_err : np.ndarray
+        Asymmetric 1-sigma errors shaped (2, 1) for E_peak and E_iso.
+        First row is lower error, second row is upper error.
     """
     ep_s, ei_s = _compute_ep_eiso(m, redshift, n_sample, n_grid, seed_number, rng)
 
@@ -207,7 +210,7 @@ def _plot_model_point(
         axis.scatter(p50_ep, p50_ei, marker=marker, s=50, color=color, alpha=alpha, label=label, zorder=3)
         axis.errorbar(p50_ep, p50_ei, xerr=x_err, yerr=y_err, ms=0, color=color, alpha=alpha, zorder=2)
 
-    return p50_ep, p50_ei
+    return p50_ep, p50_ei, x_err, y_err
 
 
 def percentile_calculator(
@@ -283,7 +286,7 @@ def plot_grbs_over_amati_relationship(
     seed_number: int = 0,
     alpha: float = 1.0,
     axis=None,
-) -> tuple[list, list, list, list]:
+) -> tuple[list, list, list, list, list, list]:
     """
     Plot one or more GRBs on the Amati plane.
 
@@ -307,6 +310,21 @@ def plot_grbs_over_amati_relationship(
         Scatter / errorbar opacity.
     axis : matplotlib Axes
         Target axes object. Required.
+
+    Returns
+    -------
+    ep_total : list
+        E_peak median values.
+    ei_total : list
+        E_iso median values.
+    ep_labels : list
+        Episode labels.
+    _models : list
+        Model names.
+    ep_err_total : list
+        E_peak error arrays (2, 1) shaped.
+    ei_err_total : list
+        E_iso error arrays (2, 1) shaped.
     """
     if axis is None:
         raise ValueError("An axis must be provided.")
@@ -314,13 +332,14 @@ def plot_grbs_over_amati_relationship(
     rng = np.random.default_rng(seed_number)
 
     ep_total, ei_total = [], []
+    ep_err_total, ei_err_total = [], []
     ep_labels = []
     _models = []
 
     for index, (models, redshift, t90_marker) in enumerate(zip(best_model_list, redshift_list, t90_marker_list)):
         resolver = EpisodeMarkerResolver(t90_marker=t90_marker)
         for index2, m in enumerate(models):
-            ep, ei = _plot_model_point(
+            ep, ei, ep_err, ei_err = _plot_model_point(
                 m=m,
                 redshift=redshift,
                 marker=resolver.resolve(m.interval),
@@ -335,10 +354,12 @@ def plot_grbs_over_amati_relationship(
             )
             ep_total.append(ep)
             ei_total.append(ei)
+            ep_err_total.append(ep_err)
+            ei_err_total.append(ei_err)
             ep_labels.append(_episode_label(m))
             _models.append(m.name)
 
-    return ep_total, ei_total, ep_labels, _models
+    return ep_total, ei_total, ep_labels, _models, ep_err_total, ei_err_total
 
 
 def plot_unknown_redshift_grb(
@@ -394,7 +415,7 @@ def plot_unknown_redshift_grb(
             # per episode, not one per (episode × z).
             label = _episode_label(m) if z_idx == 0 else ""
 
-            ep, ei = _plot_model_point(
+            ep, ei, _, _ = _plot_model_point(
                 m=m,
                 redshift=z,
                 marker=marker,

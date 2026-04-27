@@ -34,7 +34,7 @@ t90_markers = ["o", "d", "X", "D"]
 # Sampling config
 # ---------------------------------------------------------------------------
 
-n_sample = 10_000 if os.cpu_count() > 10 else 2_500
+n_sample = 10_000 #if os.cpu_count() > 10 else 2_500
 n_grid = 500
 n_seed = 12345
 
@@ -54,6 +54,7 @@ for a in ax:
 # ---------------------------------------------------------------------------
 
 ep_total, ei_total = [], []
+ep_err_total, ei_err_total = [], []
 ep_label, g_name = [], []
 model_list = []
 
@@ -74,6 +75,8 @@ for i, a in enumerate(ax[:-1]):
     ei_total.append(_[1])
     ep_label.append(_[2])
     model_list.append(_[3])
+    ep_err_total.append(_[4])
+    ei_err_total.append(_[5])
     g_name.append([f'GRB{grb_list[i]}'] * len(_[0]))
 
 # ---------------------------------------------------------------------------
@@ -81,7 +84,7 @@ for i, a in enumerate(ax[:-1]):
 # ---------------------------------------------------------------------------
 
 for m in grb_best[-1]:
-    _ = plot_unknown_redshift_grb(
+    plot_unknown_redshift_grb(
         models=[m],
         t90_marker=t90_markers[-1],
         z_values=(1, 3, 5, 7),
@@ -90,12 +93,6 @@ for m in grb_best[-1]:
         seed_number=n_seed,
         axis=ax[-1],
     )
-
-    ep_total.append(_[0])
-    ei_total.append(_[1])
-    ep_label.append(_[2])
-    model_list.append(_[3])
-    g_name.append([f'GRB{grb_list[-1]}'] * len(_[0]))
 
 ax[-1].legend(
     loc="best", ncols=3, title=f"GRB{grb_list[-1]}", fontsize=LEGEND_FONT_SIZE, title_fontsize=LEGEND_TITLE_FONT_SIZE
@@ -106,14 +103,52 @@ ei_total = list(chain.from_iterable(ei_total))
 ep_label = list(chain.from_iterable(ep_label))
 model_list = list(chain.from_iterable(model_list))
 g_name = list(chain.from_iterable(g_name))
+ep_err_total = list(chain.from_iterable(ep_err_total))
+ei_err_total = list(chain.from_iterable(ei_err_total))
 
+# Convert to arrays
 ep_total, ei_total = np.array(ep_total), np.array(ei_total)
 ep_label = np.array(ep_label)
 g_name = np.array(g_name)
 model_list = np.array(model_list)
 
-q = pd.DataFrame([g_name, model_list, ep_label, ep_total, ei_total / 1e52]).T
-q.columns = ["GRBName", "Model", "EpisodeName", "E_i_peak__keV", "E_0_iso__keV"]
+# Extract asymmetric errors from (2, 1) arrays
+# Known-redshift GRBs have errors, unknown-redshift ones will get NaNs
+ep_err_lower = np.array([err[0, 0] for err in ep_err_total])
+ep_err_upper = np.array([err[1, 0] for err in ep_err_total])
+ei_err_lower = np.array([err[0, 0] for err in ei_err_total])
+ei_err_upper = np.array([err[1, 0] for err in ei_err_total])
+
+# Pad error arrays with NaNs for unknown-redshift GRB entries
+n_unknown = len(ep_total) - len(ep_err_lower)
+if n_unknown > 0:
+    ep_err_lower = np.concatenate([ep_err_lower, np.full(n_unknown, np.nan)])
+    ep_err_upper = np.concatenate([ep_err_upper, np.full(n_unknown, np.nan)])
+    ei_err_lower = np.concatenate([ei_err_lower, np.full(n_unknown, np.nan)])
+    ei_err_upper = np.concatenate([ei_err_upper, np.full(n_unknown, np.nan)])
+
+q = pd.DataFrame([
+    g_name,
+    model_list,
+    ep_label,
+    ep_total / 1e3,
+    ep_err_lower / 1e3,
+    ep_err_upper / 1e3,
+    ei_total / 1e52,
+    ei_err_lower / 1e52,
+    ei_err_upper / 1e52
+]).T
+q.columns = [
+    "GRBName",
+    "Model",
+    "EpisodeName",
+    "E_i_peak__keV",
+    "E_i_peak_err_lower__keV",
+    "E_i_peak_err_upper__keV",
+    "E_0_iso__1e52_erg",
+    "E_0_iso_err_lower__1e52_erg",
+    "E_0_iso_err_upper__1e52_erg"
+]
 q.to_csv("amati_relationship.csv", index=False)
 
 # ---------------------------------------------------------------------------
