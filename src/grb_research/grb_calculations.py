@@ -95,15 +95,15 @@ def legacy_build_mp(pars):
 
 
 def mc_spectra_sampler(
-    model: Model,
-    model_type="counts",
-    e_range=(1, 7),
-    n_samples: int = 10_000,
-    n_grid: int = 10_000,
-    n_workers: int = None,
-    samples=None,
-    seed: Optional[int] = None,
-    rng: Optional[np.random.Generator] = None,
+        model: Model,
+        model_type="counts",
+        e_range=(1, 7),
+        n_samples: int = 10_000,
+        n_grid: int = 10_000,
+        n_workers: int = None,
+        samples=None,
+        seed: Optional[int] = None,
+        rng: Optional[np.random.Generator] = None,
 ):
     """
     Parallel Monte-Carlo sampler for spectral model parameter estimation.
@@ -143,9 +143,16 @@ def mc_spectra_sampler(
     if samples is None:
         rng_instance = get_rng(seed=seed, rng=rng)
         samples = rng_instance.multivariate_normal(mean=m_vals, cov=covar_, size=n_samples)
-        m_res = ModelResampler(model=model, samples=samples, rng=rng_instance, destroy=False)
+        m_res = ModelResampler(model=model,
+                               samples=samples,
+                               rng=rng_instance,
+                               destroy=True)
         m_res.run_resampler()
-        samples = m_res.samples
+        m_res = ModelResampler(model=model,
+                               samples=m_res.samples,
+                               seed=rng_instance.integers(0, 2**32),
+                               destroy=True)
+        m_res.run_resampler()
 
     if n_workers is None:
         n_workers = cpu_count()
@@ -177,7 +184,7 @@ class ModelResampler:
         self.errs = np.sqrt(np.diag(model.covariance_matrix_value))
         self.err_ratio = [(j / abs(i)) * 100 for i, j in zip(self.m_val, self.errs)]
 
-    def __cond_check(self, schema=None) -> Tuple[bool, np.ndarray, np.ndarray]:
+    def _cond_check(self, schema=None) -> Tuple[bool, np.ndarray, np.ndarray]:
         if any([x > 25 for x in self.err_ratio]):
             print("Warning: Some parameters have large uncertainties.")
             pos_mask = np.array([p[-1] for p in schema], dtype=bool)
@@ -186,7 +193,7 @@ class ModelResampler:
         else:
             return False, np.array([], dtype=bool), np.array([], dtype=bool)
 
-    def __resampler(self, pos_mask, neg_mask, extra_mask=None):
+    def _resampler(self, pos_mask, neg_mask, extra_mask=None):
         s = self.samples
         mask = np.any(s[:, pos_mask] < 0, axis=1) | np.any(s[:, neg_mask] > 0, axis=1)
         if extra_mask is not None:
@@ -199,9 +206,9 @@ class ModelResampler:
 
     def __runner(self, extra_mask=None):
         schema = build_composite_schema(self.model.name)
-        check, pos_mask, neg_mask = self.__cond_check(schema)
+        check, pos_mask, neg_mask = self._cond_check(schema)
         if check:
-            mask, re = self.__resampler(pos_mask, neg_mask, extra_mask=extra_mask)
+            mask, re = self._resampler(pos_mask, neg_mask, extra_mask=extra_mask)
             self.samples[mask] = re
 
     def _pl_resampler(self):
@@ -297,20 +304,20 @@ def credible_interval_partition(samples: np.ndarray) -> Tuple[np.ndarray, np.nda
 
 
 def mc_e_iso_sampler(
-    model: Model,
-    z: float = 1.0,
-    n_samples: int = 100,
-    n_grid: int = 100,
-    det_min: float = 1.0,
-    det_max: float = 7.0,
-    bol_min: float = 0,
-    bol_max: float = 4.0,
-    h0: float = 70.0,
-    omega_m: float = 0.315,
-    method=1,
-    samples=None,
-    seed_number=1234,
-    rng: Optional[np.random.Generator] = None,
+        model: Model,
+        z: float = 1.0,
+        n_samples: int = 100,
+        n_grid: int = 100,
+        det_min: float = 1.0,
+        det_max: float = 7.0,
+        bol_min: float = 0,
+        bol_max: float = 4.0,
+        h0: float = 70.0,
+        omega_m: float = 0.315,
+        method=1,
+        samples=None,
+        seed_number=1234,
+        rng: Optional[np.random.Generator] = None,
 ) -> np.ndarray:
     """
     Draw MC samples and compute isotropic-equivalent energy (E_iso).
@@ -369,7 +376,7 @@ def mc_e_iso_sampler(
         )
         # keV / cm^2: vectorized integration over axis=1
         detector_fluence = (
-            simpson(y=detector_samples * energy_detector, x=energy_detector, axis=1) * model.interval.duration
+                simpson(y=detector_samples * energy_detector, x=energy_detector, axis=1) * model.interval.duration
         )
 
         numerator = simpson(y=bolometric_samples * e_observed, x=e_observed, axis=1)
@@ -461,14 +468,14 @@ def plot_best_models(best_models, n_rows=2, n_cols=None, grb_name=None, fig_size
 
 
 def plot_all_models(
-    best_models,
-    grb_name,
-    n_rows: int = 2,
-    n_cols: int | None = None,
-    fig_size: tuple[float, float] = (12.0, 8.0),
-    save: bool = False,
-    seed: int | None = None,
-    rng: np.random.Generator | None = None,
+        best_models,
+        grb_name,
+        n_rows: int = 2,
+        n_cols: int | None = None,
+        fig_size: tuple[float, float] = (12.0, 8.0),
+        save: bool = False,
+        seed: int | None = None,
+        rng: np.random.Generator | None = None,
 ):
     """
     Generates a grid of plots displaying spectral energy distributions for a collection of models.
