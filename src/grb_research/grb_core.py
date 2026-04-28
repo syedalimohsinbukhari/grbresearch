@@ -2,7 +2,6 @@
 
 import json
 from dataclasses import dataclass
-from typing import Dict, Iterable, List, Optional, Union
 
 from .grb_constants import short_to_long
 from .grb_enums import GoodnessOfFit
@@ -13,20 +12,20 @@ from .grb_time import EpisodeTypes, TimeInterval, TimeIntervalSet
 @dataclass
 class GRB:
     name: str
-    intervals: Optional[TimeIntervalSet] = None
+    intervals: TimeIntervalSet | None = None
 
     @classmethod
-    def from_dictionary(cls, name: str, grb_data: Dict) -> "GRB":
+    def from_dictionary(cls, name: str, grb_data: dict) -> "GRB":
         """
         Create a GRB instance from a nested dictionary representation.
 
         Parameters
         ----------
-        cls : type
+        cls :
             The GRB class.
-        name : str
+        name :
             The name for the created GRB.
-        grb_data : Dict
+        grb_data :
             Mapping where keys are time-interval strings and values are dictionaries mapping model names to model dictionaries.
 
         Returns
@@ -72,7 +71,7 @@ class GRB:
             time_intervals.append(interval)
         return TimeIntervalSet(time_intervals)
 
-    def get_all_best_models(self):
+    def get_all_best_models(self) -> ModelSet:
         """Get the best model for each interval."""
         m_total = []
         for i in self.intervals:
@@ -81,7 +80,7 @@ class GRB:
                     m_total.append(m)
         return ModelSet(m_total)
 
-    def get_model(self, model_name, interval=None, tr_index=None):
+    def get_model(self, model_name, interval=None, tr_index=None) -> Model | ModelSet:
         all_models = []
         for interval_ in self.intervals:
             if interval and interval_.kind != interval:
@@ -145,10 +144,10 @@ class GRB:
 
 @dataclass
 class GRBCatalog:
-    grb_list: List[GRB]
+    grb_list: list[GRB]
 
     def __post_init__(self):
-        self._grb_list: Dict[str, GRB] = {grb.name: grb for grb in self.grb_list}
+        self._grb_list: dict[str, GRB] = {grb.name: grb for grb in self.grb_list}
 
     def __getitem__(self, key: str) -> GRB:
         return self._grb_list[key]
@@ -173,7 +172,7 @@ class GRBCatalog:
         return self.__repr__()
 
     @classmethod
-    def from_iterable(cls, grb_list: Union[str, Iterable[str]], data: dict, name_mapping: dict) -> "GRBCatalog":
+    def from_iterable(cls, grb_list: str | list[str], data: dict, name_mapping: dict) -> "GRBCatalog":
         """Construct a GRBCatalog object from iterable"""
         if isinstance(grb_list, str):
             grb_list = [grb_list]
@@ -182,7 +181,7 @@ class GRBCatalog:
         grb_data_ = [GRB.from_dictionary(name=i, grb_data=j) for i, j in zip(grb_, eps_)]
         return GRBCatalog(grb_data_)
 
-    def get_grb(self, name: str) -> Optional[GRB]:
+    def get_grb(self, name: str) -> GRB | None:
         """Get the GRB from the catalog by name."""
         return self._grb_list.get(name)
 

@@ -2,7 +2,6 @@
 
 from pathlib import Path
 
-from .grb_calculations import IsotropicEnergy
 from .grb_core import GRB, GRBCatalog
 from .grb_model import Model, ModelSet
 from .grb_sed import SpectralModels

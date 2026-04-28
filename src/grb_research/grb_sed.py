@@ -100,7 +100,7 @@ class SpectralModels:
         idx = 0
         for name in components:
             func_name, n_pars = self.SINGLE_COMPONENTS[name]
-            pars = values[idx : idx + n_pars]
+            pars = values[idx: idx + n_pars]
             idx += n_pars
 
             spectra.append(func_name(pars))
@@ -151,7 +151,7 @@ class SpectralModels:
     def _band_grb_function(self, joint_pars=None):
         return self._compute_model(spectral_func=band_function, joint_pars=joint_pars)
 
-    def evaluate_model(self, model_key):
+    def _evaluate_model(self, model_key):
         """Evaluate a composite model based on the model key."""
         return self._evaluate_components(components=MODEL_MAP[model_key])
 
@@ -168,22 +168,5 @@ class SpectralModels:
         if m_name in singular_models:
             return self.SINGLE_COMPONENTS[m_name][0]() * convert
         else:
-            seq = self.evaluate_model(model_key=m_name)
+            seq = self._evaluate_model(model_key=m_name)
             return [i * convert if isinstance(i[0], float) else [j * convert for j in i] for i in seq]
-
-
-# elif self.model_type == 'integrate':
-#     return simpson(energy * spectrum, x=energy) * kev_to_erg
-#
-# elif self.model_type == 'bolometric':
-#     bol_energy = np.logspace(*self._bol_range, 10_000)  # 1 - 10^4 keV
-#     spectrum = spectral_func(energy, *pars)  # photons / cm^2 / s / keV
-#     bol_spectrum = spectral_func(bol_energy, *pars)  # photons / cm^2 / s / keV
-#     fluence = simpson(energy * spectrum, x=energy) * self._time_diff * kev_to_erg  # erg / cm^2
-#
-#     # \int_{E_bol_min}^{E_bol_max} E N(E) dE || log(E_bol_min) - > -1, log(E_bol_max) -> 4
-#     num = simpson(bol_energy * bol_spectrum, x=bol_energy)
-#     # \int_{E_detector_min}^{E_detector_max} E N(E) dt || log(E_detector_min) -> 1, log(E_detector_max) -> 7
-#     den = simpson(energy * spectrum, x=energy)
-#
-#     return fluence * (num / den)

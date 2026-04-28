@@ -5,7 +5,7 @@ from typing import List, Sequence
 import numpy as np
 from numpy.typing import ArrayLike
 
-from src.grb_research.grb_calculations import mcmc_e_iso_sampler, ModelResampler
+from src.grb_research.grb_calculations import mc_e_iso_sampler, ModelResampler
 from src.grb_research.grb_time import EpisodeTypes
 from src.grb_research.grb_utils import break_e_to_e_peak
 
@@ -170,9 +170,8 @@ def _compute_ep_eiso(
     m_res.run_resampler()
     samples_arr = m_res.samples
 
-    eiso_samples = mcmc_e_iso_sampler(
-        m, redshift, n_samples=n_sample, n_grid=n_grid, method=2, samples=samples_arr, seed_number=seed_number, rng=rng
-    )
+    eiso_samples = mc_e_iso_sampler(m, redshift, n_samples=n_sample, n_grid=n_grid, method=2, samples=samples_arr,
+                                    seed_number=seed_number, rng=rng)
 
     ep_intrinsic = ep_samples * (1 + redshift)
     return ep_intrinsic, eiso_samples

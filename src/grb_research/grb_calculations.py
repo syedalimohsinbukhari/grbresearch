@@ -1,9 +1,9 @@
 """Created on Jan 07 15:37:00 2026"""
 
 import os
-from dataclasses import dataclass
+import warnings
 from multiprocessing import Pool, cpu_count
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Literal
 
 import numpy as np
 from astropy.cosmology import FlatLambdaCDM
@@ -16,7 +16,7 @@ from .grb_enums import GRBModelsCombinations as gmC
 from .grb_fits_io import build_composite_schema
 from .grb_model import Model
 from .grb_sed import SpectralModels
-from .grb_time import EpisodeTypes, TimeInterval
+from .grb_time import EpisodeTypes
 
 
 def get_rng(seed: int | None = None, rng: np.random.Generator | None = None) -> np.random.Generator:
@@ -41,127 +41,6 @@ def get_rng(seed: int | None = None, rng: np.random.Generator | None = None) -> 
     if rng is not None:
         return rng
     return np.random.default_rng(seed)
-
-
-@dataclass
-class IsotropicEnergy:
-    """
-    Class to calculate isotropic energy for a given model and time interval.
-
-    Attributes
-    ----------
-    model : Model
-        The spectral model used for calculations.
-    model_interval : TimeInterval
-        The time interval for the model.
-    n_samples : int
-        Number of iterations for Monte Carlo simulations.
-    e_low : int, optional
-        Lower energy bound for calculations (default: 1).
-    e_high : int, optional
-        Upper energy bound for calculations (default: 7).
-    redshift : float, optional
-        Redshift value for the GRB (default: 0.0).
-    h0 : float, optional
-        Hubble constant (default: 70).
-    omega_m : float, optional
-        Matter density parameter (default: 0.315).
-    """
-
-    model: Model
-    model_interval: TimeInterval
-    n_samples: int = 10_000
-
-    e_low: int = 1
-    e_high: int = 7
-
-    redshift: float = 0.0
-
-    h0: float = 70
-    omega_m: float = 0.315
-
-    def __post_init__(self):
-        self.mvd = self.__create_mvd()
-
-    def __create_mvd(self):
-        multivariate_dict = {}
-        param_names = [param.name for param in self.model.parameters]
-        param_values = [param.value for param in self.model.parameters]
-        param_covar_ = self.model.covariance_matrix_value
-        param_covar_ = 0.5 * (param_covar_ + param_covar_.T)
-
-        rng = np.random.default_rng()
-        mn_distribution = rng.multivariate_normal(param_values, param_covar_, self.n_samples)
-
-        for index, value in enumerate(param_names):
-            multivariate_dict[value] = mn_distribution[:, index]
-
-        return multivariate_dict
-
-    def luminosity_distance(self, in_units: bool = False):
-        """
-        Calculate the luminosity distance in cm.
-
-        Parameters
-        ----------
-        in_units : bool, optional
-            If True, returns the distance as an astropy Quantity object (default: False).
-
-        Returns
-        -------
-        float or Quantity
-            Luminosity distance in cm (or as a Quantity if in_units is True).
-        """
-        qty = FlatLambdaCDM(H0=self.h0, Om0=self.omega_m).luminosity_distance(self.redshift)
-
-        return qty.cgs.value if not in_units else qty.cgs
-
-    def calculate(self):
-        """
-        Calculate the isotropic energy in ergs.
-
-        Returns
-        -------
-        float
-            The isotropic energy in ergs.
-        """
-        fluence = self.spectral_model(m_type="bolometric")
-
-        # E_iso = (4 * pi * dl^2 * fluence) / (1 + z)
-        dl = self.luminosity_distance()
-        e_iso = (4 * np.pi * dl ** 2 * fluence) / (1 + self.redshift)
-
-        return e_iso
-
-    def spectral_model(self, m_type="integrate"):
-        """
-        Generate the spectral model values.
-
-        Parameters
-        ----------
-        m_type : str, optional
-            Type of model to generate (default: "integrate").
-
-        Returns
-        -------
-        np.ndarray
-            Spectral model values.
-        """
-        p_name = [i.name for i in self.model.parameters]
-        p_values = [i.value for i in self.model.parameters]
-
-        sp_model = SpectralModels.legacy_build(
-            m_name=self.model.name,
-            interval_instance=self.model_interval,
-            p_name=p_name,
-            p_vals=p_values,
-            cov_=self.model.covariance_matrix_value,
-            model_type=m_type,
-            e_range=(self.e_low, self.e_high),
-            redshift=self.redshift,
-        )
-
-        return sp_model.get_values()
 
 
 def legacy_build_mp(pars):
@@ -215,7 +94,7 @@ def legacy_build_mp(pars):
     return built
 
 
-def mcmc_spectra_sampler(
+def mc_spectra_sampler(
     model: Model,
     model_type="counts",
     e_range=(1, 7),
@@ -227,7 +106,7 @@ def mcmc_spectra_sampler(
     rng: Optional[np.random.Generator] = None,
 ):
     """
-    Parallel MCMC sampler for spectral model parameter estimation.
+    Parallel Monte-Carlo sampler for spectral model parameter estimation.
 
     Parameters
     ----------
@@ -238,7 +117,7 @@ def mcmc_spectra_sampler(
     e_range : tuple, optional
         Energy range for the model (default: (1, 7)).
     n_samples : int, optional
-        Number of MCMC samples to draw (default: 10,000).
+        Number of MC samples to draw (default: 10,000).
     n_grid : int, optional
         Number of grid points for numerical integration (default: 10,000).
     n_workers : int, optional
@@ -397,7 +276,7 @@ class ModelResampler:
 
 def credible_interval_partition(samples: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
-    Compute 16th, 50th (median), and 84th percentiles per parameter from MCMC samples.
+    Compute 16th, 50th (median), and 84th percentiles per parameter from MC samples.
 
     Parameters
     ----------
@@ -417,7 +296,7 @@ def credible_interval_partition(samples: np.ndarray) -> Tuple[np.ndarray, np.nda
     return np.asarray(part[1], dtype=float).T, np.asarray(part[0], dtype=float).T, np.asarray(part[2], dtype=float).T
 
 
-def mcmc_e_iso_sampler(
+def mc_e_iso_sampler(
     model: Model,
     z: float = 1.0,
     n_samples: int = 100,
@@ -434,37 +313,37 @@ def mcmc_e_iso_sampler(
     rng: Optional[np.random.Generator] = None,
 ) -> np.ndarray:
     """
-    Draw MCMC samples and compute isotropic-equivalent energy (E_iso).
+    Draw MC samples and compute isotropic-equivalent energy (E_iso).
 
     Parameters
     ----------
-    model : Model
+    model :
         Spectral model container providing sampling and interval duration.
-    z : float, optional
+    z :
         Redshift used for K-correction and luminosity distance (default: 1.0).
-    n_samples : int, optional
-        Number of MCMC samples to draw (default: 100).
-    n_grid : int, optional
+    n_samples :
+        Number of MC samples to draw (default: 100).
+    n_grid :
         Number of energy grid points for numerical integration (default: 100).
-    det_min : float, optional
+    det_min :
         Log10 lower bound for detector energy grid (keV) (default: 1.0).
-    det_max : float, optional
+    det_max :
         Log10 upper bound for detector energy grid (keV) (default: 7.0).
-    bol_min : float, optional
+    bol_min :
         Log10 lower bound for bolometric energy grid (keV) (default: -1.0).
-    bol_max : float, optional
+    bol_max :
         Log10 upper bound for bolometric energy grid (keV) (default: 4.0).
-    h0 : float, optional
+    h0 :
         Hubble constant (default: 70.0).
-    omega_m : float, optional
+    omega_m :
         Matter density parameter (default: 0.315).
-    method : int, optional
+    method :
         Method to use for calculation (default: 1).
-    samples : np.ndarray, optional
+    samples :
         Pre-generated samples. If None, samples will be generated.
-    seed_number : int, optional
+    seed_number :
         Random seed for reproducibility (default: 1234). Ignored if rng is provided.
-    rng : np.random.Generator, optional
+    rng :
         Random number generator instance for reproducibility.
 
     Returns
@@ -479,27 +358,14 @@ def mcmc_e_iso_sampler(
     e_observed = energy_bolometric / (1 + z)
     # ph / cm^2 / s / keV (n_samples, n_grid)
     bolometric_samples = np.asarray(
-        mcmc_spectra_sampler(
-            model=model,
-            model_type="energy",
-            e_range=(bol_min, bol_max),
-            n_samples=n_samples,
-            n_grid=n_grid,
-            samples=samples,
-            rng=rng_instance,
-        )
+        mc_spectra_sampler(model=model, model_type="energy", e_range=(bol_min, bol_max), n_samples=n_samples,
+                           n_grid=n_grid, samples=samples, rng=rng_instance)
     )
     if method == 1:
         energy_detector = np.logspace(start=det_min, stop=det_max, num=n_grid)
         detector_samples = np.asarray(
-            mcmc_spectra_sampler(
-                model=model,
-                model_type="energy",
-                e_range=(det_min, det_max),
-                n_samples=n_samples,
-                n_grid=n_grid,
-                rng=rng_instance,
-            )
+            mc_spectra_sampler(model=model, model_type="energy", e_range=(det_min, det_max), n_samples=n_samples,
+                               n_grid=n_grid, rng=rng_instance)
         )
         # keV / cm^2: vectorized integration over axis=1
         detector_fluence = (
@@ -525,7 +391,7 @@ def plot_best_models(best_models, n_rows=2, n_cols=None, grb_name=None, fig_size
     Plots the energy flux of the best-fitting models for gamma-ray burst (GRB) intervals.
 
     This function creates subplots to display the results of spectral fits for a set of best models
-    applied to a GRB dataset. It computes the median and credible interval from MCMC samples for
+    applied to a GRB dataset. It computes the median and credible interval from MC samples for
     each model and visualizes them with log-log plots. Each subplot corresponds to a specific
     model or time interval.
 
@@ -569,7 +435,7 @@ def plot_best_models(best_models, n_rows=2, n_cols=None, grb_name=None, fig_size
             )
         )
         print(f"processing {v.name}")
-        samples = mcmc_spectra_sampler(v, n_samples=n_samples, n_grid=n_grid)
+        samples = mc_spectra_sampler(v, n_samples=n_samples, n_grid=n_grid)
         samples = np.array(samples)
 
         med, low, high = credible_interval_partition(samples)
@@ -647,7 +513,7 @@ def plot_all_models(
 
         for j, w in enumerate(v):
             print(f"processing {w.name}: {w.interval}")
-            samples = mcmc_spectra_sampler(w, n_samples=n_samples, n_grid=n_grid, rng=rng)
+            samples = mc_spectra_sampler(w, n_samples=n_samples, n_grid=n_grid, rng=rng)
             samples = np.array(samples)
 
             med, low, high = credible_interval_partition(samples)
@@ -694,3 +560,203 @@ def plot_all_models(
         plt.close()
     else:
         plt.show()
+
+
+def relative_error(value_true: float,
+                   value_approx: float,
+                   absolute: bool = True,
+                   as_percent: bool = False,
+                   zero_handling: Literal['ignore', 'inf', 'raise'] = 'ignore'):
+    """
+    Calculate the relative error between a true/reference value and an approximation.
+
+    Parameters
+    ----------
+    value_true :
+        The true or reference value.
+    value_approx :
+        The approximate or measured value.
+    absolute :
+        If True, returns the absolute relative error (always non-negative).
+        If False, returns the signed error (positive if approximation > true).
+        Default is True.
+    as_percent :
+        If True, multiply the result by 100 to return a percentage.
+        Default is False.
+    zero_handling :
+        How to handle the case when value_true is zero.
+        Options:
+            - 'ignore' : return NaN (default)
+            - 'inf' : return inf (if absolute) or with sign depending on value_approx
+            - 'raise' : raise ZeroDivisionError
+
+    Returns
+    -------
+    float
+        The relative error. May be NaN, inf, or finite depending on inputs and options.
+    """
+    if value_true == 0:
+        if zero_handling == 'ignore':
+            return float('nan')
+        elif zero_handling == 'inf':
+            # Signed infinite: sign(value_approx) * infinity; if absolute, just inf
+            if absolute:
+                return float('inf')
+            else:
+                return float('inf') if value_approx > 0 else -float('inf')
+        elif zero_handling == 'raise':
+            raise ZeroDivisionError("Cannot compute relative error with value_true = 0.")
+        else:
+            raise ValueError("zero_handling must be 'ignore', 'inf', or 'raise'.")
+
+    if absolute:
+        err = abs(value_approx - value_true) / abs(value_true)
+    else:
+        err = (value_approx - value_true) / value_true
+
+    if as_percent:
+        err *= 100.0
+
+    return err
+
+
+class FluxFluenceCalculator:
+    """
+    Calculates flux and fluence based on a spectral model using Monte Carlo sampling.
+
+    This class is designed to compute flux and fluence within a specified energy range using a Monte Carlo sampler.
+    It supports numerical integration over an energy grid with options for detailed outputs such as percentiles or
+    error margins.
+
+    Attributes
+    ----------
+    spectral_model :
+        The spectral model used for flux and fluence calculations.
+    log_energy_range :
+        The logarithmic bounds of the energy range over which calculations are performed.
+    n_samples :
+        The number of Monte Carlo samples to generate.
+    n_grid :
+        The number of bins in the logarithmic energy grid.
+    rng :
+        The random number generator used for Monte Carlo sampling.
+    """
+
+    def __init__(self, spectral_model: Model,
+                 log_energy_range: tuple[float, float] = (1, 3),
+                 n_samples: int = 10_000,
+                 n_grid: int = 500,
+                 seed: int | None = None,
+                 rng: np.random.Generator | None = None):
+        self.spectral_model = spectral_model
+        self.log_energy_range = log_energy_range
+        self.n_samples = n_samples
+        self.n_grid = n_grid
+
+        if seed is None and rng is None:
+            raise ValueError("Either seed or rng must be definend.")
+        if seed:
+            rng = np.random.default_rng(seed)
+        self.rng = rng
+
+    def _flux(self) -> np.ndarray:
+        """
+        Generate flux values based on a given spectral model within a specified energy range.
+
+        This method calculates the flux by sampling spectra using a Monte Carlo (MC) sampler over a log-spaced
+        energy grid.
+        The integration is performed using Simpson's rule to provide a numerical estimate of the flux.
+
+        Returns
+        -------
+        numpy.ndarray
+            An array containing the integrated flux values corresponding to the specified energy grid.
+            Each element represents the calculated flux for the associated energy range.
+        """
+        x = np.logspace(*self.log_energy_range, self.n_grid)
+        n_of_e = mc_spectra_sampler(self.spectral_model,
+                                    'counts',
+                                    e_range=self.log_energy_range,
+                                    n_samples=self.n_samples,
+                                    n_grid=self.n_grid,
+                                    rng=self.rng)
+        return np.asarray(simpson(np.array(n_of_e), x))
+
+    def _fluence(self, in_ergs: bool = False) -> np.ndarray:
+        """Calculates the fluence over a specified energy range using Monte Carlo sampling and numerical integration.
+
+        Parameters
+        ----------
+        in_ergs :
+            If True, convert the fluence results to ergs using an energy conversion factor.
+            If False, results will use the default unit (keV).
+            Default is False.
+
+        Returns
+        -------
+        np.ndarray
+            The computed fluence over the specified energy range.
+        """
+        converter = kev_to_erg if in_ergs else 1
+        x = np.logspace(*self.log_energy_range, self.n_grid)
+        n_of_e = mc_spectra_sampler(self.spectral_model,
+                                    'energy',
+                                    e_range=self.log_energy_range,
+                                    n_samples=self.n_samples,
+                                    n_grid=self.n_grid,
+                                    rng=self.rng)
+        return np.asarray(simpson(np.array(n_of_e), x) * converter)
+
+    def calculate(self,
+                  calculation_type: Literal["flux", "fluence"] = 'flux',
+                  get_percentiles: bool = False,
+                  in_ergs: bool = True,
+                  get_errors: bool = True) -> np.ndarray | tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """Performs a calculation based on the specified type.
+
+        The calculation can be for either 'flux' or 'fluence', and additional options allow for returning percentiles
+        or error margins.
+
+        Parameters
+        ----------
+        calculation_type :
+            The type of calculation to perform. Defaults to 'flux'.
+        get_percentiles :
+            If True, returns the 16th, 50th, and 84th percentiles of the calculated output.
+            Defaults to False.
+        in_ergs :
+            If True, the fluence will be returned in ergs instead of keV.
+            This parameter is only relevant when `calculation_type` is set to 'fluence'.
+            Defaults to True.
+        get_errors :
+            If True, returns the median value along with the upper and lower error margins.
+            If provided, it overrides `get_percentiles`.
+            Defaults to True.
+
+        Returns
+        -------
+        numpy.ndarray or tuple of numpy.ndarray
+            The returned value depends on the parameters:
+            - If `get_percentiles`: Returns a numpy array containing the 16th, 50th, and 84th percentiles of the output.
+            - If `get_errors`: Returns a tuple consisting of the median value, upper margin, and lower margin.
+            - Otherwise, returns a numpy array of the calculated results for 'flux' or 'fluence'.
+        """
+
+        if get_percentiles and get_errors:
+            warnings.warn("Cannot return both percentiles and errors. Using `get_errors`")
+            get_percentiles = False
+
+        if calculation_type == 'flux':
+            output = self._flux()
+        elif calculation_type == 'fluence':
+            output = self._fluence(in_ergs)
+        else:
+            raise ValueError("Invalid calculation type. Must be 'flux' or 'fluence'.")
+
+        if get_percentiles:
+            return np.percentile(output, [16, 50, 84])
+        if get_errors:
+            percentiles = np.percentile(output, [16, 50, 84])
+            return percentiles[1], percentiles[2] - percentiles[1], percentiles[1] - percentiles[0]
+
+        return output

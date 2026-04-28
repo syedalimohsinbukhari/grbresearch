@@ -1,6 +1,5 @@
 """Created on Jan 24 02:32:18 2026 — refactored Mar 27 2026"""
 
-import os
 from itertools import chain
 
 import matplotlib.pyplot as plt
@@ -34,7 +33,7 @@ t90_markers = ["o", "d", "X", "D"]
 # Sampling config
 # ---------------------------------------------------------------------------
 
-n_sample = 10_000 #if os.cpu_count() > 10 else 2_500
+n_sample = 10_000
 n_grid = 500
 n_seed = 12345
 

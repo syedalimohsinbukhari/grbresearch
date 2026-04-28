@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import copy
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -20,13 +20,13 @@ class Model:
     """Represents a GRB model with its parameters and fit statistics."""
 
     name: str
-    parameters: List[Parameter]
-    interval: Optional[TimeInterval] = None
+    parameters: list[Parameter]
+    interval: TimeInterval | None = None
 
-    status: Optional[GoodnessOfFit] = None
-    cstat: Optional[float] = None
-    dof: Optional[int] = None
-    covariance_matrix: Optional[CovarianceMatrix] = None
+    status: GoodnessOfFit = GoodnessOfFit.UNKNOWN
+    cstat: float = 0.
+    dof: int = 0
+    covariance_matrix: CovarianceMatrix | None = None
 
     def get_parameter_value(self, par_name):
         """Get parameter value by name."""
@@ -87,7 +87,7 @@ class Model:
         return 0.5 * (self.covariance_matrix.matrix + self.covariance_matrix.matrix.T)
 
     @classmethod
-    def from_dictionary(cls, name: str, data: Dict, interval: TimeInterval) -> "Model":
+    def from_dictionary(cls, name: str, data: dict, interval: TimeInterval) -> "Model":
         """Create a Model from its dictionary representation."""
         internal_dict = copy.deepcopy(data)
 
@@ -157,10 +157,10 @@ class Model:
 class ModelSet:
     """A container for GRB spectral models."""
 
-    _models: List[Model]
+    _models: list[Model]
 
     def __post_init__(self):
-        self._by_name: Dict[str, Model] = {m.name: m for m in self._models}
+        self._by_name: dict[str, Model] = {m.name: m for m in self._models}
 
     def __repr__(self) -> str:
         if not self._models:
@@ -203,13 +203,13 @@ class ModelSet:
     @property
     def safe(self) -> "ModelSet":
         """Return all SAFE models."""
-        safe_models: List[Model] = [m for m in self._models if m.status is GoodnessOfFit.SAFE]
+        safe_models: list[Model] = [m for m in self._models if m.status is GoodnessOfFit.SAFE]
         return ModelSet(safe_models)
 
     @property
     def good(self) -> "ModelSet":
         """Return all GOOD models."""
-        good_models: List[Model] = [
+        good_models: list[Model] = [
             m for m in self._models if m.status not in [GoodnessOfFit.UNSAFE, GoodnessOfFit.UNSAFE]
         ]
         return ModelSet(good_models)
@@ -217,11 +217,11 @@ class ModelSet:
     @property
     def unsafe(self) -> "ModelSet":
         """Return all UNSAFE models."""
-        unsafe_models: List[Model] = [m for m in self._models if m.status is GoodnessOfFit.UNSAFE]
+        unsafe_models: list[Model] = [m for m in self._models if m.status is GoodnessOfFit.UNSAFE]
         return ModelSet(unsafe_models)
 
     @property
-    def names(self) -> Tuple[str, ...]:
+    def names(self) -> tuple[str, ...]:
         """Get the names of all models in the set."""
         return tuple(self._by_name.keys())
 
