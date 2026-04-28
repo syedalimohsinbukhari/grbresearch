@@ -199,14 +199,12 @@ class ModelResampler:
                                                  np.sum(mask))
         return mask, re_sample
 
-    def __runner(self, extra_mask=None) -> np.ndarray:
+    def __runner(self, extra_mask=None):
         schema = build_composite_schema(self.model.name)
         check, pos_mask, neg_mask = self._cond_check(schema)
         if check:
             mask, re = self._resampler(pos_mask, neg_mask, extra_mask=extra_mask)
             self.samples[mask] = re
-
-        return self.samples
 
     def _pl_resampler(self):
         self.__runner()
