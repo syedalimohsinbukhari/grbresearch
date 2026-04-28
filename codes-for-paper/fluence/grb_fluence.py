@@ -1,6 +1,7 @@
 """Created on Apr 28 07:04:07 2026"""
 
 import numpy as np
+import pandas as pd
 from black import Path
 
 from src.grb_research import find_project_root
@@ -14,11 +15,11 @@ from src.grb_research.grb_time import EpisodeTypes
 
 SOURCE_ROOT = find_project_root()
 RESULT_FILE = SOURCE_ROOT / "results.json"
-GRB_LIST = ["080916C"]  # , "110721A", "110731A", "150210A"]
-N_SAMPLES = 5_000
+GRB_LIST = ["080916C", "110721A", "110731A", "150210A"]
+N_SAMPLES = 10_000
 RANDOM_SEED = 12345
 
-curdir = Path(__file__).parent
+cur_dir = Path(__file__).parent
 
 
 # ---------------------------------------------------------------------------
@@ -69,25 +70,19 @@ total_models = sum(len(models) for models in grb_best)
 # Collect results
 results = []
 
-# for grb_name, models in zip(grb_list_long, grb_best):
-#     print(f'{grb_name}')
-#
-#     for model in models:
-#         print(f"  {model.name}")
-#
-#         row = compute_flux_fluence(model, rng, n_samples=N_SAMPLES)
-#         print(row)
-#         row['grb_name'] = grb_name
-#         results.append(row)
-#
-# # Create DataFrame
-# flux_fluence_dataframe = pd.DataFrame(results)
-#
-# # Save to CSV
-# output_path = curdir / "flux_fluence.csv"
-# flux_fluence_dataframe.to_csv(output_path, index=False)
+for grb_name, models in zip(grb_list_long, grb_best):
+    print(f'{grb_name}')
 
+    for model in models:
+        print(f"{model.name}")
 
-fc = FluxFluenceCalculator(grb_best[-1][-1], rng=rng, n_samples=N_SAMPLES)
-p = fc.calculate('flux')
-print(p)
+        row = compute_flux_fluence(model, rng, n_samples=N_SAMPLES)
+        row['grb_name'] = grb_name
+        results.append(row)
+
+# Create DataFrame
+flux_fluence_dataframe = pd.DataFrame(results)
+
+# Save to CSV
+output_path = cur_dir / "flux_fluence.csv"
+flux_fluence_dataframe.to_csv(output_path, index=False)
