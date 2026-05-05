@@ -94,11 +94,8 @@ def convert_sbpl_to_band(model, n_sample: int = 10_000, seed=None, rng=None):
     idx = rng.choice(mvd_f["index1_sbpl"].shape[0], size=n_sample, replace=False)
     mvd_s = {k: v[idx] for k, v in mvd_f.items()}
 
-    ep_samples = break_e_to_e_peak(
-        index1_sbpl=mvd_s["index1_sbpl"],
-        index2_sbpl=mvd_s["index2_sbpl"],
-        break_energy_sbpl=mvd_s["e_break_sbpl"],
-    )
+    ep_samples = break_e_to_e_peak(index1_sbpl=mvd_s["index1_sbpl"], break_energy_sbpl=mvd_s["e_break_sbpl"],
+                                   index2_sbpl=mvd_s["index2_sbpl"])
     p = np.percentile(ep_samples, [16, 50, 84])
     return p[1] - p[0], p[1], p[2] - p[1]
 

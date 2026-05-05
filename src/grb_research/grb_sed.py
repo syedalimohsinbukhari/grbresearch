@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Callable, Tuple
 
 import numpy as np
+from scipy.integrate import quad
 
 from .grb_atomic import Parameter
 from .grb_constants import kev_to_erg, model_n_pars

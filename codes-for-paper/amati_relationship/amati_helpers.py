@@ -119,16 +119,6 @@ def _get_base_model_name(m_name: str) -> str:
 def _compute_ep_eiso(
     m, redshift: float, n_sample: int, n_grid: int, seed_number: int, rng
 ) -> tuple[ArrayLike, ArrayLike]:
-    """
-    Draw posterior samples of (E_peak_intrinsic, E_iso) for a single model.
-
-    Returns
-    -------
-    ep_samples : array of shape (n_sample,)
-        Intrinsic (observer-frame) E_peak samples in keV.
-    eiso_samples : array of shape (n_sample,)
-        E_iso samples in erg.
-    """
     m_name = m.name
     pc = m.get_parameter_set
     pc_names = [p.name for p in pc]
@@ -136,44 +126,36 @@ def _compute_ep_eiso(
 
     print(f'{m_name}')
 
+    raw = pc.get_populated_values(cov_, size=n_sample, rng=rng)
+    m_res = ModelResampler(model=m, samples=raw, rng=rng, destroy=True)
+    m_res.run_resampler()
+    mvd = {v: raw[:, i] for i, v in enumerate(pc_names)}
+
+    print(f'{np.array(list(mvd.values())).T[0, :]=}')
+
     if "sbpl" in m_name.lower():
-        raw = pc.get_populated_values(cov_, size=int(1.5 * n_sample), rng=rng)
-        mvd = {v: raw[:, i] for i, v in enumerate(pc_names)}
-
-        mask = np.logical_and(
-            np.abs((mvd["index1_sbpl"] + mvd["index2_sbpl"] + 4) / (mvd["index1_sbpl"] - mvd["index2_sbpl"])) < 1,
-            mvd["e_break_sbpl"] > 0,
-        )
-        mvd_f = {k: v[mask] for k, v in mvd.items()}
-        if mvd_f["index1_sbpl"].shape[0] < n_sample:
-            raise ValueError("Not enough valid SBPL samples after physical filter.")
-
-        idx = rng.choice(mvd_f["index1_sbpl"].shape[0], size=n_sample, replace=False)
-        mvd_s = {k: v[idx] for k, v in mvd_f.items()}
-
-        ep_samples = break_e_to_e_peak(
-            index1_sbpl=mvd_s["index1_sbpl"], index2_sbpl=mvd_s["index2_sbpl"], break_energy_sbpl=mvd_s["e_break_sbpl"]
-        )
-        samples_arr = np.array(list(mvd_s.values())).T
-
+        ep_samples = break_e_to_e_peak(index1_sbpl=mvd["index1_sbpl"], break_energy_sbpl=mvd["e_break_sbpl"],
+                                       index2_sbpl=mvd["index2_sbpl"])
     else:
         base = _get_base_model_name(m_name)
-
-        raw = pc.get_populated_values(cov_, size=n_sample, rng=rng)
-        mvd = {v: raw[:, i] for i, v in enumerate(pc_names)}
         ep_samples = mvd[f"e_peak_{base.lower()}"]
-        samples_arr = np.array(list(mvd.values())).T
+
+    samples_arr = np.array(list(mvd.values())).T
 
     ############################################
 
-    m_res = ModelResampler(model=m, samples=samples_arr, rng=rng, destroy=False)
-    m_res.run_resampler()
-    samples_arr = m_res.samples
-
-    eiso_samples = mc_e_iso_sampler(m, redshift, n_samples=n_sample, n_grid=n_grid, method=2, samples=samples_arr,
-                                    seed_number=seed_number, rng=rng)
+    eiso_samples = mc_e_iso_sampler(m,
+                                    redshift,
+                                    n_samples=n_sample,
+                                    n_grid=n_grid,
+                                    method=2,
+                                    samples=samples_arr,
+                                    seed_number=seed_number,
+                                    rng=rng)
 
     ep_intrinsic = ep_samples * (1 + redshift)
+    print(f'{ep_intrinsic=}')
+    print(f'{eiso_samples=}')
     return ep_intrinsic, eiso_samples
 
 

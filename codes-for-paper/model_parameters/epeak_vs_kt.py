@@ -20,7 +20,7 @@ from utils import (
 
 SOURCE_ROOT = find_project_root()
 result_file = SOURCE_ROOT / "results.json"
-grb_name = ["080916C", "110721A"]
+grb_name = ["080916C", "110721A", "140206B"]
 
 with open(result_file, "r") as f:
     data = json.load(f)
@@ -48,6 +48,16 @@ models_110721A = [
 ]
 bb_status_110721A = ["full", "kT_only", "kT_only", "full", "full"]
 
+models_140206B = [
+    grb[grb_full_name[2]].get_model("BAND_BB", EpisodeTypes.T90),
+    grb[grb_full_name[2]].get_model("BAND_BB", interval=EpisodeTypes.EX0),
+    grb[grb_full_name[2]].get_model("BAND_BB", interval=EpisodeTypes.TR, tr_index=1),
+    grb[grb_full_name[2]].get_model("BAND_BB", interval=EpisodeTypes.TR, tr_index=2),
+    # grb[grb_full_name[2]].get_model("BAND_BB", interval=EpisodeTypes.TR, tr_index=3),
+    grb[grb_full_name[2]].get_model("CPL_BB", interval=EpisodeTypes.TR, tr_index=4),
+]
+bb_status_140206B = ["full", "full", "full", "full", "full"]
+
 # -- Extract kT / E_peak -----------------------------------------------------
 
 kt_080916C, ep_080916C, mkr_080916C, clr_080916C, lbl_080916C = (
@@ -56,14 +66,18 @@ kt_080916C, ep_080916C, mkr_080916C, clr_080916C, lbl_080916C = (
 kt_110721A, ep_110721A, mkr_110721A, clr_110721A, lbl_110721A = (
     extract_kt_epeak_from_models(models_110721A)
 )
+kt_140206B, ep_140206B, mkr_140206B, clr_140206B, lbl_140206B = (
+    extract_kt_epeak_from_models(models_140206B)
+)
 
 # -- Plot ---------------------------------------------------------------------
 
-f, ax = plt.subplots(2, 1, figsize=(6, 8), sharex=True)
+f, ax = plt.subplots(3, 1, figsize=(6, 8))
 
 grb_panels = [
     (ax[0], kt_080916C, ep_080916C, mkr_080916C, clr_080916C, lbl_080916C, bb_status_080916C),
     (ax[1], kt_110721A, ep_110721A, mkr_110721A, clr_110721A, lbl_110721A, bb_status_110721A),
+    (ax[2], kt_140206B, ep_140206B, mkr_140206B, clr_140206B, lbl_140206B, bb_status_140206B),
 ]
 
 for a, kt, ep, mkrs, clrs, lbls, status_list in grb_panels:
@@ -98,15 +112,27 @@ fit_and_plot_odr(
     y_min_clip=500,
 )
 
+fit_and_plot_odr(kt_140206B, ep_140206B, ax[2])
+
+# full_mask_140206B = [s == "full" for s in bb_status_140206B]
+# fit_and_plot_odr(
+#     kt_140206B, ep_140206B, ax[2],
+#     mask=full_mask_140206B,
+#     color="#117A65", linestyle="-",
+#     annotation_xy=(0.05, 0.82),
+#     y_min_clip=300,)
+
 # -- Formatting ---------------------------------------------------------------
 
-ax[1].set_xlabel("kT [keV]", fontsize=LABEL_FONT_SIZE)
+ax[-1].set_xlabel("kT [keV]", fontsize=LABEL_FONT_SIZE)
 [a.set_ylabel(r"$E_\text{peak}$ [keV]", fontsize=LABEL_FONT_SIZE) for a in ax]
 [a.legend(fontsize=LEGEND_FONT_SIZE, title=f"GRB{grb_name[i]}",
           title_fontsize=LEGEND_TITLE_FONT_SIZE) for i, a in enumerate(ax)]
 [a.grid(True, which="both", alpha=0.5, ls="--") for a in ax]
 f.tight_layout()
 
-for ext in ["png", "pdf"]:
-    plt.savefig(f"epeak_vs_kt.{ext}", dpi=300)
-plt.close()
+plt.show()
+
+# for ext in ["png", "pdf"]:
+#     plt.savefig(f"epeak_vs_kt.{ext}", dpi=300)
+# plt.close()

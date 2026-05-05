@@ -17,7 +17,7 @@ from src.grb_research.grb_styles import GRBPlotStyle as grbStyle
 
 SOURCE_ROOT = find_project_root()
 result_file = SOURCE_ROOT / "results.json"
-grb_name = ["080916C", "110721A", "110731A", "150210A"]
+grb_name = ["080916C", "110731A", "140206B", "150210A"]
 
 with open(result_file, "r") as f:
     data = json.load(f)

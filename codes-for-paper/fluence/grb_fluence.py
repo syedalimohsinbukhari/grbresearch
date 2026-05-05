@@ -15,7 +15,7 @@ from src.grb_research.grb_time import EpisodeTypes
 
 SOURCE_ROOT = find_project_root()
 RESULT_FILE = SOURCE_ROOT / "results.json"
-GRB_LIST = ["080916C", "110721A", "110731A", "150210A"]
+GRB_LIST = ["080916C", "110731A", "140206B", "150210A"]
 N_SAMPLES = 10_000
 RANDOM_SEED = 12345
 

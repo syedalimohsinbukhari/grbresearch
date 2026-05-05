@@ -8,7 +8,7 @@ from typing import Optional, Tuple, Literal
 import numpy as np
 from astropy.cosmology import FlatLambdaCDM
 from matplotlib import pyplot as plt
-from scipy.integrate import simpson
+from scipy.integrate import simpson, quad
 from tqdm import tqdm
 
 from .grb_constants import kev_to_erg, LABEL_FONT_SIZE
@@ -148,7 +148,7 @@ def mc_spectra_sampler(
                                rng=rng_instance,
                                destroy=True)
         m_res.run_resampler()
-        samples = m_res.samples
+        # samples = m_res.samples
 
     if n_workers is None:
         n_workers = cpu_count()
@@ -219,7 +219,7 @@ class ModelResampler:
         s = self.samples
         l1_idx, l2_idx = 2, 5
         lambda_1, lambda_2 = s[:, l1_idx], s[:, l2_idx]
-        m2 = np.logical_and(lambda_1 > -2, lambda_2 < -2)#[:, np.newaxis]
+        m2 = np.logical_and(lambda_1 > -2, lambda_2 < -2)  # [:, np.newaxis]
         self.__runner(extra_mask=m2)
 
     def _pl_bb_resampler(self):
@@ -302,9 +302,9 @@ def mc_e_iso_sampler(
     n_grid: int = 100,
     det_min: float = 1.0,
     det_max: float = 7.0,
-    bol_min: float = 0,
+    bol_min: float = 0.0,
     bol_max: float = 4.0,
-    h0: float = 70.0,
+    h0: float = 67.4,
     omega_m: float = 0.315,
     method=1,
     samples=None,
@@ -357,9 +357,14 @@ def mc_e_iso_sampler(
     e_observed = energy_bolometric / (1 + z)
     # ph / cm^2 / s / keV (n_samples, n_grid)
     bolometric_samples = np.asarray(
-        mc_spectra_sampler(model=model, model_type="energy", e_range=(bol_min, bol_max), n_samples=n_samples,
-                           n_grid=n_grid, samples=samples, rng=rng_instance)
-    )
+        mc_spectra_sampler(model=model,
+                           model_type="energy",
+                           e_range=(bol_min, bol_max),
+                           n_samples=n_samples,
+                           n_grid=n_grid,
+                           samples=samples,
+                           rng=rng_instance)
+    ) * model.interval.duration
     if method == 1:
         energy_detector = np.logspace(start=det_min, stop=det_max, num=n_grid)
         detector_samples = np.asarray(
@@ -379,10 +384,12 @@ def mc_e_iso_sampler(
         # erg / cm^2
         bolometric_fluence = np.asarray(bolometric_fluence, dtype=float) * kev_to_erg
     elif method == 2:
-        bolometric_fluence = simpson(y=bolometric_samples, x=e_observed, axis=1) * model.interval.duration * kev_to_erg
+        bolometric_fluence = simpson(y=bolometric_samples, x=e_observed, axis=1) * kev_to_erg
 
-    lum_distance = FlatLambdaCDM(H0=h0, Om0=omega_m).luminosity_distance(z).cgs.value
-    return (4 * np.pi * lum_distance ** 2 * bolometric_fluence.reshape(1, -1)) / (1 + z)
+    lum_distance = lambda z: FlatLambdaCDM(h0, omega_m).luminosity_distance(z).cgs.value
+    lum_distance = quad(lum_distance, 0, z)[0]
+
+    return 4 * np.pi * lum_distance ** 2 * np.asarray(bolometric_fluence).reshape(1, -1)
 
 
 def plot_best_models(best_models, n_rows=2, n_cols=None, grb_name=None, fig_size=(15, 4), save=True):
@@ -519,11 +526,12 @@ def plot_all_models(
             med, low, high = med * kev_to_erg, low * kev_to_erg, high * kev_to_erg
 
             if j == 0:
-                ax[i].loglog(x, med * x ** 2, "k-", label=f"{w.interval.kind}")
-                ax[i].fill_between(x, low * x ** 2, high * x ** 2, color="k", alpha=0.2)
-                ax[i].loglog(x, med * x ** 2, "k-",
+                # ax[i].loglog(x, med * x ** 2, "k-")  # , label=f"{w.interval.kind}")
+                # ax[i].fill_between(x, low * x ** 2, high * x ** 2, color="k", alpha=0.2)
+                ax[i].loglog(x, med * x ** 2, "k-", zorder=1000,
                              label=f"{w.interval.kind}" + r"$_\text{" + f'{w.name.replace("_", "+")}' + r"}$")
-                ax[i].fill_between(x, low * x ** 2, high * x ** 2, color="k", alpha=0.2)
+                ax[i].fill_between(x, low * x ** 2, high * x ** 2, zorder=1000,
+                                   color="k", alpha=0.2)
             else:
                 sub = (
                     f"{w.interval.kind}{w.interval.index}"
@@ -536,16 +544,16 @@ def plot_all_models(
 
             ax[i].set_ylim(bottom=3.2e-10, top=8.7e-5)
 
-        # ── legend fix ────────────────────────────────────────────────────────
+        # -- legend fix --------------------------------------------------------
         ax[i].legend(
             ncols=3,
-            title=f"{grb_name[i]}",
+            title=f"GRB{grb_name[i]}",
             shadow=True,
             loc=legend_loc.get(i, 'best'),
             fontsize=7,
             title_fontsize=8,
         )
-        # ─────────────────────────────────────────────────────────────────────
+        # ---------------------------------------------------------------------
 
         if i % n_cols == 0:  # fixed: was hardcoded % 2, now uses n_cols
             ax[i].set_ylabel("Energy Flux\n" + r"[erg/cm$^2$/s]", fontsize=LABEL_FONT_SIZE)

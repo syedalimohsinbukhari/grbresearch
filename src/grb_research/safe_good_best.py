@@ -248,7 +248,7 @@ def model_passes_error_criteria(path, par_constraint=0.4):
     except Exception:
         return False
     elevated_constraint = 0
-    for (p_name, _, _), v, e in zip(schema, vals, errs):
+    for (p_name, _, _, _), v, e in zip(schema, vals, errs):
         limit = par_constraint * abs(v)
         if abs(v) == 0 and abs(e) != 0:
             return False
@@ -403,7 +403,7 @@ def _print_parameter_details(status_str, model, schema, vals, errs, flux_data):
     print(f"[{status_str}] {model} parameter details:")
 
     # Print model parameters
-    for (par_name, _, _), v, e in zip(schema, vals, errs):
+    for (par_name, _, _, _), v, e in zip(schema, vals, errs):
         pct = (abs(e) / abs(v) * 100) if v != 0 else float("inf")
         print(f"   {par_name:15s} = {v:.20f}({e:.20f}) , {pct:.3g} %")
 

@@ -360,24 +360,7 @@ def grb_characteristics(grb_df, model_name, epoch_difference=False):
     return unique_epochs, model_n_par, model_labels, epoch
 
 
-def break_e_to_e_peak(index1_sbpl, index2_sbpl, break_energy_sbpl):
-    """
-    Calculate peak energy from spectral indices and break energy for an SBPL model.
-
-    Parameters
-    ----------
-    index1_sbpl:
-        Low energy spectral index.
-    index2_sbpl:
-        High energy spectral index.
-    break_energy_sbpl:
-        Break energy of the smoothly broken power law.
-
-    Returns
-    -------
-    float
-        Peak energy corresponding to the input break energy.
-    """
+def break_e_to_e_peak(index1_sbpl, break_energy_sbpl, index2_sbpl):
     f1 = (index1_sbpl + index2_sbpl + 4) / (index1_sbpl - index2_sbpl)
     return break_energy_sbpl * 10 ** (0.3 * np.arctanh(f1))
 
