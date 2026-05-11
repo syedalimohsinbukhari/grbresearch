@@ -149,6 +149,7 @@ class ModelComparison:
         self._bb_sig = self._run_bb_significance()
         self._shifts = self._run_param_stability()
         self._cov = self._run_covariance_analysis()
+        self._cov2 = self._run_covariance_analysis(False)
 
     # -- public properties ----------------------------------------------------
 
@@ -297,14 +298,15 @@ class ModelComparison:
 
         return shifts
 
-    def _run_covariance_analysis(self) -> Optional[CovarianceAnalysis]:
+    def _run_covariance_analysis(self, analyze_complex=True) -> Optional[CovarianceAnalysis]:
         """Analyze the covariance matrix of the complex model."""
-        if self.complex.covariance_matrix is None:
+        cov_ = self.complex if analyze_complex else self.simple
+        if cov_.covariance_matrix is None:
             return None
 
-        cov = self.complex.covariance_matrix_value  # symmetric ndarray
-        names = [p.name for p in self.complex.parameters]
-        errors = [p.error for p in self.complex.parameters]
+        cov = cov_.covariance_matrix_value  # symmetric ndarray
+        names = [p.name for p in cov_.parameters]
+        errors = [p.error for p in cov_.parameters]
 
         # ── exclude fixed parameters (σ = 0) ────────────────────────────
         free_idx = [i for i, e in enumerate(errors) if e > 0]
@@ -332,23 +334,34 @@ class ModelComparison:
                     flagged.append((names[i], names[j], float(corr[i, j])))
 
         # BB ↔ continuum correlations
-        bb_corr = {}
-        if self.bb_names:
-            bb_idx = [i for i, nm in enumerate(names) if self._is_bb_param(nm)]
-            cont_idx = [i for i, nm in enumerate(names) if not self._is_bb_param(nm)]
-            for bi in bb_idx:
-                for ci in cont_idx:
-                    bb_corr[(names[bi], names[ci])] = float(corr[bi, ci])
+        if analyze_complex:
+            bb_corr = {}
+            if self.bb_names:
+                bb_idx = [i for i, nm in enumerate(names) if self._is_bb_param(nm)]
+                cont_idx = [i for i, nm in enumerate(names) if not self._is_bb_param(nm)]
+                for bi in bb_idx:
+                    for ci in cont_idx:
+                        bb_corr[(names[bi], names[ci])] = float(corr[bi, ci])
 
-        return CovarianceAnalysis(
-            condition_number=cond_raw,
-            condition_number_scaled=cond_scaled,
-            is_ill_conditioned=cond_scaled > 1e4,
-            correlation_matrix=corr,
-            param_names=names,
-            flagged_pairs=flagged,
-            bb_correlations=bb_corr if bb_corr else None,
-        )
+            return CovarianceAnalysis(
+                condition_number=cond_raw,
+                condition_number_scaled=cond_scaled,
+                is_ill_conditioned=cond_scaled > 1e4,
+                correlation_matrix=corr,
+                param_names=names,
+                flagged_pairs=flagged,
+                bb_correlations=bb_corr if bb_corr else None,
+            )
+        else:
+            return CovarianceAnalysis(
+                condition_number=cond_raw,
+                condition_number_scaled=cond_scaled,
+                is_ill_conditioned=cond_scaled > 1e4,
+                correlation_matrix=corr,
+                param_names=names,
+                flagged_pairs=flagged,
+                bb_correlations=None,
+            )
 
     # -- verdict helpers ------------------------------------------------------
 
@@ -501,6 +514,29 @@ class ModelComparison:
                     warn = "  ← strong" if abs(rho) >= HIGH_CORR_THRESHOLD else ""
                     print(f"    {b}  ↔  {c}:  ρ = {rho:+.3f}{warn}")
 
+        # -- covariance analysis -----------------------------------------------
+        cov_a = self._cov2
+        if cov_a is not None:
+            print(f"\n  COVARIANCE ANALYSIS  (simple model)")
+            print(sep)
+            row(
+                "Condition number (scaled)",
+                f"{cov_a.condition_number_scaled:.2e}",
+                "ILL-CONDITIONED ✗" if cov_a.is_ill_conditioned else "well-conditioned ✓",
+            )
+
+            if cov_a.flagged_pairs:
+                print(f"\n  High-correlation pairs  (|ρ| ≥ {HIGH_CORR_THRESHOLD}):")
+                for p1, p2, rho in cov_a.flagged_pairs:
+                    print(f"    {p1}  ↔  {p2}:  ρ = {rho:+.3f}  ← degeneracy flag")
+            else:
+                print("  No high-correlation pairs found.")
+
+            if cov_a.bb_correlations:
+                print(f"\n  BB ↔ continuum correlations:")
+                for (b, c), rho in cov_a.bb_correlations.items():
+                    warn = "  ← strong" if abs(rho) >= HIGH_CORR_THRESHOLD else ""
+                    print(f"    {b}  ↔  {c}:  ρ = {rho:+.3f}{warn}")
         # -- overall verdict ---------------------------------------------------
         print(f"\n{sep2}")
         print(f"  VERDICT:  {self._overall_verdict()}")

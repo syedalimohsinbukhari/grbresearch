@@ -31,6 +31,11 @@ class LogParser:
         self.log_file_path = Path(log_file_path)
         self.log_content = self._read_log_file()
         self.episodes = []
+        
+        # Multi-GRB tracking
+        self.current_grb: Optional[str] = None
+        self.grb_data: Dict[str, List[Dict]] = {}
+        self.grb_pattern = re.compile(r'/GRB(\d+)/Ep\d+__')
 
     def _read_log_file(self) -> str:
         """Read the entire log file content."""
@@ -54,9 +59,24 @@ class LogParser:
                 directory_path = run_blocks[i].strip()
                 block_content = run_blocks[i + 1]
 
+                # Extract GRB identifier and episode name from path
+                grb_match = self.grb_pattern.search(directory_path)
+                if grb_match:
+                    grb_id = grb_match.group(1)
+                    
+                    # Check if this is an Ep0 episode (new GRB boundary)
+                    if 'Ep0__' in directory_path:
+                        self.current_grb = grb_id
+                        if grb_id not in self.grb_data:
+                            self.grb_data[grb_id] = []
+
                 episode_data = self._parse_episode_block(directory_path, block_content)
                 if episode_data:
                     self.episodes.append(episode_data)
+                    
+                    # Also add to GRB-specific collection if we have a current GRB
+                    if self.current_grb is not None:
+                        self.grb_data[self.current_grb].append(episode_data)
 
         return self.episodes
 
@@ -313,6 +333,73 @@ class LogParser:
                     return False
 
         return True
+
+
+    def generate_multiple_latex_tables(self, output_dir: str = None) -> List[str]:
+        """Generate separate LaTeX table files for each GRB found in the log.
+
+        Parameters
+        ----------
+        output_dir : str, optional
+            Directory to write output files. If None, uses the log file's directory.
+
+        Returns
+        -------
+        List[str]
+            List of generated output file paths.
+        """
+        if not self.grb_data:
+            print("No GRB data found. Make sure to call parse() first.")
+            return []
+
+        if output_dir is None:
+            output_dir = self.log_file_path.parent
+        else:
+            output_dir = Path(output_dir)
+
+        output_files = []
+
+        for grb_id, episodes in self.grb_data.items():
+            if not episodes:
+                continue
+
+            # Convert GRB ID to standard format (e.g., 110721200 -> GRB110721A)
+            grb_name = self._format_grb_name(grb_id)
+            
+            # Generate table for this GRB
+            generator = LaTeXTableGenerator(episodes, grb_name)
+            table_content = generator.generate_table()
+
+            # Write to file
+            output_file = output_dir / f"{grb_id}_fit_results.tex"
+            with open(output_file, "w") as f:
+                f.write(table_content)
+
+            output_files.append(str(output_file))
+            print(f"Generated {output_file} with {len(episodes)} episodes")
+
+        print(f"\nTotal: Generated {len(output_files)} LaTeX table(s)")
+        return output_files
+
+    def _format_grb_name(self, grb_id: str) -> str:
+        """Format GRB identifier to standard name.
+
+        Parameters
+        ----------
+        grb_id : str
+            Raw GRB identifier (e.g., '110721200').
+
+        Returns
+        -------
+        str
+            Formatted GRB name (e.g., 'GRB110721A').
+        """
+        # Extract the first 6 digits (date)
+        if len(grb_id) >= 6:
+            date_part = grb_id[:6]
+            # For standard format, just add 'A' suffix
+            return f"GRB{date_part}A"
+        return f"GRB{grb_id}"
 
 
 class LaTeXTableGenerator:
@@ -609,17 +696,20 @@ class LaTeXTableGenerator:
             return f"{excess_pct:.0f}\\%"
 
 
-def parse_log_and_generate_table(log_file_path: str, output_file_path: str, grb_name: str = None) -> None:
-    """Main function to parse log file and generate LaTeX table.
+def parse_log_and_generate_table(log_file_path: str, output_file_path: str = None, grb_name: str = None, multi_grb: bool = True) -> None:
+    """Main function to parse log file and generate LaTeX table(s).
 
     Parameters
     ----------
     log_file_path : str
         Path to the input log file.
-    output_file_path : str
-        Path to the output LaTeX file.
+    output_file_path : str, optional
+        Path to the output LaTeX file (only used if multi_grb=False).
     grb_name : str, optional
-        GRB name for the table. If None, will extract from first episode.
+        GRB name for the table (only used if multi_grb=False). If None, will extract from first episode.
+    multi_grb : bool, optional
+        If True, generate separate tables for each GRB found (default: True).
+        If False, generate a single table combining all episodes.
     """
     # Parse the log file
     parser = LogParser(log_file_path)
@@ -629,38 +719,55 @@ def parse_log_and_generate_table(log_file_path: str, output_file_path: str, grb_
         print("No episodes found in log file.")
         return
 
-    # Extract GRB name if not provided
-    if grb_name is None:
-        # Convert GRB110721200 to GRB110721A format
-        raw_name = episodes[0]["grb_name"]
-        # Extract just the date part and add 'A' suffix
-        match = re.match(r"GRB(\d{6})", raw_name)
-        if match:
-            grb_name = f"GRB{match.group(1)}A"
-        else:
-            grb_name = raw_name
+    if multi_grb:
+        # Generate separate tables for each GRB
+        parser.generate_multiple_latex_tables()
+    else:
+        # Legacy mode: Generate a single table
+        if output_file_path is None:
+            print("Error: output_file_path required when multi_grb=False")
+            return
+            
+        # Extract GRB name if not provided
+        if grb_name is None:
+            # Convert GRB110721200 to GRB110721A format
+            raw_name = episodes[0]["grb_name"]
+            # Extract just the date part and add 'A' suffix
+            match = re.match(r"GRB(\d{6})", raw_name)
+            if match:
+                grb_name = f"GRB{match.group(1)}A"
+            else:
+                grb_name = raw_name
 
-    # Generate the table
-    generator = LaTeXTableGenerator(episodes, grb_name)
-    table_content = generator.generate_table()
+        # Generate the table
+        generator = LaTeXTableGenerator(episodes, grb_name)
+        table_content = generator.generate_table()
 
-    # Write to a file
-    with open(output_file_path, "w") as f:
-        f.write(table_content)
+        # Write to a file
+        with open(output_file_path, "w") as f:
+            f.write(table_content)
 
-    print(f"LaTeX table generated successfully: {output_file_path}")
-    print(f"Processed {len(episodes)} episode(s)")
+        print(f"LaTeX table generated successfully: {output_file_path}")
+        print(f"Processed {len(episodes)} episode(s)")
 
 
 if __name__ == "__main__":
     import sys
 
-    if len(sys.argv) < 3:
-        print("Usage: python log_to_latex_parser.py <log_file> <output_file> [grb_name]")
+    if len(sys.argv) < 2:
+        print("Usage: python log_to_latex_parser.py <log_file> [output_file] [grb_name]")
+        print("  - If only log_file is provided, generates separate tables for each GRB")
+        print("  - If output_file is provided, generates a single combined table")
         sys.exit(1)
 
     log_file = sys.argv[1]
-    output_file = sys.argv[2]
-    grb_name = sys.argv[3] if len(sys.argv) > 3 else None
+    
+    if len(sys.argv) >= 3:
+        # Legacy mode: single output file
+        output_file = sys.argv[2]
+        grb_name = sys.argv[3] if len(sys.argv) > 3 else None
+        parse_log_and_generate_table(log_file, output_file, grb_name, multi_grb=False)
+    else:
+        # Multi-GRB mode: generate separate files
+        parse_log_and_generate_table(log_file, multi_grb=True)
 
-    parse_log_and_generate_table(log_file, output_file, grb_name)
