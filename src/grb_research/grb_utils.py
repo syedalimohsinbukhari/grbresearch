@@ -369,7 +369,7 @@ def plot_per_episode(values, errors, m_name, start, end, difference, midpoints, 
     errors = np.asarray(errors)
 
     axes.plot([], [], ls="none", marker=None, label=f"GRB{m_name}")
-    axes.plot([start[0], end[0]], [values[0], values[0]], c="r", ls="--", lw=2)
+    axes.plot([start[0], end[0]], [values[0], values[0]], c="k", ls="--", lw=2)
 
     if errors.ndim == 1:
         y_low = values[0] - errors[0]
@@ -378,7 +378,7 @@ def plot_per_episode(values, errors, m_name, start, end, difference, midpoints, 
         y_low = values[0] - errors[0, 0]
         y_high = values[0] + errors[1, 0]
 
-    axes.fill_between(x=[start[0], end[0]], y1=y_low, y2=y_high, color="r", alpha=0.15)
+    axes.fill_between(x=[start[0], end[0]], y1=y_low, y2=y_high, color="k", alpha=0.15)
 
     # --- Episode points ---
     for i, x in enumerate(midpoints[1:], start=1):
@@ -392,7 +392,7 @@ def plot_per_episode(values, errors, m_name, start, end, difference, midpoints, 
             values[i],
             xerr=difference[i],
             yerr=y_err,
-            color="b" if (start[i] < start[0] or end[i] > end[0] + 0.064) else "k" if special_counter[i] else "g",
+            color="b" if (start[i] < start[0] or end[i] > end[0] + 0.064) else "r" if special_counter[i] else "g",
             marker=".",
             ms=10,
             capsize=5,

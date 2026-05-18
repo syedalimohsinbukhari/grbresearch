@@ -304,13 +304,13 @@ def mc_e_iso_sampler(
     det_max: float = 7.0,
     bol_min: float = 0.0,
     bol_max: float = 4.0,
-    h0: float = 67.4,
-    omega_m: float = 0.315,
+    h0: float = 69.6,
+    omega_m: float = 0.286,
     method=1,
     samples=None,
     seed_number=1234,
     rng: Optional[np.random.Generator] = None,
-) -> np.ndarray:
+) -> float:
     """
     Draw MC samples and compute isotropic-equivalent energy (E_iso).
 
@@ -364,7 +364,7 @@ def mc_e_iso_sampler(
                            n_grid=n_grid,
                            samples=samples,
                            rng=rng_instance)
-    ) * model.interval.duration
+    )
     if method == 1:
         energy_detector = np.logspace(start=det_min, stop=det_max, num=n_grid)
         detector_samples = np.asarray(
@@ -373,7 +373,7 @@ def mc_e_iso_sampler(
         )
         # keV / cm^2: vectorized integration over axis=1
         detector_fluence = (
-            simpson(y=detector_samples * energy_detector, x=energy_detector, axis=1) * model.interval.duration
+            simpson(y=detector_samples * energy_detector, x=energy_detector, axis=1)  # * model.interval.duration
         )
 
         numerator = simpson(y=bolometric_samples * e_observed, x=e_observed, axis=1)
@@ -384,12 +384,12 @@ def mc_e_iso_sampler(
         # erg / cm^2
         bolometric_fluence = np.asarray(bolometric_fluence, dtype=float) * kev_to_erg
     elif method == 2:
-        bolometric_fluence = simpson(y=bolometric_samples, x=e_observed, axis=1) * kev_to_erg
+        bolometric_fluence = simpson(y=bolometric_samples, x=e_observed, axis=1) * kev_to_erg * model.interval.duration
 
     lum_distance = lambda z: FlatLambdaCDM(h0, omega_m).luminosity_distance(z).cgs.value
     lum_distance = quad(lum_distance, 0, z)[0]
 
-    return 4 * np.pi * lum_distance ** 2 * np.asarray(bolometric_fluence).reshape(1, -1)
+    return 4 * np.pi * lum_distance ** 2 * np.asarray(bolometric_fluence).reshape(1, -1) / (1 + z)
 
 
 def plot_best_models(best_models, n_rows=2, n_cols=None, grb_name=None, fig_size=(15, 4), save=True):

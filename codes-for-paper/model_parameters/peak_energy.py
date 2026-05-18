@@ -46,7 +46,7 @@ result_file = SOURCE_ROOT / "results.json"
 with open(result_file, "r") as f:
     example_data = json.load(f)
 
-grb_list = ["080916C", "110721A", "110731A", "150210A"]
+grb_list = ["080916C", "110721A", "140206B", "131014A"]
 grb_list_long = [short_to_long[i] for i in grb_list]
 
 gc = GRBCatalog.from_iterable(grb_list=grb_list, data=example_data, name_mapping=short_to_long)

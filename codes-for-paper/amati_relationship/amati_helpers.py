@@ -131,10 +131,9 @@ def _compute_ep_eiso(
     m_res.run_resampler()
     mvd = {v: raw[:, i] for i, v in enumerate(pc_names)}
 
-    print(f'{np.array(list(mvd.values())).T[0, :]=}')
-
     if "sbpl" in m_name.lower():
-        ep_samples = break_e_to_e_peak(index1_sbpl=mvd["index1_sbpl"], break_energy_sbpl=mvd["e_break_sbpl"],
+        ep_samples = break_e_to_e_peak(index1_sbpl=mvd["index1_sbpl"],
+                                       break_energy_sbpl=mvd["e_break_sbpl"],
                                        index2_sbpl=mvd["index2_sbpl"])
     else:
         base = _get_base_model_name(m_name)
@@ -154,8 +153,6 @@ def _compute_ep_eiso(
                                     rng=rng)
 
     ep_intrinsic = ep_samples * (1 + redshift)
-    print(f'{ep_intrinsic=}')
-    print(f'{eiso_samples=}')
     return ep_intrinsic, eiso_samples
 
 

@@ -62,7 +62,7 @@ def extract_high_index(model_collection: ModelSet) -> Tuple[np.typing.ArrayLike,
     return np.asarray(values), np.asarray(errors)
 
 
-grb_list = ["080916C", "110721A", "110731A", "150210A"]
+grb_list = ["080916C", "110721A", "140206B", "131014A"]
 
 SOURCE_ROOT = find_project_root()
 result_file = SOURCE_ROOT / "results.json"
@@ -81,6 +81,11 @@ start_110731, end_110731, diff_110731, midpoint_110731 = grb_objs[2].intervals.e
 start_150210, end_150210, diff_150210, midpoint_150210 = grb_objs[3].intervals.extract_interval_arrays(
     return_include=("diff", "midpoint")
 )
+
+start_110731 = start_110731[:-1]
+end_110731 = end_110731[:-1]
+diff_110731 = diff_110731[:-1]
+midpoint_110731 = midpoint_110731[:-1]
 
 ep_value_080916c, ep_error_080916c = extract_high_index(grb_best[0])
 ep_value_110721a, ep_error_110721a = extract_high_index(grb_best[1])
@@ -142,7 +147,7 @@ plot_per_episode(
 [i.set_ylabel(r"Higher Index [$\beta$]", fontsize=LABEL_FONT_SIZE) for i in ax]
 plt.xticks(fontsize=TICK_FONT_SIZE)
 plt.yticks(fontsize=TICK_FONT_SIZE)
-[i.legend(loc="center right", frameon=False, fontsize=LEGEND_FONT_SIZE) for i in ax]
+[i.legend(loc="lower right", frameon=False, fontsize=LEGEND_FONT_SIZE) for i in ax]
 plt.tight_layout()
 # plt.show()
 [
@@ -158,7 +163,7 @@ plt.close()
 
 list_of_values = [ep_value_080916c, ep_value_110721a, ep_value_110731a, ep_value_150210a]
 list_of_errors = [ep_error_080916c, ep_error_110721a, ep_error_110731a, ep_error_150210a]
-list_of_names = [[i.name for i in j] for j in grb_best]
+list_of_names = [[i.name for i in j if i.name != 'PL'] for j in grb_best]
 
 save_value_error_as_parquet(
     grb_names=grb_list_long,
