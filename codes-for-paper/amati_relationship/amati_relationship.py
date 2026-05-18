@@ -36,7 +36,7 @@ t90_markers = ["o", "d", "X", "D"]
 # ---------------------------------------------------------------------------
 
 n_sample = 10_000
-n_grid = 500
+n_grid = 1000
 n_seed = 12345
 
 # ---------------------------------------------------------------------------
@@ -59,7 +59,7 @@ ep_err_total, ei_err_total = [], []
 ep_label, g_name = [], []
 model_list = []
 
-for i, a in enumerate(ax[:2]):
+for i, a in enumerate([ax[0]]):
     _ = plot_grbs_over_amati_relationship(
         best_model_list=[grb_best[i]],
         redshift_list=[redshifts[i]],

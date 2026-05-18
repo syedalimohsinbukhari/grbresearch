@@ -128,7 +128,7 @@ def _compute_ep_eiso(
 
     raw = pc.get_populated_values(cov_, size=n_sample, rng=rng)
     m_res = ModelResampler(model=m, samples=raw, rng=rng, destroy=True)
-    m_res.run_resampler()
+    raw = m_res.run_resampler()
     mvd = {v: raw[:, i] for i, v in enumerate(pc_names)}
 
     if "sbpl" in m_name.lower():

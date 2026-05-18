@@ -3,7 +3,7 @@
 import os
 import warnings
 from multiprocessing import Pool, cpu_count
-from typing import Optional, Tuple, Literal
+from typing import Optional, Tuple, Literal, Callable
 
 import numpy as np
 from astropy.cosmology import FlatLambdaCDM
@@ -147,8 +147,7 @@ def mc_spectra_sampler(
                                samples=samples,
                                rng=rng_instance,
                                destroy=True)
-        m_res.run_resampler()
-        # samples = m_res.samples
+        samples = m_res.run_resampler()
 
     if n_workers is None:
         n_workers = cpu_count()
@@ -168,7 +167,7 @@ class ModelResampler:
     def __init__(self, model: Model, samples: np.ndarray, rng: Optional[np.random.Generator] = None, seed=None,
                  destroy: bool = True):
         self.model = model
-        self.samples = samples if destroy else samples.copy()
+        self._samples = samples if destroy else samples.copy()
         if seed is None and rng is None:
             raise ValueError("Either seed or rng must be definend.")
         if rng is None:
@@ -189,70 +188,109 @@ class ModelResampler:
         else:
             return False, np.array([], dtype=bool), np.array([], dtype=bool)
 
-    def _resampler(self, pos_mask, neg_mask, extra_mask=None):
-        mask = np.any(self.samples[:, pos_mask] < 0, axis=1) | np.any(self.samples[:, neg_mask] > 0, axis=1)
-        if extra_mask is not None:
-            mask |= ~extra_mask
-        print(f"The number of resampled parameters: {np.sum(mask)}")
-        re_sample = self.rng.multivariate_normal(self.m_val,
-                                                 self.model.covariance_matrix_value,
-                                                 np.sum(mask))
-        return mask, re_sample
+    def _resampler(
+        self,
+        samples: np.ndarray,
+        pos_mask: np.ndarray,
+        neg_mask: np.ndarray,
+        extra_mask_fn: Optional[Callable[[np.ndarray], np.ndarray]] = None,
+    ) -> np.ndarray:
+        """Resample invalid rows until all masked constraints are satisfied.
 
-    def __runner(self, extra_mask=None):
+        Parameters
+        ----------
+        samples :
+            Working copy of MC parameter draws, shape (n_samples, n_params).
+        pos_mask :
+            Boolean column mask; flagged parameters must be strictly positive.
+        neg_mask :
+            Boolean column mask; flagged parameters must be strictly negative.
+        extra_mask_fn :
+            Optional callable ``(samples) -> bool array of shape (n_samples,)``
+            returning ``True`` for rows that are *valid* under the model-specific
+            constraint (e.g. Kaneko condition).  Recomputed from the current
+            ``samples`` on every iteration so stale row assignments do not
+            prevent convergence.  Pass ``None`` when there is no extra constraint.
+        """
+        max_rounds = 100
+        for _ in range(max_rounds):
+            mask = np.any(samples[:, pos_mask] < 0, axis=1) | np.any(samples[:, neg_mask] > 0, axis=1)
+            if extra_mask_fn is not None:
+                # recompute from current samples each round — avoids stale mask bug
+                mask |= ~extra_mask_fn(samples)
+
+            n_invalid = int(np.sum(mask))
+            if n_invalid == 0:
+                return samples
+
+            print(f"The number of resampled parameters: {n_invalid}")
+            samples[mask] = self.rng.multivariate_normal(
+                self.m_val,
+                self.model.covariance_matrix_value,
+                n_invalid,
+            )
+
+        warnings.warn(
+            f"Reached max resampling rounds ({max_rounds}) for {self.model.name}; "
+            "some invalid samples may remain."
+        )
+        return samples
+
+    def __runner(self, samples: np.ndarray,
+                 extra_mask_fn: Optional[Callable[[np.ndarray], np.ndarray]] = None) -> np.ndarray:
         schema = build_composite_schema(self.model.name)
         check, pos_mask, neg_mask = self._cond_check(schema)
         if check:
-            mask, re = self._resampler(pos_mask, neg_mask, extra_mask=extra_mask)
-            self.samples[mask] = re
+            samples = self._resampler(samples, pos_mask, neg_mask, extra_mask_fn=extra_mask_fn)
+        return samples
 
-    def _pl_resampler(self):
-        self.__runner()
+    def _pl_resampler(self, samples: np.ndarray) -> np.ndarray:
+        return self.__runner(samples)
 
-    def _cpl_resampler(self):
-        self.__runner()
+    def _cpl_resampler(self, samples: np.ndarray) -> np.ndarray:
+        return self.__runner(samples)
 
-    def _band_resampler(self):
-        self.__runner()
+    def _band_resampler(self, samples: np.ndarray) -> np.ndarray:
+        return self.__runner(samples)
 
-    def _sbpl_resampler(self):
-        s = self.samples
-        l1_idx, l2_idx = 2, 5
-        lambda_1, lambda_2 = s[:, l1_idx], s[:, l2_idx]
-        m2 = np.logical_and(lambda_1 > -2, lambda_2 < -2)  # [:, np.newaxis]
-        self.__runner(extra_mask=m2)
+    def _sbpl_resampler(self, samples: np.ndarray) -> np.ndarray:
+        def _sbpl_valid(s: np.ndarray) -> np.ndarray:
+            l1, l2 = s[:, 2], s[:, 5]
+            return np.logical_and(l1 > -1.9, l2 < -2.1)
 
-    def _pl_bb_resampler(self):
-        self.__runner()
+        return self.__runner(samples, extra_mask_fn=_sbpl_valid)
 
-    def _cpl_bb_resampler(self):
-        self.__runner()
+    def _pl_bb_resampler(self, samples: np.ndarray) -> np.ndarray:
+        return self.__runner(samples)
 
-    def _band_bb_resampler(self):
-        self.__runner()
+    def _cpl_bb_resampler(self, samples: np.ndarray) -> np.ndarray:
+        return self.__runner(samples)
 
-    def _sbpl_bb_resampler(self):
-        self._sbpl_resampler()
+    def _band_bb_resampler(self, samples: np.ndarray) -> np.ndarray:
+        return self.__runner(samples)
 
-    def _cpl_pl_bb_resampler(self):
-        self.__runner()
+    def _sbpl_bb_resampler(self, samples: np.ndarray) -> np.ndarray:
+        return self._sbpl_resampler(samples)
 
-    def _band_pl_bb_resampler(self):
-        self.__runner()
+    def _cpl_pl_bb_resampler(self, samples: np.ndarray) -> np.ndarray:
+        return self.__runner(samples)
 
-    def _sbpl_pl_bb_resampler(self):
+    def _band_pl_bb_resampler(self, samples: np.ndarray) -> np.ndarray:
+        return self.__runner(samples)
+
+    def _sbpl_pl_bb_resampler(self, samples: np.ndarray) -> np.ndarray:
         # amp_pl, index1_pl, e_piv_pl
         # amp_sbpl, e_piv_sbpl, index1_sbpl, e_break_sbpl, break_scale_sbpl, index2_sbpl
         # amp_bb, kT_bb
-        s = self.samples
-        l1_idx, l2_idx = 5, 8
-        lambda_1, lambda_2 = s[:, l1_idx], s[:, l2_idx]
-        m2 = np.logical_and(lambda_1 > -2, lambda_2 < -2)
-        self.__runner(extra_mask=~m2)
+        def _sbpl_pl_bb_valid(s: np.ndarray) -> np.ndarray:
+            # rows where the SBPL physical condition is NOT satisfied are invalid
+            return ~np.logical_and(s[:, 5] > -2, s[:, 8] < -2)
 
-    def run_resampler(self):
-        """Resamples unphysical draws in-place. `samples` array is modified directly."""
-        dispatcher = {
+        return self.__runner(samples, extra_mask_fn=_sbpl_pl_bb_valid)
+
+    def run_resampler(self) -> np.ndarray:
+        """Return a corrected copy of sampled parameters after model-specific resampling."""
+        dispatcher: dict[str, Callable[[np.ndarray], np.ndarray]] = {
             gmC.PL.name_upper: self._pl_resampler,
             gmC.PL_BB.name_upper: self._pl_bb_resampler,
             gmC.CPL.name_upper: self._cpl_resampler,
@@ -268,9 +306,10 @@ class ModelResampler:
 
         resampler = dispatcher.get(self.model.name, None)
         if resampler is not None:
-            resampler()
+            return resampler(self._samples.copy())
         else:
             print(f"Warning: No resampler for {self.model.name} model.")
+            return self._samples.copy()
 
 
 def credible_interval_partition(samples: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:

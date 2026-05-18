@@ -15,7 +15,7 @@ from scipy import stats
 
 from .grb_constants import MODEL_PARAMETERS, NOK_THRESHOLD, OK_THRESHOLD, model_n_pars
 from .grb_enums import GRBModelsCombinations, ModelStatus
-from .grb_time import EpisodeTypes, TimeInterval
+from .grb_time import EpisodeTypes
 
 m_style = seaborn.color_palette("deep6")
 
@@ -361,8 +361,10 @@ def grb_characteristics(grb_df, model_name, epoch_difference=False):
 
 
 def break_e_to_e_peak(index1_sbpl, break_energy_sbpl, index2_sbpl):
-    f1 = (index1_sbpl + index2_sbpl + 4) / (index1_sbpl - index2_sbpl)
-    return break_energy_sbpl * 10 ** (0.3 * np.arctanh(f1))
+    f1 = index1_sbpl + 2
+    f2 = -(index2_sbpl + 2)
+    f3 = (0.3 / 2) * np.log(f1 / f2)
+    return break_energy_sbpl * 10 ** f3
 
 
 def plot_per_episode(values, errors, m_name, start, end, difference, midpoints, axes, special_counter=None):
@@ -385,7 +387,7 @@ def plot_per_episode(values, errors, m_name, start, end, difference, midpoints, 
         if errors.ndim == 1:
             y_err = errors[i]
         else:
-            y_err = errors[:, i : i + 1]  # (2, 1), symmetric or asymmetric
+            y_err = errors[:, i: i + 1]  # (2, 1), symmetric or asymmetric
 
         axes.errorbar(
             x,
