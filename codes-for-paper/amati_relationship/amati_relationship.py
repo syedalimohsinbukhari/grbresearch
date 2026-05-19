@@ -46,7 +46,7 @@ n_seed = 12345
 f, ax = plt.subplots(2, 2, figsize=(12, 10), sharex=True, sharey=True)
 ax = ax.flatten()
 
-amati_kw = dict(x_lim=(180, 3e5), y_lim=(9.2e48, 1.2e56), num_points=n_grid, use_average=True)
+amati_kw = dict(x_lim=(180, 7e4), y_lim=(9.2e48, 1.2e56), num_points=n_grid, use_average=True)
 for a in ax:
     amati_relationship_dirirsa2019(**amati_kw, axis=a)
 
@@ -169,7 +169,7 @@ for a in ax[::2]:
     a.tick_params(axis="both", labelsize=TICK_FONT_SIZE)
 
 plt.tight_layout()
-plt.show()
-# for fmt in ("png", "pdf"):
-#     plt.savefig(f"./amati_relationship.{fmt}", dpi=600)
-# plt.close()
+# plt.show()
+for fmt in ("png", "pdf"):
+    plt.savefig(f"./amati_relationship.{fmt}", dpi=600)
+plt.close()
