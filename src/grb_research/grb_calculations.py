@@ -8,6 +8,7 @@ from typing import Optional, Tuple, Literal, Callable
 import numpy as np
 from astropy.cosmology import FlatLambdaCDM
 from matplotlib import pyplot as plt
+from numpy.typing import ArrayLike
 from scipy.integrate import simpson, quad
 from tqdm import tqdm
 
@@ -100,8 +101,8 @@ def mc_spectra_sampler(
     e_range=(1, 7),
     n_samples: int = 10_000,
     n_grid: int = 10_000,
-    n_workers: int = None,
-    samples=None,
+    n_workers: int | None = None,
+    samples: ArrayLike | None = None,
     seed: Optional[int] = None,
     rng: Optional[np.random.Generator] = None,
 ):
@@ -180,13 +181,9 @@ class ModelResampler:
         self.err_ratio = [(j / abs(i)) * 100 for i, j in zip(self.m_val, self.errs)]
 
     def _cond_check(self, schema=None) -> Tuple[bool, np.ndarray, np.ndarray]:
-        if any([x > 25 for x in self.err_ratio]):
-            print("Warning: Some parameters have large uncertainties.")
-            pos_mask = np.array([p[-1] for p in schema], dtype=bool)
-            neg_mask = ~pos_mask
-            return True, pos_mask, neg_mask
-        else:
-            return False, np.array([], dtype=bool), np.array([], dtype=bool)
+        pos_mask = np.array([p[-1] for p in schema], dtype=bool)
+        neg_mask = ~pos_mask
+        return True, pos_mask, neg_mask
 
     def _resampler(
         self,
@@ -256,7 +253,7 @@ class ModelResampler:
     def _sbpl_resampler(self, samples: np.ndarray) -> np.ndarray:
         def _sbpl_valid(s: np.ndarray) -> np.ndarray:
             l1, l2 = s[:, 2], s[:, 5]
-            return np.logical_and(l1 > -1.9, l2 < -2.1)
+            return np.logical_and(l1 > -2.0, l2 < -2.05)
 
         return self.__runner(samples, extra_mask_fn=_sbpl_valid)
 
@@ -284,7 +281,7 @@ class ModelResampler:
         # amp_bb, kT_bb
         def _sbpl_pl_bb_valid(s: np.ndarray) -> np.ndarray:
             # rows where the SBPL physical condition is NOT satisfied are invalid
-            return ~np.logical_and(s[:, 5] > -2, s[:, 8] < -2)
+            return ~np.logical_and(s[:, 5] > -2, s[:, 8] < -2.05)
 
         return self.__runner(samples, extra_mask_fn=_sbpl_pl_bb_valid)
 
