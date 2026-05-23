@@ -10,7 +10,8 @@ from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 
-from .grb_constants import LATEX_MODEL_NAMES, MODEL_ORDER
+from .grb_constants import LATEX_MODEL_NAMES, MODEL_ORDER, short_to_long
+
 
 # LaTeX model name mapping
 
@@ -31,7 +32,7 @@ class LogParser:
         self.log_file_path = Path(log_file_path)
         self.log_content = self._read_log_file()
         self.episodes = []
-        
+
         # Multi-GRB tracking
         self.current_grb: Optional[str] = None
         self.grb_data: Dict[str, List[Dict]] = {}
@@ -63,7 +64,7 @@ class LogParser:
                 grb_match = self.grb_pattern.search(directory_path)
                 if grb_match:
                     grb_id = grb_match.group(1)
-                    
+
                     # Check if this is an Ep0 episode (new GRB boundary)
                     if 'Ep0__' in directory_path:
                         self.current_grb = grb_id
@@ -73,7 +74,7 @@ class LogParser:
                 episode_data = self._parse_episode_block(directory_path, block_content)
                 if episode_data:
                     self.episodes.append(episode_data)
-                    
+
                     # Also add to GRB-specific collection if we have a current GRB
                     if self.current_grb is not None:
                         self.grb_data[self.current_grb].append(episode_data)
@@ -206,7 +207,7 @@ class LogParser:
                 num -= value * count
         return "".join(result)
 
-    def _extract_safe_models(self, block_content: str, type_:str) -> List[str]:
+    def _extract_safe_models(self, block_content: str, type_: str) -> List[str]:
         """Extract the list of SAFE models from the block content.
 
         Parameters
@@ -334,7 +335,6 @@ class LogParser:
 
         return True
 
-
     def generate_multiple_latex_tables(self, output_dir: str = None) -> List[str]:
         """Generate separate LaTeX table files for each GRB found in the log.
 
@@ -360,18 +360,19 @@ class LogParser:
         output_files = []
 
         for grb_id, episodes in self.grb_data.items():
+            short_name = [k for k, v in short_to_long.items() if f'GRB{grb_id}' == v][0]
             if not episodes:
                 continue
 
             # Convert GRB ID to standard format (e.g., 110721200 -> GRB110721A)
-            grb_name = self._format_grb_name(grb_id)
-            
+            # grb_name = self._format_grb_name(grb_id)
+            grb_name = f'GRB{short_name}'
             # Generate table for this GRB
             generator = LaTeXTableGenerator(episodes, grb_name)
             table_content = generator.generate_table()
 
             # Write to file
-            output_file = output_dir / f"{grb_id}_fit_results.tex"
+            output_file = output_dir / f"{short_name}.tex"
             with open(output_file, "w") as f:
                 f.write(table_content)
 
@@ -696,7 +697,8 @@ class LaTeXTableGenerator:
             return f"{excess_pct:.0f}\\%"
 
 
-def parse_log_and_generate_table(log_file_path: str, output_file_path: str = None, grb_name: str = None, multi_grb: bool = True) -> None:
+def parse_log_and_generate_table(log_file_path: str, output_file_path: str = None, grb_name: str = None,
+                                 multi_grb: bool = True) -> None:
     """Main function to parse log file and generate LaTeX table(s).
 
     Parameters
@@ -727,7 +729,7 @@ def parse_log_and_generate_table(log_file_path: str, output_file_path: str = Non
         if output_file_path is None:
             print("Error: output_file_path required when multi_grb=False")
             return
-            
+
         # Extract GRB name if not provided
         if grb_name is None:
             # Convert GRB110721200 to GRB110721A format
@@ -761,7 +763,7 @@ if __name__ == "__main__":
         sys.exit(1)
 
     log_file = sys.argv[1]
-    
+
     if len(sys.argv) >= 3:
         # Legacy mode: single output file
         output_file = sys.argv[2]
@@ -770,4 +772,3 @@ if __name__ == "__main__":
     else:
         # Multi-GRB mode: generate separate files
         parse_log_and_generate_table(log_file, multi_grb=True)
-
