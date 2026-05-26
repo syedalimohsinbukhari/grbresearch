@@ -725,7 +725,7 @@ class FluxFluenceCalculator:
                                     rng=self.rng)
         return np.asarray(simpson(np.array(n_of_e), x))
 
-    def _fluence(self, in_ergs: bool = False) -> np.ndarray:
+    def _fluence(self, in_ergs: bool = False, energy_flux: bool = False) -> np.ndarray:
         """Calculates the fluence over a specified energy range using Monte Carlo sampling and numerical integration.
 
         Parameters
@@ -741,6 +741,7 @@ class FluxFluenceCalculator:
             The computed fluence over the specified energy range.
         """
         converter = kev_to_erg if in_ergs else 1
+        duration = 1 if energy_flux else self.spectral_model.interval.duration
         x = np.logspace(*self.log_energy_range, self.n_grid)
         n_of_e = mc_spectra_sampler(self.spectral_model,
                                     'energy',
@@ -748,12 +749,13 @@ class FluxFluenceCalculator:
                                     n_samples=self.n_samples,
                                     n_grid=self.n_grid,
                                     rng=self.rng)
-        return np.asarray(simpson(np.array(n_of_e), x) * converter)
+        return np.asarray(simpson(np.array(n_of_e), x) * converter) * duration
 
     def calculate(self,
                   calculation_type: Literal["flux", "fluence"] = 'flux',
                   get_percentiles: bool = False,
                   in_ergs: bool = True,
+                  energy_flux: bool = False,
                   get_errors: bool = True) -> np.ndarray | tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Performs a calculation based on the specified type.
 
@@ -792,7 +794,7 @@ class FluxFluenceCalculator:
         if calculation_type == 'flux':
             output = self._flux()
         elif calculation_type == 'fluence':
-            output = self._fluence(in_ergs)
+            output = self._fluence(in_ergs, energy_flux=energy_flux)
         else:
             raise ValueError("Invalid calculation type. Must be 'flux' or 'fluence'.")
 

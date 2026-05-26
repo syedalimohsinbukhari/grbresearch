@@ -60,6 +60,17 @@ short_to_long = {
     "231129C": "GRB231129779"
 }
 
+long_to_short = {
+    "GRB150210935": "150210A",
+    "GRB110731465": "110731A",
+    "GRB110721200": "110721A",
+    "GRB080916009": "080916C",
+    "GRB190114873": "190114C",
+    "GRB140206275": "140206B",
+    "GRB131014215": "131014A",
+    "GRB231129779": "231129C"
+}
+
 # AUTO-GENERATED FROM ENUMS - DO NOT EDIT DIRECTLY
 model_n_pars = {m: m.total_params for m in gmC}
 
