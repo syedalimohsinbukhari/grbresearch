@@ -13,6 +13,7 @@ __all__ = [
     "kev_to_erg",
     "model_n_pars",
     "short_to_long",
+    "long_to_short",
     "MODEL_ORDER",
     "LATEX_MODEL_NAMES",
     "ALLOWED_MODELS",

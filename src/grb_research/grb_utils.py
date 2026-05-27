@@ -720,9 +720,9 @@ class EpisodeMarkerResolver:
         T90 → ``"k"``, TR → ``"g"``, SP → ``"r"``, anything else → ``"b"``.
         """
         if interval.is_t90:
-            return "k"
+            return "r"
         if interval.is_tr:
             return "g"
         if interval.is_sp:
-            return "r"
+            return "k"
         return "b"

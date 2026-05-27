@@ -4,8 +4,8 @@ import json
 
 import matplotlib.pyplot as plt
 
-from src.grb_research import GRBCatalog, find_project_root
-from src.grb_research.grb_constants import (
+from grb_research import GRBCatalog, find_project_root, update_style
+from grb_research.grb_constants import (
     MODEL_ORDER,
     short_to_long,
     TICK_FONT_SIZE,
@@ -13,7 +13,9 @@ from src.grb_research.grb_constants import (
     LEGEND_FONT_SIZE,
     LEGEND_TITLE_FONT_SIZE,
 )
-from src.grb_research.grb_styles import GRBPlotStyle as grbStyle
+from grb_research.grb_styles import GRBPlotStyle as grbStyle
+
+update_style()
 
 SOURCE_ROOT = find_project_root()
 result_file = SOURCE_ROOT / "results.json"
@@ -110,7 +112,7 @@ for index, value in enumerate(grb.grb_list):
 
 [v.tick_params("x", rotation=90, labelsize=TICK_FONT_SIZE) for v in ax]
 [v.tick_params("y", labelsize=TICK_FONT_SIZE) for v in ax]
-ax[0].set_ylim(top=10.5)
+ax[0].set_ylim(top=11.5)
 [i.set_ylabel("No. of models", fontsize=LABEL_FONT_SIZE) for i in [ax[0], ax[2]]]
 plt.tight_layout()
 # plt.show()

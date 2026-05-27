@@ -174,9 +174,9 @@ def _plot_model_point(
 
     Returns
     -------
-    p50_ep, p50_eiso : float
+    p50_ep, p50_eiso :
         Median values, useful for building redshift tracks.
-    x_err, y_err : np.ndarray
+    x_err, y_err :
         Asymmetric 1-sigma errors shaped (2, 1) for E_peak and E_iso.
         First row is lower error, second row is upper error.
     """
@@ -270,38 +270,37 @@ def plot_grbs_over_amati_relationship(
 
     Parameters
     ----------
-    best_model_list : list of ModelSet
+    best_model_list :
         One ModelSet per GRB; each ModelSet is an iterable of Model objects.
-    redshift_list : list of float
+    redshift_list :
         Redshift for each GRB, aligned with best_model_list.
-    t90_marker_list : list of str
-        Matplotlib marker string for T90 of each GRB (the only per-GRB
-        marker dimension). All other episode types use fixed global markers
-        defined in EpisodeMarkerResolver.
-    n_grid : int
+    t90_marker_list :
+        Matplotlib marker string for T90 of each GRB (the only per-GRB marker dimension).
+        All other episode types use fixed global markers defined in EpisodeMarkerResolver.
+    n_grid :
         Grid resolution for E_iso integration.
-    n_sample : int
+    n_sample :
         Posterior sample count.
-    seed_number : int
+    seed_number :
         Base RNG seed; incremented per model to keep runs reproducible.
-    alpha : float
+    alpha :
         Scatter / errorbar opacity.
-    axis : matplotlib Axes
+    axis :
         Target axes object. Required.
 
     Returns
     -------
-    ep_total : list
+    ep_total :
         E_peak median values.
-    ei_total : list
+    ei_total :
         E_iso median values.
-    ep_labels : list
+    ep_labels :
         Episode labels.
-    _models : list
+    _models :
         Model names.
-    ep_err_total : list
+    ep_err_total :
         E_peak error arrays (2, 1) shaped.
-    ei_err_total : list
+    ei_err_total :
         E_iso error arrays (2, 1) shaped.
     """
     if axis is None:

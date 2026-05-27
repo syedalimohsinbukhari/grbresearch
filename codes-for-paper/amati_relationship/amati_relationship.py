@@ -1,4 +1,5 @@
 """Created on Jan 24 02:32:18 2026 — refactored Mar 27 2026"""
+
 from itertools import chain
 
 import matplotlib.pyplot as plt
@@ -6,30 +7,32 @@ import numpy as np
 import pandas as pd
 
 from amati_helpers import amati_relationship_dirirsa2019, plot_unknown_redshift_grb, plot_grbs_over_amati_relationship
-from src.grb_research import find_project_root, ModelSet
-from src.grb_research.grb_constants import LEGEND_TITLE_FONT_SIZE, LEGEND_FONT_SIZE, LABEL_FONT_SIZE, TICK_FONT_SIZE
-from src.grb_research.grb_core import prepare_grbs
+from grb_research import find_project_root, ModelSet, update_style
+from grb_research.grb_constants import LEGEND_TITLE_FONT_SIZE, LEGEND_FONT_SIZE, LABEL_FONT_SIZE, TICK_FONT_SIZE
+from grb_research.grb_core import prepare_grbs
 
 # ---------------------------------------------------------------------------
 # Data
 # ---------------------------------------------------------------------------
 
+update_style()
+
 SOURCE_ROOT = find_project_root()
 result_file = SOURCE_ROOT / "results.json"
 
-grb_list = ["080916C", "110721A", "131014A", "140206B"]
+grb_list = ["080916C", "131014A", "140206B", "231129C"]
 gc, grb_list_long, grb_objs, grb_best = prepare_grbs(grb_list, result_file, get_best=True)
 
 grb_best = [ModelSet([i for i in j if i.name != 'PL']) for j in grb_best]
 
 # Known redshifts for the first three GRBs; GRB150210A has no known redshift.
 # redshifts = [4.35, 0.3826, 2.83]
-redshifts = [4.35, 0.3826]
+redshifts = [4.35]
 
 # T90 marker per GRB — the only per-GRB marker dimension.
 # GRB150210A's T90 marker is included so EpisodeMarkerResolver can be
 # constructed consistently for the unknown-redshift panel.
-t90_markers = ["o", "d", "X", "D"]
+t90_markers = ["o", "s", "X", "D"]
 
 # ---------------------------------------------------------------------------
 # Sampling config
@@ -43,7 +46,7 @@ n_seed = 12345
 # Figure
 # ---------------------------------------------------------------------------
 
-f, ax = plt.subplots(2, 2, figsize=(12, 10), sharex=True, sharey=True)
+f, ax = plt.subplots(nrows=2, ncols=2, figsize=(12, 10), sharex=True, sharey=True)
 ax = ax.flatten()
 
 amati_kw = dict(x_lim=(180, 7e4), y_lim=(9.2e48, 1.2e56), num_points=n_grid, use_average=True)
@@ -59,7 +62,7 @@ ep_err_total, ei_err_total = [], []
 ep_label, g_name = [], []
 model_list = []
 
-for i, a in enumerate(ax[:2]):
+for i, a in enumerate([ax[0]]):
     _ = plot_grbs_over_amati_relationship(
         best_model_list=[grb_best[i]],
         redshift_list=[redshifts[i]],
@@ -85,21 +88,21 @@ for i, a in enumerate(ax[:2]):
 # Unknown-redshift GRB (GRB150210A) — redshift locus across z = 1, 3, 5, 7
 # ---------------------------------------------------------------------------
 
-for idx, m_ in enumerate(grb_best[2:]):
+for idx, m_ in enumerate(grb_best[1:]):
     for m in m_:
         plot_unknown_redshift_grb(
             models=[m],
-            t90_marker=t90_markers[idx + 2],
+            t90_marker=t90_markers[idx + 1],
             z_values=(1, 3, 5, 7),
             n_grid=n_grid,
             n_sample=n_sample,
             seed_number=n_seed,
-            axis=ax[idx + 2],
+            axis=ax[idx + 1],
         )
 
-    ax[idx + 2].legend(
+    ax[idx + 1].legend(
         loc="best", ncols=3,
-        title=f"GRB{grb_list[idx + 2]}",
+        title=f"GRB{grb_list[idx + 1]}",
         fontsize=LEGEND_FONT_SIZE,
         title_fontsize=LEGEND_TITLE_FONT_SIZE
     )
