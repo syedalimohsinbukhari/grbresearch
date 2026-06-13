@@ -144,10 +144,7 @@ def mc_spectra_sampler(
     if samples is None:
         rng_instance = get_rng(seed=seed, rng=rng)
         samples = rng_instance.multivariate_normal(mean=m_vals, cov=covar_, size=n_samples)
-        m_res = ModelResampler(model=model,
-                               samples=samples,
-                               rng=rng_instance,
-                               destroy=True)
+        m_res = ModelResampler(model=model, samples=samples, rng=rng_instance, destroy=True)
         samples = m_res.run_resampler()
 
     if n_workers is None:
@@ -165,8 +162,14 @@ def mc_spectra_sampler(
 
 class ModelResampler:
 
-    def __init__(self, model: Model, samples: np.ndarray, rng: Optional[np.random.Generator] = None, seed=None,
-                 destroy: bool = True):
+    def __init__(
+        self,
+        model: Model,
+        samples: np.ndarray,
+        rng: Optional[np.random.Generator] = None,
+        seed=None,
+        destroy: bool = True,
+    ):
         self.model = model
         self._samples = samples if destroy else samples.copy()
         if seed is None and rng is None:
@@ -221,20 +224,16 @@ class ModelResampler:
                 return samples
 
             print(f"The number of resampled parameters: {n_invalid}")
-            samples[mask] = self.rng.multivariate_normal(
-                self.m_val,
-                self.model.covariance_matrix_value,
-                n_invalid,
-            )
+            samples[mask] = self.rng.multivariate_normal(self.m_val, self.model.covariance_matrix_value, n_invalid)
 
         warnings.warn(
-            f"Reached max resampling rounds ({max_rounds}) for {self.model.name}; "
-            "some invalid samples may remain."
+            f"Reached max resampling rounds ({max_rounds}) for {self.model.name}; " "some invalid samples may remain."
         )
         return samples
 
-    def __runner(self, samples: np.ndarray,
-                 extra_mask_fn: Optional[Callable[[np.ndarray], np.ndarray]] = None) -> np.ndarray:
+    def __runner(
+        self, samples: np.ndarray, extra_mask_fn: Optional[Callable[[np.ndarray], np.ndarray]] = None
+    ) -> np.ndarray:
         schema = build_composite_schema(self.model.name)
         check, pos_mask, neg_mask = self._cond_check(schema)
         if check:
@@ -298,7 +297,7 @@ class ModelResampler:
             gmC.BAND_PL_BB.name_upper: self._band_pl_bb_resampler,
             gmC.SBPL.name_upper: self._sbpl_resampler,
             gmC.SBPL_BB.name_upper: self._sbpl_bb_resampler,
-            gmC.SBPL_PL_BB.name_upper: self._sbpl_pl_bb_resampler
+            gmC.SBPL_PL_BB.name_upper: self._sbpl_pl_bb_resampler,
         }
 
         resampler = dispatcher.get(self.model.name, None)
@@ -393,24 +392,32 @@ def mc_e_iso_sampler(
     e_observed = energy_bolometric / (1 + z)
     # ph / cm^2 / s / keV (n_samples, n_grid)
     bolometric_samples = np.asarray(
-        mc_spectra_sampler(model=model,
-                           model_type="energy",
-                           e_range=(bol_min, bol_max),
-                           n_samples=n_samples,
-                           n_grid=n_grid,
-                           samples=samples,
-                           rng=rng_instance)
+        mc_spectra_sampler(
+            model=model,
+            model_type="energy",
+            e_range=(bol_min, bol_max),
+            n_samples=n_samples,
+            n_grid=n_grid,
+            samples=samples,
+            rng=rng_instance,
+        )
     )
     if method == 1:
         energy_detector = np.logspace(start=det_min, stop=det_max, num=n_grid)
         detector_samples = np.asarray(
-            mc_spectra_sampler(model=model, model_type="energy", e_range=(det_min, det_max), n_samples=n_samples,
-                               n_grid=n_grid, rng=rng_instance)
+            mc_spectra_sampler(
+                model=model,
+                model_type="energy",
+                e_range=(det_min, det_max),
+                n_samples=n_samples,
+                n_grid=n_grid,
+                rng=rng_instance,
+            )
         )
         # keV / cm^2: vectorized integration over axis=1
-        detector_fluence = (
-            simpson(y=detector_samples * energy_detector, x=energy_detector, axis=1)  # * model.interval.duration
-        )
+        detector_fluence = simpson(
+            y=detector_samples * energy_detector, x=energy_detector, axis=1
+        )  # * model.interval.duration
 
         numerator = simpson(y=bolometric_samples * e_observed, x=e_observed, axis=1)
         denominator = simpson(y=detector_samples * energy_detector, x=energy_detector, axis=1)
@@ -425,7 +432,7 @@ def mc_e_iso_sampler(
     lum_distance = lambda z: FlatLambdaCDM(h0, omega_m).luminosity_distance(z).cgs.value
     lum_distance = quad(lum_distance, 0, z)[0]
 
-    return 4 * np.pi * lum_distance ** 2 * np.asarray(bolometric_fluence).reshape(1, -1) / (1 + z)
+    return 4 * np.pi * lum_distance**2 * np.asarray(bolometric_fluence).reshape(1, -1) / (1 + z)
 
 
 def plot_best_models(best_models, n_rows=2, n_cols=None, grb_name=None, fig_size=(15, 4), save=True):
@@ -483,9 +490,9 @@ def plot_best_models(best_models, n_rows=2, n_cols=None, grb_name=None, fig_size
         med, low, high = credible_interval_partition(samples)
         med, low, high = med * kev_to_erg, low * kev_to_erg, high * kev_to_erg
         ax[i].loglog(
-            x, med * x ** 2, f"{color}--", label=f"{v.name.replace('_', '+')}\n({v.interval.start} - {v.interval.end})"
+            x, med * x**2, f"{color}--", label=f"{v.name.replace('_', '+')}\n({v.interval.start} - {v.interval.end})"
         )
-        ax[i].fill_between(x, low * x ** 2, high * x ** 2, color=color, alpha=0.2)
+        ax[i].fill_between(x, low * x**2, high * x**2, color=color, alpha=0.2)
         ax[i].legend()
 
     [v.set_xlabel("Energy [keV]") for i, v in enumerate(ax) if i > (n_cols - 1)]
@@ -542,7 +549,7 @@ def plot_all_models(
     x = np.logspace(1, 7, n_grid)
 
     # legend position per panel — keeps legend away from the spectral peaks
-    legend_loc = {0: 'lower left', 1: 'lower left', 2: 'lower left', 3: 'upper right'}
+    legend_loc = {0: "lower left", 1: "lower left", 2: "lower left", 3: "upper right"}
 
     f, ax = plt.subplots(n_rows, n_cols, figsize=fig_size, sharey=True, sharex=True)
     ax = ax.flatten()
@@ -564,30 +571,28 @@ def plot_all_models(
             if j == 0:
                 # ax[i].loglog(x, med * x ** 2, "k-")  # , label=f"{w.interval.kind}")
                 # ax[i].fill_between(x, low * x ** 2, high * x ** 2, color="k", alpha=0.2)
-                ax[i].loglog(x, med * x ** 2, "k-", zorder=1000,
-                             label=f"{w.interval.kind}" + r"$_\text{" + f'{w.name.replace("_", "+")}' + r"}$")
-                ax[i].fill_between(x, low * x ** 2, high * x ** 2, zorder=1000,
-                                   color="k", alpha=0.2)
+                ax[i].loglog(
+                    x,
+                    med * x**2,
+                    "k-",
+                    zorder=1000,
+                    label=f"{w.interval.kind}" + r"$_\text{" + f'{w.name.replace("_", "+")}' + r"}$",
+                )
+                ax[i].fill_between(x, low * x**2, high * x**2, zorder=1000, color="k", alpha=0.2)
             else:
                 sub = (
                     f"{w.interval.kind}{w.interval.index}"
                     if w.interval.kind in [EpisodeTypes.TR, EpisodeTypes.SP]
                     else w.interval.kind
                 )
-                ax[i].loglog(x, med * x ** 2, "--",
-                             label=f"{sub}" + r"$_\text{" + f'{w.name.replace("_", "+")}' + r"}$")
-                ax[i].fill_between(x, low * x ** 2, high * x ** 2, alpha=0.2)
+                ax[i].loglog(x, med * x**2, "--", label=f"{sub}" + r"$_\text{" + f'{w.name.replace("_", "+")}' + r"}$")
+                ax[i].fill_between(x, low * x**2, high * x**2, alpha=0.2)
 
             ax[i].set_ylim(bottom=3.2e-10, top=8.7e-5)
 
         # -- legend fix --------------------------------------------------------
         ax[i].legend(
-            ncols=3,
-            title=f"GRB{grb_name[i]}",
-            shadow=True,
-            loc=legend_loc.get(i, 'best'),
-            fontsize=7,
-            title_fontsize=8,
+            ncols=3, title=f"GRB{grb_name[i]}", shadow=True, loc=legend_loc.get(i, "best"), fontsize=7, title_fontsize=8
         )
         # ---------------------------------------------------------------------
 
@@ -595,8 +600,10 @@ def plot_all_models(
             ax[i].set_ylabel("Energy Flux\n" + r"[erg/cm$^2$/s]", fontsize=LABEL_FONT_SIZE)
 
     [i.grid(True, axis="both", ls="--", alpha=0.5, zorder=-10) for i in ax]
-    [ax[i].set_xlabel("Energy [keV]", fontsize=LABEL_FONT_SIZE) for i in
-     range(len(best_models) - n_cols, len(best_models))]  # fixed: was hardcoded [ax[2], ax[3]]
+    [
+        ax[i].set_xlabel("Energy [keV]", fontsize=LABEL_FONT_SIZE)
+        for i in range(len(best_models) - n_cols, len(best_models))
+    ]  # fixed: was hardcoded [ax[2], ax[3]]
     plt.tight_layout()
     if save:
         [plt.savefig(f"butterfly_all.{i}", dpi=300) for i in ["png", "pdf"]]
@@ -605,11 +612,13 @@ def plot_all_models(
         plt.show()
 
 
-def relative_error(value_true: float,
-                   value_approx: float,
-                   absolute: bool = True,
-                   as_percent: bool = False,
-                   zero_handling: Literal['ignore', 'inf', 'raise'] = 'ignore'):
+def relative_error(
+    value_true: float,
+    value_approx: float,
+    absolute: bool = True,
+    as_percent: bool = False,
+    zero_handling: Literal["ignore", "inf", "raise"] = "ignore",
+):
     """
     Calculate the relative error between a true/reference value and an approximation.
 
@@ -639,15 +648,15 @@ def relative_error(value_true: float,
         The relative error. May be NaN, inf, or finite depending on inputs and options.
     """
     if value_true == 0:
-        if zero_handling == 'ignore':
-            return float('nan')
-        elif zero_handling == 'inf':
+        if zero_handling == "ignore":
+            return float("nan")
+        elif zero_handling == "inf":
             # Signed infinite: sign(value_approx) * infinity; if absolute, just inf
             if absolute:
-                return float('inf')
+                return float("inf")
             else:
-                return float('inf') if value_approx > 0 else -float('inf')
-        elif zero_handling == 'raise':
+                return float("inf") if value_approx > 0 else -float("inf")
+        elif zero_handling == "raise":
             raise ZeroDivisionError("Cannot compute relative error with value_true = 0.")
         else:
             raise ValueError("zero_handling must be 'ignore', 'inf', or 'raise'.")
@@ -685,12 +694,15 @@ class FluxFluenceCalculator:
         The random number generator used for Monte Carlo sampling.
     """
 
-    def __init__(self, spectral_model: Model,
-                 log_energy_range: tuple[float, float] = (1, 3),
-                 n_samples: int = 10_000,
-                 n_grid: int = 500,
-                 seed: int | None = None,
-                 rng: np.random.Generator | None = None):
+    def __init__(
+        self,
+        spectral_model: Model,
+        log_energy_range: tuple[float, float] = (1, 3),
+        n_samples: int = 10_000,
+        n_grid: int = 500,
+        seed: int | None = None,
+        rng: np.random.Generator | None = None,
+    ):
         self.spectral_model = spectral_model
         self.log_energy_range = log_energy_range
         self.n_samples = n_samples
@@ -717,12 +729,14 @@ class FluxFluenceCalculator:
             Each element represents the calculated flux for the associated energy range.
         """
         x = np.logspace(*self.log_energy_range, self.n_grid)
-        n_of_e = mc_spectra_sampler(self.spectral_model,
-                                    'counts',
-                                    e_range=self.log_energy_range,
-                                    n_samples=self.n_samples,
-                                    n_grid=self.n_grid,
-                                    rng=self.rng)
+        n_of_e = mc_spectra_sampler(
+            self.spectral_model,
+            "counts",
+            e_range=self.log_energy_range,
+            n_samples=self.n_samples,
+            n_grid=self.n_grid,
+            rng=self.rng,
+        )
         return np.asarray(simpson(np.array(n_of_e), x))
 
     def _fluence(self, in_ergs: bool = False, energy_flux: bool = False) -> np.ndarray:
@@ -743,20 +757,24 @@ class FluxFluenceCalculator:
         converter = kev_to_erg if in_ergs else 1
         duration = 1 if energy_flux else self.spectral_model.interval.duration
         x = np.logspace(*self.log_energy_range, self.n_grid)
-        n_of_e = mc_spectra_sampler(self.spectral_model,
-                                    'energy',
-                                    e_range=self.log_energy_range,
-                                    n_samples=self.n_samples,
-                                    n_grid=self.n_grid,
-                                    rng=self.rng)
+        n_of_e = mc_spectra_sampler(
+            self.spectral_model,
+            "energy",
+            e_range=self.log_energy_range,
+            n_samples=self.n_samples,
+            n_grid=self.n_grid,
+            rng=self.rng,
+        )
         return np.asarray(simpson(np.array(n_of_e), x) * converter) * duration
 
-    def calculate(self,
-                  calculation_type: Literal["flux", "fluence"] = 'flux',
-                  get_percentiles: bool = False,
-                  in_ergs: bool = True,
-                  energy_flux: bool = False,
-                  get_errors: bool = True) -> np.ndarray | tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def calculate(
+        self,
+        calculation_type: Literal["flux", "fluence"] = "flux",
+        get_percentiles: bool = False,
+        in_ergs: bool = True,
+        energy_flux: bool = False,
+        get_errors: bool = True,
+    ) -> np.ndarray | tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Performs a calculation based on the specified type.
 
         The calculation can be for either 'flux' or 'fluence', and additional options allow for returning percentiles
@@ -791,9 +809,9 @@ class FluxFluenceCalculator:
             warnings.warn("Cannot return both percentiles and errors. Using `get_errors`")
             get_percentiles = False
 
-        if calculation_type == 'flux':
+        if calculation_type == "flux":
             output = self._flux()
-        elif calculation_type == 'fluence':
+        elif calculation_type == "fluence":
             output = self._fluence(in_ergs, energy_flux=energy_flux)
         else:
             raise ValueError("Invalid calculation type. Must be 'flux' or 'fluence'.")

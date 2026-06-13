@@ -150,10 +150,7 @@ plt.yticks(fontsize=TICK_FONT_SIZE)
 [i.legend(loc="lower right", frameon=False, fontsize=LEGEND_FONT_SIZE) for i in ax]
 plt.tight_layout()
 # plt.show()
-[
-    plt.savefig(f"./high_index_best__all.{i}", dpi=600)
-    for i in ["png", "pdf"]
-]
+[plt.savefig(f"./high_index_best__all.{i}", dpi=600) for i in ["png", "pdf"]]
 plt.close()
 
 ######################################################################################################################
@@ -163,7 +160,7 @@ plt.close()
 
 list_of_values = [ep_value_080916c, ep_value_110721a, ep_value_110731a, ep_value_150210a]
 list_of_errors = [ep_error_080916c, ep_error_110721a, ep_error_110731a, ep_error_150210a]
-list_of_names = [[i.name for i in j if i.name != 'PL'] for j in grb_best]
+list_of_names = [[i.name for i in j if i.name != "PL"] for j in grb_best]
 
 save_value_error_as_parquet(
     grb_names=grb_list_long,

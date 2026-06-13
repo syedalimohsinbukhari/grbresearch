@@ -267,8 +267,8 @@ def filter_models_by_error(c_stats, folder_path, candidates, **kwargs):
         m: c_stats[m]
         for m in candidates
         if m in c_stats
-           and os.path.exists(os.path.join(folder_path, f"{m}.fit"))
-           and model_passes_error_criteria(path=os.path.join(folder_path, f"{m}.fit"), **kwargs)
+        and os.path.exists(os.path.join(folder_path, f"{m}.fit"))
+        and model_passes_error_criteria(path=os.path.join(folder_path, f"{m}.fit"), **kwargs)
     }
 
 

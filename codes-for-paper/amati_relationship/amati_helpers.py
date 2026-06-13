@@ -6,70 +6,20 @@ import numpy as np
 from numpy.typing import ArrayLike
 
 from src.grb_research.grb_calculations import mc_e_iso_sampler, ModelResampler
-from src.grb_research.grb_time import EpisodeTypes
-from src.grb_research.grb_utils import break_e_to_e_peak
+from src.grb_research.grb_utils import break_e_to_e_peak, EpisodeMarkerResolver
 
 # ---------------------------------------------------------------------------
-# Episode visual style — single source of truth
+# Normalisation — single source of truth for axis units
 # ---------------------------------------------------------------------------
 
-EPISODE_COLORS: dict[EpisodeTypes, str] = {
-    EpisodeTypes.T90: "r",
-    EpisodeTypes.TR: "g",
-    EpisodeTypes.EX0: "b",
-    EpisodeTypes.EX1: "b",
-    EpisodeTypes.SP: "k",
-}
-
-
-class EpisodeMarkerResolver:
-    """
-    Maps an episode interval to a matplotlib marker.
-
-    T90 — GRB-specific marker passed at construction (the only dimension
-            that differs across GRBs).
-    EX0 — star ("*")
-    EX1 — pentagon ("p")
-    TR n — integer marker from TR_MARKERS, indexed by interval.index
-    SP n — shape from SP_MARKERS, indexed by interval.index
-
-    Parameters
-    ----------
-    t90_marker : str
-        Marker to use for T90 episodes of this GRB.
-    """
-
-    TR_MARKERS: List = ["v", "<", ">", "^", "d", "8", "h"]
-    EX_MARKERS: List[str] = ["*", "p"]
-    SP_MARKERS: List[str] = ["s", "D", "P"]
-
-    def __init__(self, t90_marker: str) -> None:
-        self.t90_marker = t90_marker
-
-    def resolve(self, interval) -> str:
-        """Return the marker for *interval* based on its kind and index."""
-        kind = interval.kind
-        if kind is EpisodeTypes.T90:
-            return self.t90_marker
-        if kind is EpisodeTypes.EX0:
-            return self.EX_MARKERS[0]
-        if kind is EpisodeTypes.EX1:
-            return self.EX_MARKERS[1]
-        if kind is EpisodeTypes.TR:
-            return self.TR_MARKERS[interval.index % len(self.TR_MARKERS)]
-        if kind is EpisodeTypes.SP:
-            return self.SP_MARKERS[interval.index % len(self.SP_MARKERS)]
-        raise ValueError(f"Unrecognised EpisodeType: {kind}")
-
-
-# ---------------------------------------------------------------------------
-# Private helpers
-# ---------------------------------------------------------------------------
+EP_NORM = 1e3  # E_i,peak plotted in units of keV × 10³  →  x-axis in 10³ keV
+EI_NORM = 1e52  # E_iso    plotted in units of erg × 10⁵²  →  y-axis in 10⁵² erg
 
 
 def _episode_label(m) -> str:
     """Produce the legend label for a single model's episode."""
-    if m.interval.kind in (EpisodeTypes.T90, EpisodeTypes.EX0, EpisodeTypes.EX1):
+    kind_name = m.interval.kind.name
+    if kind_name in ("T90", "EX0", "EX1"):
         return str(m.interval.kind)
     return f"{m.interval.kind}{m.interval.index}"
 
@@ -108,10 +58,7 @@ def _get_base_model_name(m_name: str) -> str:
     base = base_candidates[0]  # first non-PL, non-BB component
 
     if base not in _EP_MODELS:
-        raise ValueError(
-            f"Model '{m_name}': unrecognised base component '{base}'. "
-            f"Expected one of {_EP_MODELS}."
-        )
+        raise ValueError(f"Model '{m_name}': unrecognised base component '{base}'. " f"Expected one of {_EP_MODELS}.")
 
     return base
 
@@ -124,7 +71,7 @@ def _compute_ep_eiso(
     pc_names = [p.name for p in pc]
     cov_ = 0.5 * (m.covariance_matrix_value + m.covariance_matrix_value.T)
 
-    print(f'{m_name}')
+    print(f"{m_name}")
 
     raw = pc.get_populated_values(cov_, size=n_sample, rng=rng)
     m_res = ModelResampler(model=m, samples=raw, rng=rng, destroy=True)
@@ -132,9 +79,9 @@ def _compute_ep_eiso(
     mvd = {v: raw[:, i] for i, v in enumerate(pc_names)}
 
     if "sbpl" in m_name.lower():
-        ep_samples = break_e_to_e_peak(index1_sbpl=mvd["index1_sbpl"],
-                                       break_energy_sbpl=mvd["e_break_sbpl"],
-                                       index2_sbpl=mvd["index2_sbpl"])
+        ep_samples = break_e_to_e_peak(
+            index1_sbpl=mvd["index1_sbpl"], break_energy_sbpl=mvd["e_break_sbpl"], index2_sbpl=mvd["index2_sbpl"]
+        )
     else:
         base = _get_base_model_name(m_name)
         ep_samples = mvd[f"e_peak_{base.lower()}"]
@@ -143,14 +90,9 @@ def _compute_ep_eiso(
 
     ############################################
 
-    eiso_samples = mc_e_iso_sampler(m,
-                                    redshift,
-                                    n_samples=n_sample,
-                                    n_grid=n_grid,
-                                    method=2,
-                                    samples=samples_arr,
-                                    seed_number=seed_number,
-                                    rng=rng)
+    eiso_samples = mc_e_iso_sampler(
+        m, redshift, n_samples=n_sample, n_grid=n_grid, method=2, samples=samples_arr, seed_number=seed_number, rng=rng
+    )
 
     ep_intrinsic = ep_samples * (1 + redshift)
     return ep_intrinsic, eiso_samples
@@ -158,17 +100,17 @@ def _compute_ep_eiso(
 
 def _plot_model_point(
     m,
-    redshift: float,
+    redshift: int | float,
     marker: str,
     color: str,
     n_grid: int,
     n_sample: int,
     seed_number: int,
     rng,
-    alpha: float,
+    alpha: int | float,
     label: str,
     axis=None,
-) -> tuple[float, float, np.ndarray, np.ndarray]:
+) -> tuple[int | float, int | float, np.ndarray, np.ndarray]:
     """
     Compute and draw a single (E_peak, E_iso) point with error bars.
 
@@ -184,17 +126,20 @@ def _plot_model_point(
 
     p50_ei, p50_ep, x_err, y_err = percentile_calculator(ei_s, ep_s)
 
+    # Normalise to plotting units
+    p50_ep /= EP_NORM
+    p50_ei /= EI_NORM
+    x_err /= EP_NORM
+    y_err /= EI_NORM
+
     if axis is not None:
-        axis.scatter(p50_ep, p50_ei, marker=marker, s=50, color=color, alpha=alpha, label=label, zorder=3)
-        axis.errorbar(p50_ep, p50_ei, xerr=x_err, yerr=y_err, ms=0, color=color, alpha=alpha, zorder=2)
+        axis.scatter(p50_ep, p50_ei, marker=marker, s=25, color=color, alpha=alpha, label=label, zorder=3)
+        axis.errorbar(p50_ep, p50_ei, xerr=x_err, ms=0, color=color, alpha=alpha, zorder=2, capsize=5)
 
     return p50_ep, p50_ei, x_err, y_err
 
 
-def percentile_calculator(
-    ei_s: ArrayLike,
-    ep_s: ArrayLike,
-    return_percentiles_only=False):
+def percentile_calculator(ei_s: ArrayLike, ep_s: ArrayLike, return_percentiles_only=False):
     p16_ep, p50_ep, p84_ep = np.percentile(ep_s, [16, 50, 84])
     p16_ei, p50_ei, p84_ei = np.percentile(ei_s, [16, 50, 84])
 
@@ -213,13 +158,13 @@ def percentile_calculator(
 
 
 def amati_relationship_dirirsa2019(
-    e_iso_norm: float = 1e52,
-    e_i_peak_norm: float = 950.0,
-    k: float = 1.67,
-    sigma_k: float = 0.16,
-    m: float = 1.16,
-    sigma_m: float = 0.37,
-    sigma_ext: float = 0.47,
+    e_iso_norm: int | float = 1e52,
+    e_i_peak_norm: int | float = 950.0,
+    k: int | float = 1.67,
+    sigma_k: int | float = 0.16,
+    m: int | float = 1.16,
+    sigma_m: int | float = 0.37,
+    sigma_ext: int | float = 0.47,
     sigmas: Sequence[int] = (1, 2, 3),
     x_lim: tuple = (10, 1e5),
     y_lim: tuple = (1e50, 1e55),
@@ -227,32 +172,40 @@ def amati_relationship_dirirsa2019(
     use_average: bool = False,
     axis=None,
 ) -> None:
-    """Plot the Amati relation with confidence bands (FanaDirirsa et al. 2019)."""
+    """Plot the Amati relation with confidence bands (FanaDirirsa et al. 2019).
+
+    All values are plotted in normalised units (EP_NORM, EI_NORM) to match
+    the data points produced by _plot_model_point.
+    """
     if axis is None:
         raise ValueError("An axis must be provided.")
 
     e_i_peak = np.logspace(np.log10(x_lim[0]), np.log10(x_lim[1]), num=num_points)
     x = np.log10(e_i_peak / e_i_peak_norm)
     y = k + m * x
-    sigma_y = np.sqrt(sigma_k ** 2 + x ** 2 * sigma_m ** 2 + sigma_ext ** 2)
+    sigma_y = np.sqrt(sigma_k**2 + x**2 * sigma_m**2 + sigma_ext**2)
 
     if use_average:
         sigma_y = np.mean(sigma_y)
-    e_isotropic = (10 ** y) * e_iso_norm
+    e_isotropic = (10**y) * e_iso_norm
 
-    axis.loglog(e_i_peak, e_isotropic, lw=1, alpha=0.45, color="k")
+    # Normalise to plotting units
+    e_i_peak_plot = e_i_peak / EP_NORM
+    e_isotropic_plot = e_isotropic / EI_NORM
+
+    axis.loglog(e_i_peak_plot, e_isotropic_plot, lw=1, alpha=0.45, color="k")
 
     band_colors = ["#FFD166", "#FF9F43", "#FF6B6B"]
     for i, n_sigma in enumerate(sigmas):
         c = band_colors[i % len(band_colors)]
-        e_upper = (10 ** (y + n_sigma * sigma_y)) * e_iso_norm
-        e_lower = (10 ** (y - n_sigma * sigma_y)) * e_iso_norm
-        axis.fill_between(e_i_peak, e_lower, e_upper, color=c, alpha=0.1)
-        axis.plot(e_i_peak, e_lower, color=c, ls="--")
-        axis.plot(e_i_peak, e_upper, color=c, ls="--")
+        e_upper = (10 ** (y + n_sigma * sigma_y)) * e_iso_norm / EI_NORM
+        e_lower = (10 ** (y - n_sigma * sigma_y)) * e_iso_norm / EI_NORM
+        axis.fill_between(e_i_peak_plot, e_lower, e_upper, color=c, alpha=0.1)
+        axis.plot(e_i_peak_plot, e_lower, color=c, ls="--")
+        axis.plot(e_i_peak_plot, e_upper, color=c, ls="--")
 
-    axis.set_xlim(x_lim)
-    axis.set_ylim(y_lim)
+    axis.set_xlim(np.array(x_lim) / EP_NORM)
+    axis.set_ylim(np.array(y_lim) / EI_NORM)
 
 
 def plot_grbs_over_amati_relationship(
@@ -320,7 +273,7 @@ def plot_grbs_over_amati_relationship(
                 m=m,
                 redshift=redshift,
                 marker=resolver.resolve(m.interval),
-                color=EPISODE_COLORS[m.interval.kind],
+                color=resolver.get_color(m.interval),
                 n_grid=n_grid,
                 n_sample=n_sample,
                 seed_number=seed_number + index2,
@@ -381,15 +334,14 @@ def plot_unknown_redshift_grb(
     model_list = []
 
     for ep_idx, m in enumerate(models):
-        color = EPISODE_COLORS[m.interval.kind]
         marker = resolver.resolve(m.interval)
+        color = resolver.get_color(m.interval)
 
-        ep_track: List[float] = []
-        ei_track: List[float] = []
+        ep_track: List[int | float] = []
+        ei_track: List[int | float] = []
 
         for z_idx, z in enumerate(z_values):
-            # Label only on the first redshift so the legend has one entry
-            # per episode, not one per (episode × z).
+            # Label only on the first redshift so the legend has one entry per episode, not one per (episode × z).
             label = _episode_label(m) if z_idx == 0 else ""
 
             ep, ei, _, _ = _plot_model_point(

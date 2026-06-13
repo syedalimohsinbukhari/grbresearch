@@ -6,9 +6,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from amati_helpers import amati_relationship_dirirsa2019, plot_unknown_redshift_grb, plot_grbs_over_amati_relationship
+from amati_helpers import (
+    amati_relationship_dirirsa2019,
+    plot_unknown_redshift_grb,
+    plot_grbs_over_amati_relationship,
+    EP_NORM,
+    EI_NORM,
+)
 from grb_research import find_project_root, ModelSet, update_style
-from grb_research.grb_constants import LEGEND_TITLE_FONT_SIZE, LEGEND_FONT_SIZE, LABEL_FONT_SIZE, TICK_FONT_SIZE
 from grb_research.grb_core import prepare_grbs
 
 # ---------------------------------------------------------------------------
@@ -21,24 +26,18 @@ SOURCE_ROOT = find_project_root()
 result_file = SOURCE_ROOT / "results.json"
 
 grb_list = ["080916C", "131014A", "140206B", "231129C"]
-gc, grb_list_long, grb_objs, grb_best = prepare_grbs(grb_list, result_file, get_best=True)
+gc, grb_list_long, grb_objects, grb_best = prepare_grbs(grb_list=grb_list, result_file=result_file, get_best=True)
 
-grb_best = [ModelSet([i for i in j if i.name != 'PL']) for j in grb_best]
+grb_best = [ModelSet([i for i in j if i.name != "PL"]) for j in grb_best]
 
-# Known redshifts for the first three GRBs; GRB150210A has no known redshift.
-# redshifts = [4.35, 0.3826, 2.83]
 redshifts = [4.35]
-
-# T90 marker per GRB — the only per-GRB marker dimension.
-# GRB150210A's T90 marker is included so EpisodeMarkerResolver can be
-# constructed consistently for the unknown-redshift panel.
 t90_markers = ["o", "s", "X", "D"]
 
 # ---------------------------------------------------------------------------
 # Sampling config
 # ---------------------------------------------------------------------------
 
-n_sample = 10_000
+n_sample = 5_000
 n_grid = 1000
 n_seed = 12345
 
@@ -49,9 +48,9 @@ n_seed = 12345
 f, ax = plt.subplots(nrows=2, ncols=2, figsize=(12, 10), sharex=True, sharey=True)
 ax = ax.flatten()
 
-amati_kw = dict(x_lim=(180, 7e4), y_lim=(9.2e48, 1.2e56), num_points=n_grid, use_average=True)
+amati_kw = dict(x_lim=(180, 7e4), y_lim=(6.25e50, 4.75e55), num_points=n_grid, use_average=True)
 for a in ax:
-    amati_relationship_dirirsa2019(**amati_kw, axis=a)
+    amati_relationship_dirirsa2019(axis=a, **amati_kw)
 
 # ---------------------------------------------------------------------------
 # Known-redshift GRBs — one per subplot
@@ -72,17 +71,16 @@ for i, a in enumerate([ax[0]]):
         seed_number=n_seed,
         axis=a,
     )
-    a.legend(
-        loc="best" if grb_list[i] == '080916C' else 'upper right',
-        ncols=3, title=f"GRB{grb_list[i]}", fontsize=LEGEND_FONT_SIZE, title_fontsize=LEGEND_TITLE_FONT_SIZE
-    )
+
+    a.legend(loc="best", ncols=3, title=f"GRB{grb_list[i]}")
+
     ep_total.append(_[0])
     ei_total.append(_[1])
     ep_label.append(_[2])
     model_list.append(_[3])
     ep_err_total.append(_[4])
     ei_err_total.append(_[5])
-    g_name.append([f'GRB{grb_list[i]}'] * len(_[0]))
+    g_name.append([f"GRB{grb_list[i]}"] * len(_[0]))
 
 # ---------------------------------------------------------------------------
 # Unknown-redshift GRB (GRB150210A) — redshift locus across z = 1, 3, 5, 7
@@ -100,12 +98,7 @@ for idx, m_ in enumerate(grb_best[1:]):
             axis=ax[idx + 1],
         )
 
-    ax[idx + 1].legend(
-        loc="best", ncols=3,
-        title=f"GRB{grb_list[idx + 1]}",
-        fontsize=LEGEND_FONT_SIZE,
-        title_fontsize=LEGEND_TITLE_FONT_SIZE
-    )
+    ax[idx + 1].legend(loc="best", ncols=3, title=f"GRB{grb_list[idx + 1]}")
 
 ep_total = list(chain.from_iterable(ep_total))
 ei_total = list(chain.from_iterable(ei_total))
@@ -131,32 +124,34 @@ ei_err_upper = np.array([err[1, 0] for err in ei_err_total])
 # Pad error arrays with NaNs for unknown-redshift GRB entries
 n_unknown = len(ep_total) - len(ep_err_lower)
 if n_unknown > 0:
-    ep_err_lower = np.concatenate([ep_err_lower, np.full(n_unknown, np.nan)])
-    ep_err_upper = np.concatenate([ep_err_upper, np.full(n_unknown, np.nan)])
-    ei_err_lower = np.concatenate([ei_err_lower, np.full(n_unknown, np.nan)])
-    ei_err_upper = np.concatenate([ei_err_upper, np.full(n_unknown, np.nan)])
+    ep_err_lower = np.concatenate([ep_err_lower, np.full(shape=n_unknown, fill_value=np.nan)])
+    ep_err_upper = np.concatenate([ep_err_upper, np.full(shape=n_unknown, fill_value=np.nan)])
+    ei_err_lower = np.concatenate([ei_err_lower, np.full(shape=n_unknown, fill_value=np.nan)])
+    ei_err_upper = np.concatenate([ei_err_upper, np.full(shape=n_unknown, fill_value=np.nan)])
 
-q = pd.DataFrame([
-    g_name,
-    model_list,
-    ep_label,
-    ep_total / 1e3,
-    ep_err_lower / 1e3,
-    ep_err_upper / 1e3,
-    ei_total / 1e52,
-    ei_err_lower / 1e52,
-    ei_err_upper / 1e52
-]).T
+q = pd.DataFrame(
+    [
+        g_name,
+        model_list,
+        ep_label,
+        ep_total,  # already in units of EP_NORM (10³ keV)
+        ep_err_lower,
+        ep_err_upper,
+        ei_total,  # already in units of EI_NORM (10⁵² erg)
+        ei_err_lower,
+        ei_err_upper,
+    ]
+).T
 q.columns = [
     "GRBName",
     "Model",
     "EpisodeName",
-    "E_i_peak__keV",
-    "E_i_peak_err_lower__keV",
-    "E_i_peak_err_upper__keV",
-    "E_0_iso__1e52_erg",
-    "E_0_iso_err_lower__1e52_erg",
-    "E_0_iso_err_upper__1e52_erg"
+    f"E_i_peak__{EP_NORM:.0e}_keV",
+    f"E_i_peak_err_lower__{EP_NORM:.0e}_keV",
+    f"E_i_peak_err_upper__{EP_NORM:.0e}_keV",
+    f"E_0_iso__{EI_NORM:.0e}_erg",
+    f"E_0_iso_err_lower__{EI_NORM:.0e}_erg",
+    f"E_0_iso_err_upper__{EI_NORM:.0e}_erg",
 ]
 q.to_csv("amati_relationship.csv", index=False)
 
@@ -165,14 +160,14 @@ q.to_csv("amati_relationship.csv", index=False)
 # ---------------------------------------------------------------------------
 
 for a in ax[2:]:
-    a.set_xlabel(r"$E_{i,\mathrm{peak}}$ [keV]", fontsize=LABEL_FONT_SIZE)
-    a.tick_params(axis="both", labelsize=TICK_FONT_SIZE)
+    a.set_xlabel(r"$E_{i,\mathrm{peak}}$ [keV]")
+    a.tick_params(axis="both")
 for a in ax[::2]:
-    a.set_ylabel(r"$E_\mathrm{iso}$ [erg]", fontsize=LABEL_FONT_SIZE)
-    a.tick_params(axis="both", labelsize=TICK_FONT_SIZE)
+    a.set_ylabel(r"$E_\mathrm{iso}$ [erg]")
+    a.tick_params(axis="both")
 
 plt.tight_layout()
 # plt.show()
 for fmt in ("png", "pdf"):
-    plt.savefig(f"./amati_relationship.{fmt}", dpi=600)
+    plt.savefig(f"./amati_relationship.{fmt}")
 plt.close()

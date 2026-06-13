@@ -24,7 +24,7 @@ class Model:
     interval: TimeInterval | None = None
 
     status: GoodnessOfFit = GoodnessOfFit.UNKNOWN
-    cstat: float = 0.
+    cstat: float = 0.0
     dof: int = 0
     covariance_matrix: CovarianceMatrix | None = None
 

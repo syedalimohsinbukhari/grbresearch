@@ -12,7 +12,6 @@ import numpy as np
 
 from .grb_constants import LATEX_MODEL_NAMES, MODEL_ORDER, short_to_long
 
-
 # LaTeX model name mapping
 
 
@@ -36,7 +35,7 @@ class LogParser:
         # Multi-GRB tracking
         self.current_grb: Optional[str] = None
         self.grb_data: Dict[str, List[Dict]] = {}
-        self.grb_pattern = re.compile(r'/GRB(\d+)/Ep\d+__')
+        self.grb_pattern = re.compile(r"/GRB(\d+)/Ep\d+__")
 
     def _read_log_file(self) -> str:
         """Read the entire log file content."""
@@ -66,7 +65,7 @@ class LogParser:
                     grb_id = grb_match.group(1)
 
                     # Check if this is an Ep0 episode (new GRB boundary)
-                    if 'Ep0__' in directory_path:
+                    if "Ep0__" in directory_path:
                         self.current_grb = grb_id
                         if grb_id not in self.grb_data:
                             self.grb_data[grb_id] = []
@@ -220,7 +219,7 @@ class LogParser:
         List[str]
             List of SAFE model names.
         """
-        match = re.search(fr"{type_} models: \[(.+?)\]", block_content)
+        match = re.search(rf"{type_} models: \[(.+?)\]", block_content)
         if not match:
             return []
 
@@ -360,13 +359,13 @@ class LogParser:
         output_files = []
 
         for grb_id, episodes in self.grb_data.items():
-            short_name = [k for k, v in short_to_long.items() if f'GRB{grb_id}' == v][0]
+            short_name = [k for k, v in short_to_long.items() if f"GRB{grb_id}" == v][0]
             if not episodes:
                 continue
 
             # Convert GRB ID to standard format (e.g., 110721200 -> GRB110721A)
             # grb_name = self._format_grb_name(grb_id)
-            grb_name = f'GRB{short_name}'
+            grb_name = f"GRB{short_name}"
             # Generate table for this GRB
             generator = LaTeXTableGenerator(episodes, grb_name)
             table_content = generator.generate_table()
@@ -697,8 +696,9 @@ class LaTeXTableGenerator:
             return f"{excess_pct:.0f}\\%"
 
 
-def parse_log_and_generate_table(log_file_path: str, output_file_path: str = None, grb_name: str = None,
-                                 multi_grb: bool = True) -> None:
+def parse_log_and_generate_table(
+    log_file_path: str, output_file_path: str = None, grb_name: str = None, multi_grb: bool = True
+) -> None:
     """Main function to parse log file and generate LaTeX table(s).
 
     Parameters

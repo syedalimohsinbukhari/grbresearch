@@ -1,0 +1,7 @@
+# of Events, 4
+# of P > 0.9, 4
+P > 0.9 Max (E) MeV, 339.968
+Arrival Time (s), 60.7477
+P, 0.947364
+TS, 17.142790288534407
+Upper Limits, 4.11e-04 ph/cm^2/s

@@ -19,7 +19,6 @@ from src.grb_research.grb_time import EpisodeTypes  # noqa: F401
 from src.grb_research.grb_utils import break_e_to_e_peak, EpisodeMarkerResolver
 from src.grb_research.grb_utils import plot_per_episode, save_value_error_as_parquet  # noqa: F401
 
-
 # -- Re-exports (commonly needed across scripts) -----------------------------
 
 
@@ -57,10 +56,7 @@ def extract_parameter(model, param_pattern: str, *, return_asymmetric: bool = Fa
 
 def sbpl_mask(index1_sbpl, index2_sbpl, e_break_sbpl):
     """Physical-validity mask for SBPL Monte-Carlo samples."""
-    return np.logical_and(
-        np.abs((index1_sbpl + index2_sbpl + 4) / (index1_sbpl - index2_sbpl)) < 1,
-        e_break_sbpl > 0,
-    )
+    return np.logical_and(np.abs((index1_sbpl + index2_sbpl + 4) / (index1_sbpl - index2_sbpl)) < 1, e_break_sbpl > 0)
 
 
 def convert_sbpl_to_band(model, n_sample: int = 10_000, seed=None, rng=None):
@@ -80,9 +76,7 @@ def convert_sbpl_to_band(model, n_sample: int = 10_000, seed=None, rng=None):
 
     parameters = model.parameters
     cov_matrix = model.covariance_matrix_value
-    raw = model.get_parameter_set.get_populated_values(
-        cov_matrix, size=int(1.5 * n_sample), rng=rng,
-    )
+    raw = model.get_parameter_set.get_populated_values(cov_matrix, size=int(1.5 * n_sample), rng=rng)
 
     mvd = {p.name: raw[:, i] for i, p in enumerate(parameters)}
 
@@ -94,8 +88,9 @@ def convert_sbpl_to_band(model, n_sample: int = 10_000, seed=None, rng=None):
     idx = rng.choice(mvd_f["index1_sbpl"].shape[0], size=n_sample, replace=False)
     mvd_s = {k: v[idx] for k, v in mvd_f.items()}
 
-    ep_samples = break_e_to_e_peak(index1_sbpl=mvd_s["index1_sbpl"], break_energy_sbpl=mvd_s["e_break_sbpl"],
-                                   index2_sbpl=mvd_s["index2_sbpl"])
+    ep_samples = break_e_to_e_peak(
+        index1_sbpl=mvd_s["index1_sbpl"], break_energy_sbpl=mvd_s["e_break_sbpl"], index2_sbpl=mvd_s["index2_sbpl"]
+    )
     p = np.percentile(ep_samples, [16, 50, 84])
     return p[1] - p[0], p[1], p[2] - p[1]
 
@@ -164,7 +159,7 @@ def fit_and_plot_odr(
     x_fine = np.linspace(x_centers.min(), x_centers.max(), 200)
     cov = result.cov_beta
     y_fit = linear(result.beta, x_fine)
-    y_var = x_fine ** 2 * cov[0, 0] + cov[1, 1] + 2 * x_fine * cov[0, 1]
+    y_var = x_fine**2 * cov[0, 0] + cov[1, 1] + 2 * x_fine * cov[0, 1]
     y_err = np.sqrt(np.maximum(y_var, 0))
 
     ax.plot(x_fine, y_fit, color=color, ls=linestyle)
@@ -177,8 +172,10 @@ def fit_and_plot_odr(
     ax.annotate(
         f"$E_{{\\rm peak}} = {result.beta[0]:+.1f}({result.sd_beta[0]:.1f})"
         f"\\cdot kT {result.beta[1]:+.1f}({result.sd_beta[1]:.1f})$",
-        xy=annotation_xy, xycoords="axes fraction",
-        fontsize=fontsize, color=color,
+        xy=annotation_xy,
+        xycoords="axes fraction",
+        fontsize=fontsize,
+        color=color,
     )
 
     return result
@@ -228,9 +225,6 @@ def extract_kt_epeak_from_models(models, t90_marker="o", seed=1234):
         colors.append(resolver.get_color(model_.interval))
 
         idx = "" if model_.interval.index is None else f"{model_.interval.index}"
-        labels.append(
-            f"{model_.interval.kind.value}{idx}"
-            + r"$_\text{" + model_.name.replace("_", "+") + r"}$"
-        )
+        labels.append(f"{model_.interval.kind.value}{idx}" + r"$_\text{" + model_.name.replace("_", "+") + r"}$")
 
     return np.array(kt_values), np.array(ep_values), markers, colors, labels

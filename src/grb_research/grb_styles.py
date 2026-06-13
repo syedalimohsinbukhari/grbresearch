@@ -61,7 +61,7 @@ class GRBPlotStyle:
         "GRB110721A": "#D55E00",  # vermillion
         "GRB110731A": "#009E73",  # bluish green
         "GRB150210A": "#CC79A7",  # reddish purple
-        "GRB190114C": "#808000"
+        "GRB190114C": "#808000",
     }
 
     GRB_COLORS_ITERABLE = list(GRB_COLORS.values())

@@ -286,10 +286,14 @@ MODEL_METADATA: Dict[GRBModelsCombinations, ModelMetadata] = {
         latex_name=r"\bb",
         base_parameters=["amp_bb", "kt_bb"],
         component_parameters=["amp_bb", "kt_bb"],
-        base_schema=[ParameterDef("amplitude_bb", False, False, True),
-                     ParameterDef("kt_temperature", False, False, True)],
-        component_schema=[ParameterDef("amplitude_bb", False, False, True),
-                          ParameterDef("kt_temperature", False, False, True)],
+        base_schema=[
+            ParameterDef("amplitude_bb", False, False, True),
+            ParameterDef("kt_temperature", False, False, True),
+        ],
+        component_schema=[
+            ParameterDef("amplitude_bb", False, False, True),
+            ParameterDef("kt_temperature", False, False, True),
+        ],
         is_standalone=False,
         is_allowed=False,
     ),

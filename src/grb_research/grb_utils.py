@@ -364,7 +364,7 @@ def break_e_to_e_peak(index1_sbpl, break_energy_sbpl, index2_sbpl):
     f1 = index1_sbpl + 2
     f2 = -(index2_sbpl + 2)
     f3 = (0.3 / 2) * np.log(f1 / f2)
-    return break_energy_sbpl * 10 ** f3
+    return break_energy_sbpl * 10**f3
 
 
 def plot_per_episode(values, errors, m_name, start, end, difference, midpoints, axes, special_counter=None):
@@ -387,7 +387,7 @@ def plot_per_episode(values, errors, m_name, start, end, difference, midpoints, 
         if errors.ndim == 1:
             y_err = errors[i]
         else:
-            y_err = errors[:, i: i + 1]  # (2, 1), symmetric or asymmetric
+            y_err = errors[:, i : i + 1]  # (2, 1), symmetric or asymmetric
 
         axes.errorbar(
             x,
@@ -700,29 +700,30 @@ class EpisodeMarkerResolver:
 
     def resolve(self, interval) -> str:
         """Return the marker for *interval* based on its kind and index."""
-        kind = interval.kind
-        if kind is EpisodeTypes.T90:
+        kind_name = interval.kind.name
+        if kind_name == "T90":
             return self.t90_marker
-        if kind is EpisodeTypes.EX0:
+        if kind_name == "EX0":
             return self.EX_MARKERS[0]
-        if kind is EpisodeTypes.EX1:
+        if kind_name == "EX1":
             return self.EX_MARKERS[1]
-        if kind is EpisodeTypes.TR:
+        if kind_name == "TR":
             return self.TR_MARKERS[interval.index % len(self.TR_MARKERS)]
-        if kind is EpisodeTypes.SP:
+        if kind_name == "SP":
             return self.SP_MARKERS[interval.index % len(self.SP_MARKERS)]
-        raise ValueError(f"Unrecognised EpisodeType: {kind}")
+        raise ValueError(f"Unrecognised EpisodeType: {interval.kind}")
 
     @staticmethod
     def get_color(interval) -> str:
         """Return the colour string for *interval*.
 
-        T90 → ``"k"``, TR → ``"g"``, SP → ``"r"``, anything else → ``"b"``.
+        T90 → ``"r"``, TR → ``"g"``, SP → ``"k"``, anything else → ``"b"``.
         """
-        if interval.is_t90:
+        kind_name = interval.kind.name
+        if kind_name == "T90":
             return "r"
-        if interval.is_tr:
+        if kind_name == "TR":
             return "g"
-        if interval.is_sp:
+        if kind_name == "SP":
             return "k"
         return "b"

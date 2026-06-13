@@ -64,21 +64,15 @@ models_231129C = [
     grb[grb_full_name[3]].get_model("SBPL_BB", EpisodeTypes.EX0),
     grb[grb_full_name[3]].get_model("SBPL_BB", EpisodeTypes.TR, tr_index=1),
     grb[grb_full_name[3]].get_model("SBPL_BB", EpisodeTypes.TR, tr_index=2),
-    grb[grb_full_name[3]]
+    grb[grb_full_name[3]],
 ]
 
 # -- Extract kT / E_peak -----------------------------------------------------
 
-kt_080916C, ep_080916C, mkr_080916C, clr_080916C, lbl_080916C = (
-    extract_kt_epeak_from_models(models_080916C)
-)
+kt_080916C, ep_080916C, mkr_080916C, clr_080916C, lbl_080916C = extract_kt_epeak_from_models(models_080916C)
 
-kt_140206B, ep_140206B, mkr_140206B, clr_140206B, lbl_140206B = (
-    extract_kt_epeak_from_models(models_140206B)
-)
-kt_131014A, ep_131014A, mkr_131014A, clr_131014A, lbl_131014A = (
-    extract_kt_epeak_from_models(models_131014A)
-)
+kt_140206B, ep_140206B, mkr_140206B, clr_140206B, lbl_140206B = extract_kt_epeak_from_models(models_140206B)
+kt_131014A, ep_131014A, mkr_131014A, clr_131014A, lbl_131014A = extract_kt_epeak_from_models(models_131014A)
 # -- Plot ---------------------------------------------------------------------
 
 f, ax = plt.subplots(4, 1, figsize=(6, 8))
@@ -88,18 +82,20 @@ ax = np.array(ax).flatten()
 grb_panels = [
     (ax[0], kt_080916C, ep_080916C, mkr_080916C, clr_080916C, lbl_080916C, bb_status_080916C),
     (ax[1], kt_140206B, ep_140206B, mkr_140206B, clr_140206B, lbl_140206B, bb_status_140206B),
-    (ax[2], kt_131014A, ep_131014A, mkr_131014A, clr_131014A, lbl_131014A, bb_status_131014A)
+    (ax[2], kt_131014A, ep_131014A, mkr_131014A, clr_131014A, lbl_131014A, bb_status_131014A),
 ]
 
 for a, kt, ep, mkrs, clrs, lbls, status_list in grb_panels:
     for kt_i, ep_i, mkr, clr, lbl, status in zip(kt, ep, mkrs, clrs, lbls, status_list):
         a.errorbar(
-            kt_i[1], ep_i[1],
+            kt_i[1],
+            ep_i[1],
             xerr=[[kt_i[0]], [kt_i[2]]],
             yerr=[[ep_i[0]], [ep_i[2]]],
             fmt=mkr,
             mfc="w" if status == "kT_only" else None,
-            ms=8, capsize=5,
+            ms=8,
+            capsize=5,
             color=clr,
             linestyle="--" if status == "kT_only" else "-",
             label=lbl,
@@ -117,8 +113,10 @@ fit_and_plot_odr(kt_131014A, ep_131014A, ax[2])
 
 ax[-1].set_xlabel("kT [keV]", fontsize=LABEL_FONT_SIZE)
 [a.set_ylabel(r"$E_\text{peak}$ [keV]", fontsize=LABEL_FONT_SIZE) for a in ax]
-[a.legend(fontsize=LEGEND_FONT_SIZE, title=f"GRB{grb_name[i]}",
-          title_fontsize=LEGEND_TITLE_FONT_SIZE) for i, a in enumerate(ax)]
+[
+    a.legend(fontsize=LEGEND_FONT_SIZE, title=f"GRB{grb_name[i]}", title_fontsize=LEGEND_TITLE_FONT_SIZE)
+    for i, a in enumerate(ax)
+]
 [a.grid(True, which="both", alpha=0.5, ls="--") for a in ax]
 f.tight_layout()
 

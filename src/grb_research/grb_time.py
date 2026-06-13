@@ -36,10 +36,10 @@ class TimeInterval:
     """Class representing a time interval with start and end times."""
 
     kind: EpisodeTypes
-    start: Optional[float] = None
-    end: Optional[float] = None
-    index: Optional[int] = None
-    models: Optional[ModelSet] = None
+    start: int | float | None = None
+    end: int | float | None = None
+    index: int | None = None
+    models: ModelSet | None = None
 
     # Regex patterns
     _T90 = re.compile(r"T90\s+(-?\d+(?:\.\d+)?)_(-?\d+(?:\.\d+)?)")
@@ -121,7 +121,7 @@ class TimeInterval:
         return self.kind is EpisodeTypes.SP
 
     @property
-    def duration(self) -> Optional[float]:
+    def duration(self) -> int | float | None:
         """Duration of the time interval, or None if undefined."""
         if self.start is None or self.end is None:
             return None
@@ -135,7 +135,7 @@ class TimeInterval:
         return 0.5 * (self.end - self.start)
 
     @property
-    def midpoint(self) -> Optional[float]:
+    def midpoint(self) -> int | float | None:
         """Midpoint of the time interval, or None if undefined."""
         if self.start is None or self.end is None:
             return None
@@ -187,17 +187,17 @@ class TimeIntervalSet:
     # ---------- canonical access ----------
 
     @property
-    def t90(self) -> Optional[TimeInterval]:
+    def t90(self) -> TimeInterval | None:
         """Get the T90 interval, if any."""
         return next(iter(self._by_kind[EpisodeTypes.T90]), None)
 
     @property
-    def ex0(self) -> Optional[TimeInterval]:
+    def ex0(self) -> TimeInterval | None:
         """Get the EX0 interval, if any."""
         return next(iter(self._by_kind[EpisodeTypes.EX0]), None)
 
     @property
-    def ex1(self) -> Optional[TimeInterval]:
+    def ex1(self) -> TimeInterval | None:
         """Get the EX1 interval, if any."""
         return next(iter(self._by_kind[EpisodeTypes.EX1]), None)
 
@@ -211,7 +211,7 @@ class TimeIntervalSet:
         """Get the number of TR intervals."""
         return len(self._by_kind[EpisodeTypes.TR])
 
-    def tr(self, index: int) -> Optional[TimeInterval]:
+    def tr(self, index: int) -> TimeInterval | None:
         """Get the TR interval with the given index, if any."""
         for i in self._by_kind[EpisodeTypes.TR]:
             if i.index == index:
@@ -221,9 +221,7 @@ class TimeIntervalSet:
     def extract_interval_arrays(
         self, *, return_include: tuple[str, ...] = (), exclude_ex: bool = False
     ) -> Tuple[np.ndarray, ...]:
-        """
-        Extract start and end times as numpy arrays.
-        Additional derived arrays can be requested via `return_include`.
+        """Extract start and end times as numpy arrays. Additional derived arrays can be requested via `return_include`.
 
         Special key:
         - "all": include all derived quantities

@@ -37,6 +37,7 @@ cosmo = FlatLambdaCDM(H0=67.4, Om0=0.315)
 
 # ─── Spectral flux at 1 MeV from model parameters ────────────────────────────
 
+
 def f1_from_sbpl(amp, e_piv, index2):
     """
     Photon flux at 1 MeV from SBPL model.
@@ -52,8 +53,8 @@ def f1_from_sbpl(amp, e_piv, index2):
     -------
     f_1    : float  photon flux at 1 MeV [ph/cm^2/s/MeV]
     """
-    N_1MeV = amp * (1000.0 / e_piv)**index2   # ph/cm^2/s/keV at 1000 keV
-    return N_1MeV * 1000.0                     # convert to ph/cm^2/s/MeV
+    N_1MeV = amp * (1000.0 / e_piv) ** index2  # ph/cm^2/s/keV at 1000 keV
+    return N_1MeV * 1000.0  # convert to ph/cm^2/s/MeV
 
 
 def f1_from_band(amp, index1, index2, e_peak):
@@ -68,19 +69,22 @@ def f1_from_band(amp, index1, index2, e_peak):
     index2 : float  high-energy index (negative)
     e_peak : float  spectral peak energy [keV]
     """
-    E = 1000.0   # keV
+    E = 1000.0  # keV
     E_c = (index1 - index2) * e_peak / (index1 + 2)
     if E <= E_c:
-        N = amp * (E/100)**index1 * np.exp(-E*(2 + index1)/e_peak)
+        N = amp * (E / 100) ** index1 * np.exp(-E * (2 + index1) / e_peak)
     else:
-        N = (amp
-             * ((index1 - index2) * e_peak / ((index1 + 2) * 100))**(index1 - index2)
-             * np.exp(index2 - index1)
-             * (E/100)**index2)
-    return N * 1000.0   # ph/cm^2/s/MeV
+        N = (
+            amp
+            * ((index1 - index2) * e_peak / ((index1 + 2) * 100)) ** (index1 - index2)
+            * np.exp(index2 - index1)
+            * (E / 100) ** index2
+        )
+    return N * 1000.0  # ph/cm^2/s/MeV
 
 
 # ─── Gamma_min formula ───────────────────────────────────────────────────────
+
 
 def compute_gamma_min(alpha_LS, f_1, E_max_keV, delta_T_s, z):
     """
@@ -102,17 +106,13 @@ def compute_gamma_min(alpha_LS, f_1, E_max_keV, delta_T_s, z):
     d_L_cm = cosmo.luminosity_distance(z).cgs.value
     d_7Gpc = d_L_cm / (7.0 * 3.0857e27)
 
-    tau_hat = (2.1e11
-               * d_7Gpc**2
-               * (0.511)**(-alpha_LS + 1)
-               * f_1
-               / ((delta_T_s / 0.1) * (alpha_LS - 1)))
+    tau_hat = 2.1e11 * d_7Gpc**2 * (0.511) ** (-alpha_LS + 1) * f_1 / ((delta_T_s / 0.1) * (alpha_LS - 1))
 
-    e1 = 1.0 / (2*alpha_LS + 2)
-    e2 = (alpha_LS - 1) / (2*alpha_LS + 2)
+    e1 = 1.0 / (2 * alpha_LS + 2)
+    e2 = (alpha_LS - 1) / (2 * alpha_LS + 2)
     e3 = (alpha_LS - 1) / (alpha_LS + 1)
 
-    gamma_min = tau_hat**e1 * (E_max_keV/511.0)**e2 * (1+z)**e3
+    gamma_min = tau_hat**e1 * (E_max_keV / 511.0) ** e2 * (1 + z) ** e3
     return gamma_min, tau_hat
 
 
@@ -124,56 +124,56 @@ def compute_gamma_min(alpha_LS, f_1, E_max_keV, delta_T_s, z):
 
 grb_inputs = [
     {
-        "grb":       "GRB~080916C",
-        "z":          4.35,
-        "E_max_keV":  27428.8,          # 27.43 GeV — highest LAT photon
-        "t_arr_s":    40.503,            # arrival time [s]
-        "delta_T_s":  0.9,              # variability timescale [s]
-        "model":      "SBPL_BB",
-        "beta":       -2.251,           # index2_sbpl from T90 BEST
+        "grb": "GRB~080916C",
+        "z": 4.35,
+        "E_max_keV": 27428.8,  # 27.43 GeV — highest LAT photon
+        "t_arr_s": 40.503,  # arrival time [s]
+        "delta_T_s": 0.9,  # variability timescale [s]
+        "model": "SBPL_BB",
+        "beta": -2.251,  # index2_sbpl from T90 BEST
         # SBPL_BB spectral params (T90):
-        "amp":        0.010460,         # ph/cm^2/s/keV
-        "e_piv":      100.0,            # keV
-        "index2":     -2.251,
+        "amp": 0.010460,  # ph/cm^2/s/keV
+        "e_piv": 100.0,  # keV
+        "index2": -2.251,
         "spectral_type": "sbpl",
     },
     {
-        "grb":       "GRB~110721A",
-        "z":          0.3826,
-        "E_max_keV":  6652.84,          # 6.65 GeV
-        "t_arr_s":    4.496,
-        "delta_T_s":  1.344,            # TR1 duration
-        "model":      "BAND_BB",
-        "beta":       -2.728,           # index2_band from T90 BEST
+        "grb": "GRB~110721A",
+        "z": 0.3826,
+        "E_max_keV": 6652.84,  # 6.65 GeV
+        "t_arr_s": 4.496,
+        "delta_T_s": 1.344,  # TR1 duration
+        "model": "BAND_BB",
+        "beta": -2.728,  # index2_band from T90 BEST
         # BAND_BB spectral params (T90):
-        "amp":        0.016366,
-        "index1":     -1.247,
-        "index2":     -2.728,
-        "e_peak":     2120.290,         # keV
+        "amp": 0.016366,
+        "index1": -1.247,
+        "index2": -2.728,
+        "e_peak": 2120.290,  # keV
         "spectral_type": "band",
     },
     {
-        "grb":       "GRB~110731A",
-        "z":          2.83,
-        "E_max_keV":  965.33,           # 0.965 GeV
-        "t_arr_s":    5.521,
-        "delta_T_s":  1.984,            # TR2 duration
-        "model":      "SBPL",
-        "beta":       -2.320,           # index2_sbpl from T90 BEST
+        "grb": "GRB~110731A",
+        "z": 2.83,
+        "E_max_keV": 965.33,  # 0.965 GeV
+        "t_arr_s": 5.521,
+        "delta_T_s": 1.984,  # TR2 duration
+        "model": "SBPL",
+        "beta": -2.320,  # index2_sbpl from T90 BEST
         # SBPL spectral params (T90):
-        "amp":        0.041910,
-        "e_piv":      100.0,
-        "index2":     -2.320,
+        "amp": 0.041910,
+        "e_piv": 100.0,
+        "index2": -2.320,
         "spectral_type": "sbpl",
     },
     {
-        "grb":       "GRB~150210A",
-        "z":          None,             # unknown redshift
-        "E_max_keV":  1047.20,
-        "t_arr_s":    2.023,
-        "delta_T_s":  None,
-        "model":      "SBPL",
-        "beta":       -3.002,
+        "grb": "GRB~150210A",
+        "z": None,  # unknown redshift
+        "E_max_keV": 1047.20,
+        "t_arr_s": 2.023,
+        "delta_T_s": None,
+        "model": "SBPL",
+        "beta": -3.002,
         "spectral_type": "sbpl",
     },
 ]
@@ -202,19 +202,21 @@ for g in grb_inputs:
         gamma, tau_hat = compute_gamma_min(alpha_LS, f_1, g["E_max_keV"], g["delta_T_s"], g["z"])
         print(f"{g['grb']:<15} {alpha_LS:>9.3f} {f_1:>20.4e} {tau_hat:>12.3e} {gamma:>10.0f}")
 
-    results.append({
-        "GRB":           g["grb"],
-        "z":             g["z"],
-        "E_GeV":         g["E_max_keV"] / 1e3,
-        "t_arr_s":       g["t_arr_s"],
-        "t_v_s":         g["delta_T_s"],
-        "model":         g["model"],
-        "beta":          g["beta"],
-        "alpha_LS":      alpha_LS,
-        "f_1":           f_1,
-        "tau_hat":       tau_hat,
-        "Gamma_min":     gamma,
-    })
+    results.append(
+        {
+            "GRB": g["grb"],
+            "z": g["z"],
+            "E_GeV": g["E_max_keV"] / 1e3,
+            "t_arr_s": g["t_arr_s"],
+            "t_v_s": g["delta_T_s"],
+            "model": g["model"],
+            "beta": g["beta"],
+            "alpha_LS": alpha_LS,
+            "f_1": f_1,
+            "tau_hat": tau_hat,
+            "Gamma_min": gamma,
+        }
+    )
 
 # ─── SAVE CSV ────────────────────────────────────────────────────────────────
 
@@ -224,16 +226,18 @@ print("\nSaved: lorentz_results.csv")
 
 # ─── GENERATE LaTeX TABLE ────────────────────────────────────────────────────
 
+
 def fmt(val, fmt_str, fallback=r"\ldots"):
     return fallback if val is None else format(val, fmt_str)
 
+
 rows = ""
 for r in results:
-    z_str     = fmt(r["z"],         ".4f")
-    e_str     = fmt(r["E_GeV"],     ".2f")
-    tarr_str  = fmt(r["t_arr_s"],   ".2f")
-    tv_str    = fmt(r["t_v_s"],     ".3f")
-    beta_str  = f"${r['beta']:.3f}$"
+    z_str = fmt(r["z"], ".4f")
+    e_str = fmt(r["E_GeV"], ".2f")
+    tarr_str = fmt(r["t_arr_s"], ".2f")
+    tv_str = fmt(r["t_v_s"], ".3f")
+    beta_str = f"${r['beta']:.3f}$"
     gamma_str = fmt(r["Gamma_min"], ".0f")
     if r["Gamma_min"] is not None:
         gamma_str = f"${int(r['Gamma_min'])}$"
@@ -244,10 +248,10 @@ for r in results:
     if "110721A" in r["GRB"] and r["Gamma_min"] is not None:
         gamma_str += r"$^\dagger$"
 
-    rows += (f"    {r['GRB']} & ${z_str}$ & ${e_str}$ & "
-             f"${tarr_str}$ & ${tv_str}$ & {beta_str} & {gamma_str} \\\\\n")
+    rows += f"    {r['GRB']} & ${z_str}$ & ${e_str}$ & " f"${tarr_str}$ & ${tv_str}$ & {beta_str} & {gamma_str} \\\\\n"
 
-latex = r"""\begin{table}
+latex = (
+    r"""\begin{table}
 \centering
 \small
 \caption{Minimum bulk Lorentz factor $\Gamma_{\rm min}$ derived from
@@ -267,7 +271,9 @@ computed.}
 GRB & $z$ & $E_{\rm GeV}$ [GeV] & $t_{\rm arr}$ [s] &
     $t_{\rm v}$ [s] & $\beta$ & $\Gamma_{\rm min}$ \\
 \midrule
-""" + rows + r"""\midrule
+"""
+    + rows
+    + r"""\midrule
 \multicolumn{7}{l}{\footnotesize
     $^\dagger$ Interpreted with caution due to AGN
     contamination~\citep{Grupe2011GCN12212SwiftAfterglowCandidateGRB110721A}.} \\
@@ -275,6 +281,7 @@ GRB & $z$ & $E_{\rm GeV}$ [GeV] & $t_{\rm arr}$ [s] &
 \end{tabular}
 \end{table}
 """
+)
 
 with open("lorentz_table.tex", "w") as f:
     f.write(latex)
