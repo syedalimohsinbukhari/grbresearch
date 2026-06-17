@@ -13,6 +13,7 @@ import seaborn
 from matplotlib.patches import Ellipse
 from scipy import stats
 
+from . import Model
 from .grb_constants import MODEL_PARAMETERS, NOK_THRESHOLD, OK_THRESHOLD, model_n_pars
 from .grb_enums import GRBModelsCombinations, ModelStatus
 from .grb_time import EpisodeTypes
@@ -105,15 +106,16 @@ def flatten_results(res_total, include_covariance=True):
 
 def filter_covariance(cov_matrix, param_names):
     """Remove parameters with ~0 variance values from covariance matrix and names."""
+    cov_matrix = np.asarray(cov_matrix)
     diagonals = np.diag(cov_matrix)
-    keep_idx = [i for i, v in enumerate(diagonals.tolist()) if abs(float(v)) != 0.0]
+    keep_idx = [i for i, v in enumerate(diagonals.tolist()) if not float(v) == 0.0]
     filtered_cov = cov_matrix[np.ix_(keep_idx, keep_idx)]
     filtered_names = [param_names[i] for i in keep_idx]
     return filtered_cov, filtered_names, keep_idx
 
 
 def plot_covariance_corner(
-    means, cov_matrix, param_names, seed: Optional[int] = None, rng: Optional[np.random.Generator] = None
+    model: Model, seed: Optional[int] = None, rng: Optional[np.random.Generator] = None
 ):
     """
     Corner-style plot with histograms on the diagonal and covariance ellipses off-diagonal.
@@ -131,9 +133,23 @@ def plot_covariance_corner(
     rng : np.random.Generator, optional
         Random number generator instance for reproducibility.
     """
-    means = np.asarray(means)
-    cov_matrix = np.asarray(cov_matrix)
+    means = np.asarray([i.value for i in model.parameters], dtype=float)
+    cov_matrix = np.asarray(model.covariance_matrix_value, dtype=float)
+    param_names = [i.name for i in model.parameters]
+
+    if cov_matrix.ndim != 2 or cov_matrix.shape[0] != cov_matrix.shape[1]:
+        raise ValueError("cov_matrix must be a square 2D array")
+    if len(means) != cov_matrix.shape[0]:
+        raise ValueError("means length must match cov_matrix dimensions")
+    if len(param_names) != cov_matrix.shape[0]:
+        raise ValueError("param_names length must match cov_matrix dimensions")
+
+    cov_matrix, param_names, keep_idx = filter_covariance(cov_matrix, param_names)
+    means = means[keep_idx]
     n_params = len(param_names)
+
+    if n_params == 0:
+        raise ValueError("cov_matrix has no non-zero variance parameters to plot")
 
     # Get or create RNG
     if rng is not None:
@@ -146,6 +162,7 @@ def plot_covariance_corner(
     max_std = max(n_stds) + 1
 
     fig, axes = plt.subplots(n_params, n_params, figsize=(3 * n_params, 2.5 * n_params), constrained_layout=False)
+    axes = np.atleast_2d(axes)
 
     for i in range(n_params):
         for j in range(n_params):

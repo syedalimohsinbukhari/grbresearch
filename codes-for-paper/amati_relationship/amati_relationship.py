@@ -160,10 +160,10 @@ q.to_csv("amati_relationship.csv", index=False)
 # ---------------------------------------------------------------------------
 
 for a in ax[2:]:
-    a.set_xlabel(r"$E_{i,\mathrm{peak}}$ [keV]")
+    a.set_xlabel(r"$E_{i,\mathrm{peak}}^{3}$ [keV]")
     a.tick_params(axis="both")
 for a in ax[::2]:
-    a.set_ylabel(r"$E_\mathrm{iso}$ [erg]")
+    a.set_ylabel(r"$E_\mathrm{iso}^{52}$ [erg]")
     a.tick_params(axis="both")
 
 plt.tight_layout()
